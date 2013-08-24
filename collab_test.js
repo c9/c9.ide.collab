@@ -26,7 +26,13 @@ require(["lib/architect/architect", "lib/chai/chai"], function (architect, chai)
         {
             packagePath  : "plugins/c9.collab/collab"
         },
-        "plugins/c9.fs/vfs",
+        {
+            packagePath: "plugins/c9.vfs.client/vfs_client",
+            smithIo     : {
+                "prefix": "/smith.io/server"
+            }
+        },
+        "plugins/c9.ide.auth/auth",
         "plugins/c9.fs/fs",
         
         // Mock plugins
