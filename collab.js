@@ -43,7 +43,7 @@ define(function(require, exports, module) {
                 callback(null, collab);
             });
             
-            c9.on("state.change", function(e){
+            c9.on("stateChange", function(e){
                 if (e.state & c9.NETWORK) {
                     collab = null;
                 }
