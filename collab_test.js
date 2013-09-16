@@ -10,7 +10,6 @@ require(["lib/architect/architect", "lib/chai/chai"], function (architect, chai)
             workspaceId : "ubuntu/ip-10-35-77-180",
             startdate   : new Date(),
             debug       : true,
-            smithIo     : "{\"prefix\":\"/smith.io/server\"}",
             hosted      : true,
             local       : false,
             davPrefix   : "/"
@@ -29,7 +28,7 @@ require(["lib/architect/architect", "lib/chai/chai"], function (architect, chai)
         {
             packagePath: "plugins/c9.vfs.client/vfs_client",
             smithIo     : {
-                "prefix": "/smith.io/server"
+                "path": "/smith.io/server"
             }
         },
         "plugins/c9.ide.auth/auth",
