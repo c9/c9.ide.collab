@@ -16,7 +16,6 @@ require(["lib/architect/architect", "lib/chai/chai"], function (architect, chai)
         },
         
         "plugins/c9.core/ext",
-        "plugins/c9.core/events",
         "plugins/c9.core/http",
         "plugins/c9.core/util",
         "plugins/c9.ide.ui/lib_apf",
@@ -36,7 +35,7 @@ require(["lib/architect/architect", "lib/chai/chai"], function (architect, chai)
         
         // Mock plugins
         {
-            consumes : ["emitter", "ui"],
+            consumes : ["ui"],
             provides : [
                 "preferences"
             ],
