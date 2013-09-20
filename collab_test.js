@@ -22,7 +22,7 @@ require(["lib/architect/architect", "lib/chai/chai"], function (architect, chai)
         "plugins/c9.ide.ui/ui",
         "plugins/c9.core/settings",
         {
-            packagePath  : "plugins/c9.collab/collab"
+            packagePath  : "plugins/c9.ide.collab/collab"
         },
         {
             packagePath: "plugins/c9.vfs.client/vfs_client",
