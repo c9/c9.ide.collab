@@ -5,12 +5,12 @@
  * @license GPLv3 <http://www.gnu.org/licenses/gpl.txt>
  */
 define(function(require, exports, module) {
-    main.consumes = ["c9", "Plugin", "ext", "fs"];
+    main.consumes = ["c9", "plugin", "ext", "fs"];
     main.provides = ["collab"];
     return main;
 
     function main(options, imports, register) {
-        var Plugin   = imports.Plugin;
+        var Plugin   = imports.plugin;
         var c9       = imports.c9;
         var ext      = imports.ext;
         var fs       = imports.fs;
@@ -43,7 +43,7 @@ define(function(require, exports, module) {
                 callback(null, collab);
             });
             
-            c9.on("stateChange", function(e){
+            c9.on("state.change", function(e){
                 if (e.state & c9.NETWORK) {
                     collab = null;
                 }
