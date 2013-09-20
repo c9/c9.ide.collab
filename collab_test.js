@@ -10,34 +10,33 @@ require(["lib/architect/architect", "lib/chai/chai"], function (architect, chai)
             workspaceId : "ubuntu/ip-10-35-77-180",
             startdate   : new Date(),
             debug       : true,
-            smithIo     : "{\"prefix\":\"/smith.io/server\"}",
             hosted      : true,
             local       : false,
             davPrefix   : "/"
         },
         
         "plugins/c9.core/ext",
-        "plugins/c9.core/events",
         "plugins/c9.core/http",
         "plugins/c9.core/util",
         "plugins/c9.ide.ui/lib_apf",
         "plugins/c9.ide.ui/ui",
         "plugins/c9.core/settings",
         {
-            packagePath  : "plugins/c9.collab/collab"
+            packagePath  : "plugins/c9.ide.collab/collab"
         },
         {
             packagePath: "plugins/c9.vfs.client/vfs_client",
             smithIo     : {
-                "prefix": "/smith.io/server"
+                "path": "/smith.io/server"
             }
         },
+        "plugins/c9.vfs.client/endpoint.standalone",
         "plugins/c9.ide.auth/auth",
         "plugins/c9.fs/fs",
         
         // Mock plugins
         {
-            consumes : ["emitter", "ui"],
+            consumes : ["ui"],
             provides : [
                 "preferences"
             ],
