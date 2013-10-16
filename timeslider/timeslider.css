@@ -1,0 +1,160 @@
+#timeslider-top {
+    border-bottom: solid rgb(194, 194, 194) 1px;
+    width: 100%;
+    z-index: 10;
+    box-shadow: 0 -5px 10px rgba(22, 64, 80, 0.07) inset;
+}
+
+#timeslider {
+    height: 63px;
+    margin: 0 9px;
+}
+
+#timeslider #timer {
+    color: #fff;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    left: 7px;
+    position: absolute;
+    text-align: center;
+    top: 8px;
+    width: 122px;
+}
+
+#timeslider #timeslider-slider {
+    height: 61px;
+    left: 0;
+    position: absolute;
+    top: 10px;
+    width: 100%;
+}
+
+#playpause_button, #playpause_button_icon {
+    height: 47px;
+    position: absolute;
+    width: 47px;
+}
+
+#playpause_button {
+    background-image: url(images/play_undepressed.png);
+    left: 10px;
+    top: 9px;
+}
+
+#playpause_button_icon {
+    background-image: url(images/play.png);
+    left: 0;
+    top: 0;
+}
+
+.pause#playpause_button_icon {
+    background-image: url(images/pause.png)
+}
+
+#leftstep, #rightstep {
+    background: url(images/stepper_buttons.png) 0 0 no-repeat;
+    height: 21px;
+    overflow: hidden;
+    position: absolute;
+    top: 30px;
+    width: 30px;
+}
+
+#timesliderClose {
+    cursor: pointer;
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    display: block;
+    right: 5px;
+    top: 4px;
+    background-position: -28px 0;
+    background-image: url(../../plugins/c9.ide.layout.classic/images/close_tab_btn.png);
+    background-repeat: no-repeat;
+}
+
+#timeslider-close:hover {
+    background-position: -14px 0;
+}
+
+#leftstep {
+    background-position: 0 -22px;
+    right: 50px;
+}
+
+#rightstep {
+    background-position: -29px -22px;
+    right: 21px;
+}
+
+#timeslider .star {
+    background-image: url(images/star.png);
+    cursor: pointer;
+    height: 16px;
+    position: absolute;
+    top: 22px;
+    width: 15px;
+    z-index: 3;
+}
+
+#revision-info {
+    position: absolute;
+    left: 66px;
+    top: 10px;
+}
+
+#ui-slider-handle {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    cursor: pointer;
+    position: absolute;
+    top: 15px;
+    width: 9px;
+    z-index: 2;
+    background: rgb(64, 164, 211);
+    height: 28px;
+    border-radius: 4px;
+    box-shadow: 3px 3px 10px rgba(255,255,255,0.3) inset;
+    border: 1px solid rgb(87, 87, 87);
+}
+
+#ui-slider-handle span {
+    display: block;
+    position: absolute;
+    height: 17px;
+    width: 1px;
+    background: rgb(102, 102, 102);
+    top: 5px;
+    left: 4px;
+}
+
+.slider-bar-edge {
+    position: absolute;
+    width: 1px;
+    top: 18px;
+    height: 22px;
+    background-color: black;
+    z-index: 1
+}
+
+#slide-bar-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 26px;
+    height: 6px;
+    background-color: rgb(117, 117, 117);
+}
+
+#ui-slider-bar {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    cursor: pointer;
+    height: 35px;
+    margin-left: 65px;
+    margin-right: 95px;
+    position: relative;
+    top: 2px;
+}
