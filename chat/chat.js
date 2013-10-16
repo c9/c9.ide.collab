@@ -3,7 +3,7 @@ define(function(require, exports, module) {
 "use strict";
 
 main.consumes = ["Plugin", "c9", "ui", "apf", "collab", "jQuery"];
-    main.provides = ["collab"];
+    main.provides = ["chat"];
     return main;
 
     function main(options, imports, register) {
@@ -14,13 +14,16 @@ main.consumes = ["Plugin", "c9", "ui", "apf", "collab", "jQuery"];
         var util         = imports["collab.util"];
         var collab       = imports.collab;
 
-        var html         = require("./chat.html");
-        var css          = require("./chat.css");
+        var html         = require("text!./chat.html");
+        var css          = require("text!./chat.css");
+        var staticPrefix = options.staticPrefix;
 
         var jQuery       = imports.jQuery.$;
+
+        var plugin = new Plugin("Ajax.org", main.consumes);
+        var emit   = plugin.getEmitter();
         // require("./jquery.timeago");
         // var Tinycon = require('../lib/tinycon');
-        // var Collab = require("ext/collaborate/collaborate");
         var emoji = require("./my_emoji");
 
         var loaded = false;
@@ -29,7 +32,7 @@ main.consumes = ["Plugin", "c9", "ui", "apf", "collab", "jQuery"];
             loaded = true;
 
             collab.on("chatMessage", function (data) {
-                addMessage(data, true);
+                addMessage(data, data.increment);
             });
 
             collab.on("connect", function(workspace) {
@@ -52,7 +55,7 @@ main.consumes = ["Plugin", "c9", "ui", "apf", "collab", "jQuery"];
             drawn = true;
 
             ui.insertHtml(null, html, plugin);
-            ui.insertCss(css, plugin);
+            ui.insertCss(css, staticPrefix, plugin);
 
             var chatInputBox = jQuery("#chatinput");
             chatInputBox.keypress(function(evt) {

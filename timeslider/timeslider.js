@@ -2,20 +2,14 @@
 define(function(require, exports, module) {
     "use strict";
     
-    main.consumes = [
-        "Plugin", "c9", "ui", "ace", "menus", "commands", "tabManager", "save", "jQuery"
-    ];
+    main.consumes = ["Plugin", "c9", "ui", "jQuery"];
     main.provides = ["timeslider"];
     return main;
 
     function main(options, imports, register) {
-        var Plugin      = imports.Plugin;
+        var Plugin       = imports.Plugin;
         var c9           = imports.c9;
         var ui           = imports.ui;
-        var ace          = imports.ace;
-        var menus        = imports.menus;
-        var commands     = imports.commands;
-        var tabs         = imports.tabManager;
 
         var jQuery       = imports.jQuery.$;
 
@@ -31,7 +25,6 @@ define(function(require, exports, module) {
         var plugin   = new Plugin("Ajax.org", main.consumes);
         var emit     = plugin.getEmitter();
 
-        var tsVisibleKey      = "user/collab/@timeslidervisible";
         var sliderLength      = 1000;
         var sliderPos         = 0;
         var sliderActive      = false;
@@ -46,75 +39,6 @@ define(function(require, exports, module) {
         function load(callback){
             if (loaded) return false;
             loaded = true;
-
-            plugin.handleKeyboard = function(data, hashId, keystring) {
-                if (keystring == "esc") {
-                    forceHideSlider();
-                    return {command: "null"};
-                }
-            };
-
-            commands.addCommand({
-                name: "toggleTimeslider",
-                exec: toggleTimeslider,
-                isAvailable: timesliderAvailable
-            }, plugin);
-
-            commands.addCommand({
-                name: "forceToggleTimeslider",
-                exec: function(){
-                    var isVisible = settings.getBool(tsVisibleKey);
-                    settings.set(tsVisibleKey, !isVisible);
-                    toggleTimeslider();
-                },
-                isAvailable: timesliderAvailable
-            }, plugin);
-
-            var playbackItem = menus.addItemByPath("File/File Revision History...", new ui.item({
-                type: "check",
-                checked: "[{settings.model}::" + tsVisibleKey + "]",
-                command: "toggleTimeslider"
-            }), 600, plugin);
-
-            // right click context item in ace
-            var mnuCtxEditorFileHistory = new ui.item({
-                caption: "File History",
-                command: "forceToggleTimeslider"
-            }, plugin);
-    
-            ace.getElement("menu", function(menu) {
-                menus.addItemToMenu(menu, mnuCtxEditorFileHistory, 600, plugin);
-                menus.addItemToMenu(menu, new ui.divider(), 650, plugin);
-                menu.on("prop.visible", function(e) {
-                    // only fire when visibility is set to true
-                    if (e.value) {
-                        var editor = tabs.getPage().$editor;
-                        if (timesliderAvailable(editor))
-                            mnuCtxEditorFileHistory.enable();
-                        else
-                            mnuCtxEditorFileHistory.disable();
-                    }
-                });
-            });
-
-            tabs.on("paneDestroy", function (e){
-                if (!tabs.getPanes(tabs.container).length)
-                    forceHideSlider();
-            }, plugin);
-
-            save.on("beforeSave", function(e) {
-                if (isVisible)
-                    return false;
-            });
-
-            onSlider(function (revNum) {
-                var page = tabs.getPage();
-                var doc = Client.getDoc(getDocId(page.name));
-                if (!doc || !doc.ot || !timeslider.isVisible())
-                    return;
-
-                doc.ot.updateToRevNum(revNum);
-            });
         }
 
         var drawn = false;
@@ -260,53 +184,6 @@ define(function(require, exports, module) {
         }
 
         /***** Methods *****/
-
-        function toggleTimeslider() {
-            var page = tabs.getPage();
-            if (!page || !page.$doc)
-                return;
-            var doc = Client.getDoc(getDocId(page.name));
-            var aceEditor = page.$editor.amlEditor.$editor;
-            if (timeslider.isVisible()) {
-                timeslider.hide();
-                tabs.getPages().forEach(function (page) {
-                    var doc = Client.getDoc(getDocId(page.name));
-                    if (doc && doc.isInited) {
-                        doc.ot.updateToRevNum();
-                        page.$model.setQueryValue("@changed", doc.ot.isChanged() ? "1" : "0");
-                    }
-                });
-                aceEditor.keyBinding.removeKeyboardHandler(timeslider);
-                aceEditor.setReadOnly(!!c9.readonly);
-            }
-            else {
-                if (!doc || !doc.ot.otDoc || !doc.ot.otDoc.revisions[0])
-                    return;
-                // ide.dispatchEvent("track_action", {type: "timeslider"});
-                timeslider.show();
-                aceEditor.setReadOnly(true);
-                Client.setActiveDoc(doc.ot);
-                aceEditor.keyBinding.addKeyboardHandler(timeslider);
-            }
-            aceEditor.renderer.onResize(true);
-        }
-
-        function timesliderAvailable(editor){
-            if (!editor || editor.path != "ext/code/code")
-                return false;
-            var aceEditor = editor.amlEditor.$editor;
-            var collabDoc = aceEditor.session.collabDoc;
-            return collabDoc && collabDoc.isInited && collabDoc.ot.otDoc.revisions[0];
-        }
-
-
-        function forceHideSlider() {
-            var isVisible = settings.getBool(tsVisibleKey);
-            if (isVisible)
-                settings.set(tsVisibleKey, false);
-            if (timeslider.isVisible())
-                toggleTimeslider();
-        }
 
         function disableSelection(element) {
             element.onselectstart = function() {
@@ -502,7 +379,7 @@ define(function(require, exports, module) {
             return jQuery(".codeditorHolder .editor_tab");
         }
 
-        var isVisible;
+        var isVisible = false;
         var resizeInterval;
 
         function show() {

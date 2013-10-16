@@ -27,7 +27,7 @@
   width: 16px;
   height: 16px;
   padding-right: 5px;
-  background-image: url([%otStatic%]/chat_icon.png);
+  background-image: url(images/chat_icon.png);
   background-repeat: no-repeat;
   display: inline-block;
   vertical-align: middle;

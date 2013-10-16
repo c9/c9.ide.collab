@@ -118,12 +118,21 @@ define(function(require, exports, module) {
             return copy;
         }
 
+        function isRealCollab(workspace) {
+            var users = workspace.users;
+            var numUsers = Object.keys(users).length;
+            if (users["Anonymous"])
+                numUsers--;
+            return numUsers > 1;
+        }
+
         plugin.freezePublicAPI({
             escapeHtmlWithClickableLinks : escapeHtmlWithClickableLinks,
             escapeHTML                   : escapeHTML,
             formatColor                  : formatColor,
             reverseObject                : reverseObject,
-            cloneObject                  : cloneObject
+            cloneObject                  : cloneObject,
+            isRealCollab                 : isRealCollab
         });
         
         register(null, {

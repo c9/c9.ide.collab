@@ -1,16 +1,16 @@
 /*global define console document apf */
 define(function(require, module, exports) {
-    main.consumes = ["Plugin", "ace", "collab", "collab.connect", "collab.util", "timeslider",
+    main.consumes = ["Plugin", "ace", "collab.connect", "collab.util", "timeslider",
         "CursorLayer", "AuthorLayer"];
     main.provides = ["OTDocument"];
     return main;
 
     function main(options, imports, register) {
         var Plugin                = imports.Plugin;
-        var collab                = imports["collab"];
+        var ace                   = imports.ace;
+        var connect               = imports["collab.connect"];
         var util                  = imports["collab.util"];
         var timeslider            = imports.timeslider;
-        var ace                   = imports.ace;
         var CursorLayer           = imports.CursorLayer;
         var AuthorLayer           = imports.AuthorLayer;
 
@@ -24,20 +24,18 @@ define(function(require, module, exports) {
         var IndexCache            = require("./index_cache");
         var applyAuthorAttributes = require("./author_attributes")().apply;
 
-        function isReadOnly() {
-            return ace.ace.getReadOnly();
-        }
+        function OTDocument(docId, session, c9Document, workspace) {
 
-        function OTDocument(session, docId, c9Document) {
-
-            var plugin   = new Plugin("Ajax.org", main.consumes);
-            var emit     = plugin.getEmitter();
+            var plugin      = new Plugin("Ajax.org", main.consumes);
+            var emit        = plugin.getEmitter();
+            var cloneObject = util.cloneObject;
+            var DEBUG       = connect.DEBUG;
 
             // Set if the file was loaded using an http request
             var fsContents;
 
             var docStream;
-            var doc, fsHash, docHash, revisions;
+            var doc;
             var cursorLayer;
             var authorLayer;
 
@@ -49,11 +47,10 @@ define(function(require, module, exports) {
             var sendTimer;
             var cursorTimer;
 
-            var outgoing = [];
-            var incoming = [];
-            var isInited = false;
+            var outgoing      = [];
+            var isInited      = false;
             var ignoreChanges = false;
-            var packedCs = [];
+            var packedCs      = [];
 
             IndexCache(session.doc);
 
@@ -102,6 +99,10 @@ define(function(require, module, exports) {
 
             var state = "IDLE";
 
+            function isReadOnly() {
+                return c9Document.editor.ace.getReadOnly();
+            }
+
             function handleUserChanges (e) {
                 if (!isInited || ignoreChanges || isReadOnly())
                     return;
@@ -141,7 +142,6 @@ define(function(require, module, exports) {
 
                 if (data.action === "insertText" || data.action === "insertLines") {
                     var newText = data.text || (data.lines.join(nlCh) + nlCh);
-                    var workspace = collab.workspace;
                     /*if (aceDoc.fromDelta && aceDoc.fromDelta.authAttribs) {
                         var undoAuthAttribs = aceDoc.fromDelta.authAttribs;
                         var reversedAuthorPool = utils.reverseObject(workspace.authorPool);
@@ -209,7 +209,8 @@ define(function(require, module, exports) {
 
             function calculateDelay() {
                 var selections = cursorLayer.selections;
-                var config = ace.ace.renderer.layerConfig;
+                var aceEditor = c9Document.editor.ace;
+                var config = aceEditor.renderer.layerConfig;
 
                 var delay = MAX_DELAY;
 
@@ -261,7 +262,7 @@ define(function(require, module, exports) {
                     state = "COMMITTING";
                     var top = outgoing[0];
                     top.revNum = latestRevNum + 1;
-                    collab.send("EDIT_UPDATE", top);
+                    connect.send("EDIT_UPDATE", top);
                 }
                 if (DEBUG)
                     console.log("[OT] send took", new Date() - st, "ms");
@@ -285,14 +286,14 @@ define(function(require, module, exports) {
                 isInited = false;
 
                 if (data.err)
-                    return emit("joined", data.err);
+                    return emit("joined", {err: data.err});
 
                 if (data.chunkNum === 1)
                     docStream = "";
                 docStream += data.chunk;
 
                 if (data.chunkNum !== data.chunksLength)
-                    return emit("joinProgress", data.chunkNum, data.chunksLength);
+                    return emit("joinProgress", {loaded: data.chunkNum, total: data.chunksLength});
 
                 var dataDoc = JSON.parse(docStream);
                 docStream = null;
@@ -315,7 +316,7 @@ define(function(require, module, exports) {
                         authAttribs: cloneObject(doc.authAttribs)
                     };
                     latestContents = syncFileSystemState();
-                    cursorLayer = new CursorLayer(session);
+                    cursorLayer = new CursorLayer(session, workspace);
                     cursorTimer = setTimeout(changedSelection, 500);
                 }
 
@@ -323,21 +324,20 @@ define(function(require, module, exports) {
 
                 latestRevNum = dataDoc.revNum;
 
-                delete dataDoc.selections[collab.workspace.myOldClientId]; // in case of away
+                delete dataDoc.selections[workspace.myOldClientId]; // in case of away
 
                 cursorLayer.updateSelections(dataDoc.selections);
-                authorLayer = new AuthorLayer(session);
+                authorLayer = new AuthorLayer(session, workspace);
 
                 if (DEBUG)
                     console.log("[OT] init took", new Date() - st, "ms");
 
-                emit("joined", null, latestContents);
+                emit("joined", {contents: latestContents});
 
                 isInited = true;
             }
 
             function syncOfflineEdits(dataDoc) {
-                var workspace = collab.workspace;
                 var fromRevNum = latestRevNum + 1;
                 var revisions = dataDoc.revisions;
                 for (var i = fromRevNum; i < revisions.length; i++) {
@@ -391,7 +391,6 @@ define(function(require, module, exports) {
                         console.log("[OT] Syncing offline document edits", offlineOps);
 
                     packedCs = offlineOps;
-                    var workspace = collab.workspace;
                     var authorI = workspace.authorPool[workspace.myUserId];
                     applyAuthorAttributes(doc.authAttribs, offlineOps, authorI);
 
@@ -518,11 +517,11 @@ define(function(require, module, exports) {
             }
 
             function applyEdit(msg, editorDoc) {
-                if (timeslider.isVisible())
+                if (timeslider.visible)
                     return;
                 ignoreChanges = true;
                 applyAce(msg.op, editorDoc);
-                applyAuthorAttributes(doc.authAttribs, msg.op, collab.workspace.authorPool[msg.userId]);
+                applyAuthorAttributes(doc.authAttribs, msg.op, workspace.authorPool[msg.userId]);
                 authorLayer.refresh();
                 doc.revNum = msg.revNum;
                 // if (DEBUG > 1) {
@@ -536,28 +535,13 @@ define(function(require, module, exports) {
                 ignoreChanges = false;
             }
 
-            function selectionToData(selection) {
-                var data;
-                if (selection.rangeCount) {
-                    data = selection.rangeList.ranges.map(function(r){
-                        return [r.start.row, r.start.column,
-                            r.end.row, r.end.column, r.cursor == r.start];
-                    });
-                } else {
-                    var r = selection.getRange();
-                    data = [r.start.row, r.start.column,
-                        r.end.row, r.end.column, selection.isBackwards()];
-                }
-                return data;
-            }
-
             function changedSelection() {
                 cursorTimer = null;
-                var currentSel = Cursors.selectionToData(session.selection);
+                var currentSel = CursorLayer.selectionToData(session.selection);
                 if (lastSel && lastSel.join('') === currentSel.join(''))
                     return;
                 lastSel = currentSel;
-                _self.sendJSON("CURSOR_UPDATE", {
+                connect.send("CURSOR_UPDATE", {
                     docId: docId,
                     selection: lastSel
                 });
@@ -570,7 +554,7 @@ define(function(require, module, exports) {
                     return;
                 var sel = session.selection;
                 if (cursorTimer ||
-                    (lastSel && lastSel.join('') === selectionToData(sel).join('')))
+                    (lastSel && lastSel.join('') === CursorLayer.selectionToData(sel).join('')))
                     return;
                 // Don't send too many cursor change messages
                 cursorTimer = setTimeout(changedSelection, 200);
@@ -590,7 +574,7 @@ define(function(require, module, exports) {
                 // if (DEBUG > 1)
                 //     getRevWithContent(msg.revNum);
          
-                if (activeOT === _self && timeslider.isVisible())
+                if (activeOT === _self && timeslider.visible)
                     timeslider.sliderLength = msg.revNum;
             }
 
@@ -617,7 +601,6 @@ define(function(require, module, exports) {
 
                 var contents = revCache.contents;
                 var authAttribs = cloneObject(revCache.authAttribs);
-                var workspace = collab.workspace;
 
                 for (i = revCache.revNum+1; i <= revNum; i++) {
                     contents = applyContents(revs[i].operation, contents);
@@ -702,13 +685,13 @@ define(function(require, module, exports) {
                     break;
                 case "FILE_SAVED":
                     if (data.err) {
-                        emit("saved", data.err);
+                        emit("saved", {err: data.err});
                         break;
                     }
 
                     if (data.star)
                         doc.starRevNums.push(data.revNum);
-                    emit("saved", null, {
+                    emit("saved", {
                         star: data.star,
                         revision: doc.revisions[data.revNum],
                         clean: !outgoing.length && latestRevNum === data.revNum
@@ -754,7 +737,7 @@ define(function(require, module, exports) {
             }
 
             function doSave(silent) {
-                collab.send("SAVE_FILE", {
+                connect.send("SAVE_FILE", {
                     docId: docId,
                     silent: !!silent
                 });
@@ -794,10 +777,11 @@ define(function(require, module, exports) {
                 get session() { return session; },
                 get original() { return c9Document; },
                 get isInited() { return isInited; },
-                get fsHash() { return fsHash; },
-                get docHash() { return docHash; },
+                get fsHash() { return doc && doc.fsHash; },
+                get docHash() { return doc && doc.docHash; },
                 set fsContents(contents) { fsContents = contents; },
-                get revisions() { return revisions; },
+                get authAttribs() { return doc ? doc.authAttribs : []; },
+                get revisions() { return doc ? doc.revisions : []; },
                 get cursorLayer() { return cursorLayer; },
                 get authorLayer() { return authorLayer; },
                 get latestRevNum() { return latestRevNum; },

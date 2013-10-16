@@ -1,6 +1,6 @@
 /*global define console document apf */
 define(function(require, module, exports) {
-    main.consumes = ["Plugin", "ace", "settings", "collab.util", "collab", "timeslider"];
+    main.consumes = ["Plugin", "ace", "settings", "collab.util", "timeslider"];
     main.provides = ["CursorLayer"];
     return main;
 
@@ -9,7 +9,6 @@ define(function(require, module, exports) {
         var ace         = imports.ace;
         var settings    = imports.settings;
         var util        = imports["collab.util"];
-        var collab      = imports.collab;
         var timeslider  = imports.timeslider;
 
         var operations = require("./ot/operations");
@@ -18,13 +17,18 @@ define(function(require, module, exports) {
 
         // initialization
         var tooltipsInited = false;
-        ace.on("create", initTooltipEvents);
+        function initCursorLayer(collab) {
+            ace.on("create", function (e) {
+                initTooltipEvents(e.editor.ace, collab.workspace);
+            }, collab);
+        }
 
-        function CursorLayer(session) {
+        function CursorLayer(session, workspace) {
 
             var plugin   = new Plugin("Ajax.org", main.consumes);
             var emit     = plugin.getEmitter();
 
+            var tsRevNum;
             var tooltipIsOpen   = false;
             var selections      = {};
             var timeslideMarker = session.addDynamicMarker({ update: drawTimeSliderOperation }, false);
@@ -57,12 +61,12 @@ define(function(require, module, exports) {
             }
 
             function drawSelections(html, markerLayer, session, config) {
-                if (timeslider.isVisible())
+                if (timeslider.visible)
                     return;
                 var ranges = this.rangeList.ranges;
                 var screenRanges = [];
 
-                var bgColor = collab.workspace.colorPool[this.uid];
+                var bgColor = workspace.colorPool[this.uid];
 
                 if (!bgColor)
                     return console.error("[OT] selection can't find user's bg color");
@@ -87,15 +91,14 @@ define(function(require, module, exports) {
             }
 
             function drawTimeSliderOperation(html, markerLayer, session, config) {
-                if (!timeslider.isVisible())
+                if (!timeslider.visible)
                     return;
                 var revNum = timeslider.getSliderPosition();
                 if (!revNum)
                     return;
 
-                var collabDoc = session.collabDoc;
-                var otDoc = collabDoc.ot.otDoc;
-                var revision = otDoc.revisions[revNum];
+                var doc = session.collabDoc;
+                var revision = doc.revisions[revNum];
                 var uid = revision.author;
                 var bgColor;
                 var editorDoc = session.doc;
@@ -104,7 +107,7 @@ define(function(require, module, exports) {
                 if(uid == 0)
                     bgColor = {r: 150, g: 150, b: 150};
                 else
-                    bgColor = collab.workspace.colorPool[uid];
+                    bgColor = workspace.colorPool[uid];
 
                 if(!bgColor)
                     return console.error("[OT] timeslider can't find user's bg color");
@@ -132,7 +135,7 @@ define(function(require, module, exports) {
                 }
 
                 function scrollToEdit(pos) {
-                    if (collabDoc.tsRevNum === revNum)
+                    if (tsRevNum === revNum)
                         return;
 
                     tabs.open({
@@ -147,7 +150,7 @@ define(function(require, module, exports) {
                         }
                     }, function () {});
 
-                    collabDoc.tsRevNum = revNum;
+                    tsRevNum = revNum;
                 }
 
                 function renderInsert(index, length) {
@@ -295,7 +298,7 @@ define(function(require, module, exports) {
                 // create new tooltip if this is the first time
                 if (!selection.tooltip) {
                     var uid = selection.uid;
-                    var userObj = collab.workspace.users[uid];
+                    var userObj = workspace.users[uid];
                     if (!userObj)
                         return;
                     drawTooltip(selection, userObj.fullname);
@@ -345,11 +348,9 @@ define(function(require, module, exports) {
         var editorTooltipIsOpen = false;
         var cursorTooltipTimeout;
 
-        function initTooltipEvents(e) {
+        function initTooltipEvents(editor, workspace) {
             if (tooltipsInited) return;
             tooltipsInited = true;
-
-            var editor = e.editor;
 
             var mousePos;
             editor.addEventListener("mousemove", function(e) {
@@ -367,16 +368,16 @@ define(function(require, module, exports) {
                 clearTimeout(cursorTooltipTimeout);
                 cursorTooltipTimeout = null;
                 var collabDoc = editor.session.collabDoc;
-                if (collabDoc && collabDoc.isInited && collabDoc.cursors.tooltipIsOpen)
-                    collabDoc.cursors.hideAllTooltips();
+                if (collabDoc && collabDoc.isInited && collabDoc.cursorLayer.tooltipIsOpen)
+                    collabDoc.cursorLayer.hideAllTooltips();
             });
 
             function updateTooltips() {
                 cursorTooltipTimeout = null;
                 var collabDoc = editor.session.collabDoc;
-                if (!collabDoc || !collabDoc.isInited || !collabDoc.cursors.selections || timeslider.isVisible())
+                if (!collabDoc || !collabDoc.isInited || timeslider.visible)
                     return;
-                var cursors = collabDoc.cursors;
+                var cursorLayer = collabDoc.cursorLayer;
                 var renderer = editor.renderer;
                 var canvasPos = renderer.scroller.getBoundingClientRect();
                 var screenPos = renderer.pixelToScreenCoordinates(mousePos.x, mousePos.y);
@@ -420,8 +421,7 @@ define(function(require, module, exports) {
                 }
 
                 var clientId, tooltipIsOpen;
-                var selections = cursors.selections;
-                var workspace = collab.workspace;
+                var selections = cursorLayer.selections;
                 for (clientId in selections) {
                     var selection = selections[clientId];
                     var user = workspace.users[selection.uid];
@@ -443,9 +443,9 @@ define(function(require, module, exports) {
 
                     if (tooltipPos) {
                         tooltipIsOpen = true;
-                        cursors.showTooltip(selection, user, screenToPixelPos(tooltipPos));
+                        cursorLayer.showTooltip(selection, user, screenToPixelPos(tooltipPos));
                     } else if (selection.tooltipIsOpen) {
-                        cursors.hideTooltip(selection);
+                        cursorLayer.hideTooltip(selection);
                     }
                 }
 
@@ -463,6 +463,24 @@ define(function(require, module, exports) {
                 return true;
             }
         }
+
+        function selectionToData(selection) {
+            var data;
+            if (selection.rangeCount) {
+                data = selection.rangeList.ranges.map(function(r){
+                    return [r.start.row, r.start.column,
+                        r.end.row, r.end.column, r.cursor == r.start];
+                });
+            } else {
+                var r = selection.getRange();
+                data = [r.start.row, r.start.column,
+                    r.end.row, r.end.column, selection.isBackwards()];
+            }
+            return data;
+        }
+
+        CursorLayer.initCursorLayer = initCursorLayer;
+        CursorLayer.selectionToData = selectionToData;
 
         register(null, {
             CursorLayer: CursorLayer

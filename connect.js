@@ -97,8 +97,8 @@ define(function(require, exports, module) {
                 }
                 collab = api;
 
-                emit("available", null, collab);
-                callback(null, collab);
+                emit("available");
+                callback();
             });
         }
 
@@ -171,14 +171,16 @@ define(function(require, exports, module) {
 
                 var stream = meta.stream;
                 var isClosed = false;
-                function onData(data){
+                function onData(data) {
+                    data = JSON.parse(data);
                     if (DEBUG)
-                        console.log("[OT] RECEIVED FROM SERVER", msg);
+                        console.log("[OT] RECEIVED FROM SERVER", data);
                     emit("message", data);
                 }
                 function onConnect(data) {
+                    data = JSON.parse(data);
                     if (DEBUG)
-                        console.log("[OT] RECEIVED FROM SERVER", msg);
+                        console.log("[OT] RECEIVED FROM SERVER", data);
                     if (data.type !== "CONNECT")
                         return console.error("[OT] Invalid connect data !", data);
                     connected  = true;
@@ -212,9 +214,9 @@ define(function(require, exports, module) {
             if (typeof arguments[0] !== "object")
                 msg = {type: arguments[0], data: arguments[1]};
             if (!connected)
-                return console.log("[OT] Collab not connected - SKIPPING ", util.cloneObject(msg));
+                return console.log("[OT] Collab not connected - SKIPPING ", msg);
             if (DEBUG)
-                console.log("[OT] SENDING TO SERVER", util.cloneObject(msg));
+                console.log("[OT] SENDING TO SERVER", msg);
             collab.send("abc", msg);
         }
 
@@ -312,7 +314,7 @@ define(function(require, exports, module) {
         });
         
         register(null, {
-            collab: plugin
+            "collab.connect": plugin
         });
     }
 });

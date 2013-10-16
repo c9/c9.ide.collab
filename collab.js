@@ -3,7 +3,8 @@
 define(function(require, exports, module) {
 
 main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
-        "collab.util", "collab.connect", "timeslider", "chat", "OTDocument"];
+        "settings", "menus", "commands", "save", "ace", "timeslider",
+        "collab.util", "collab.connect", "OTDocument", "AuthorLayer", "CursorLayer"];
     main.provides = ["collab"];
     return main;
 
@@ -14,15 +15,25 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
         var fs           = imports.fs;
         var apf          = imports.apf;
         var ui           = imports.ui;
+        var settings     = imports.settings;
+        var menus        = imports.menus;
+        var commands     = imports.commands;
+        var save         = imports.save;
+        var ace          = imports.ace;
         var util         = imports["collab.util"];
         var connect      = imports["collab.connect"];
         var timeslider   = imports.timeslider;
-        var chat         = imports.chat;
         var OTDocument   = imports.OTDocument;
+        var AuthorLayer  = imports.AuthorLayer;
+        var CursorLayer  = imports.CursorLayer;
+
+        var Notification = {showNotification: function() {console.warn("TODO showNotification:", arguments);}};
 
         var plugin          = new Plugin("Ajax.org", main.consumes);
         var emit            = plugin.getEmitter();
 
+        var activeDocument;
+        var tsVisibleKey    = "user/collab/@timeslider-visible";
         var Docs            = {};
         var workspace       = { authorPool: {}, colorPool: {}, users: {} };
 
@@ -45,62 +56,101 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
                 leaveAll();
             }, false);
 
-            // TODO: from here
-            tabs.on("someCloseEvent", function(e) {
+            tabs.on("tabDestroy", function(e) {
                 leaveDocument(e.tab.path);
             }, plugin);
 
-            tabs.on("tab.afterswitch", function(e) {
-                var page = e.nextPage;
-                var doc = Client.getDoc(page.name);
-                if (!doc || !doc.ot)
-                    return;
+            tabs.on("focusSync", function(e) {
+                setActiveDocument(Docs[e.tab.path]);
+            }, plugin);
 
-                if (doc.isInited) {
-                    activeDoc = doc.ot;
-                    if (!doc.revisions[0])
+            AuthorLayer.initAuthorLayer(plugin);
+            CursorLayer.initCursorLayer(plugin);
+
+            // Timeslider logic (can't be moved to timeslider.js because of a dependency cycle)
+            var timesliderKeyboardHandler = {
+                handleKeyboard: function(data, hashId, keystring) {
+                    if (keystring == "esc") {
                         forceHideSlider();
+                        return {command: "null"};
+                    }
                 }
+            };
+
+            commands.addCommand({
+                name: "toggleTimeslider",
+                exec: toggleTimeslider,
+                isAvailable: timesliderAvailable
             }, plugin);
 
-            tabs.on("tab.beforeswitch", function(e) {
-                var editor = Editors.currentEditor && Editors.currentEditor.amlEditor && Editors.currentEditor.amlEditor.$editor;
-                if(!editor)
-                    return;
-                clearTimeout(editor.cursorTooltipTimeout);
-                delete editor.cursorTooltipTimeout;
-                clearTimeout(editor.authorTooltipTimeout);
-                delete editor.authorTooltipTimeout;
-                var collabDoc = editor.session.collabDoc;
-                if (collabDoc && collabDoc.isInited && collabDoc.cursors.tooltipIsOpen)
-                    collabDoc.cursors.hideAllTooltips();
+            commands.addCommand({
+                name: "forceToggleTimeslider",
+                exec: function(){
+                    var isVisible = settings.getBool(tsVisibleKey);
+                    settings.set(tsVisibleKey, !isVisible);
+                    toggleTimeslider();
+                },
+                isAvailable: timesliderAvailable
             }, plugin);
 
-            function updateSettings() {
-                var page = tabs.focussedTab;
-                if (!page)
+            menus.addItemByPath("File/File Revision History...", new ui.item({
+                type: "check",
+                checked: "[{settings.model}::" + tsVisibleKey + "]",
+                command: "toggleTimeslider"
+            }), 600, plugin);
+
+            settings.on("read", function () {
+                // force-hide-timeslider with initial loading
+                settings.set(tsVisibleKey, false);
+            }, plugin);
+
+            // right click context item in ace
+            var mnuCtxEditorFileHistory = new ui.item({
+                caption: "File History",
+                command: "forceToggleTimeslider"
+            }, plugin);
+
+            ace.getElement("menu", function(menu) {
+                menus.addItemToMenu(menu, mnuCtxEditorFileHistory, 600, plugin);
+                menus.addItemToMenu(menu, new ui.divider(), 650, plugin);
+                menu.on("prop.visible", function(e) {
+                    // only fire when visibility is set to true
+                    if (e.value) {
+                        var editor = tabs.getPage().$editor;
+                        if (timesliderAvailable(editor))
+                            mnuCtxEditorFileHistory.enable();
+                        else
+                            mnuCtxEditorFileHistory.disable();
+                    }
+                });
+            });
+
+            tabs.on("paneDestroy", function (e){
+                if (!tabs.getPanes(tabs.container).length)
+                    forceHideSlider();
+            }, plugin);
+
+            tabs.on("focusSync", function(e) {
+                var docId = e.tab.path;
+                var doc = Docs[docId];
+                if (timeslider.visible && (!doc || !doc.isInited || !doc.revisions || !doc.revisions[0]))
+                    forceHideSlider();
+            }, plugin);
+
+            save.on("beforeSave", function(e) {
+                if (timeslider.visible)
+                    return false;
+            }, plugin);
+
+            timeslider.onSlider(function (revNum) {
+                var tab = tabs.focussedTab;
+                var doc = Docs[tab.path];
+                if (!doc || !timeslider.visible)
                     return;
-                var doc = Client.getDoc(page.name);
-                if (!doc || !doc.isInited)
-                    return;
-                if (doc.authorLayer)
-                    doc.authorLayer.refresh();
-                var aceEditor = page.editor.ace;
-                if (aceEditor.tooltip)
-                    aceEditor.tooltip.style.display = "none";
-            }
 
-            // ide.addEventListener("settings.save", updateSettings);
-            // settings.model.addEventListener("update", updateSettings);
-
-            // ide.addEventListener("settings.load", function(e){
-            //     settings.setDefaults("general", [["timeslidervisible", "false"]]);
-
-            //     // Can't initially open the timeslider -- the Collab client is probably not yet connected
-            //     settings.model.setQueryValue("general/@timeslidervisible", "false");
-
-            //     updateSettings();
-            // });
+                doc.updateToRevNum(revNum);
+            });
+            // End of timeslider logic
         }
 
         function onDisconnect() {
@@ -126,7 +176,7 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
             for (var docId in Docs)
                 connect.send("JOIN_DOC", { docId: docId });
 
-            throbNotification(null, e.err || "Collab connected");
+            throbNotification(null, msg.err || "Collab connected");
             emit("connect", workspace);
         }
 
@@ -152,6 +202,7 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
 
             switch (type){
                 case "CHAT_MESSAGE":
+                    data.increment = true;
                     emit("chatMessage", data);
                     break;
                 case "USER_JOIN":var user = data && data.userId && _self.getUser(data.userId);
@@ -166,7 +217,7 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
                     chatNotification(user, "went offline");
                     break;
                 case "LEAVE_DOC":
-                    doc && doc.ot.leave(data.clientId);
+                    doc && doc.leave(data.clientId);
                     // throbNotification(user, "closed file: " + data.docId);
                     chatNotification(user, "closed file: ", data.docId);
                     break;
@@ -176,13 +227,13 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
                         chatNotification(user, "opened file: ", data.docId);
                         break;
                     }
-                    doc.ot.joinData(data);
+                    doc.joinData(data);
                     break;
                 default:
                     if (!doc)
                         return console.error("[OT] Received msg for unknown docId", docId, msg);
                     if (doc.isInited)
-                        doc.ot.handleMessage(msg);
+                        doc.handleMessage(msg);
                     else
                         console.warn("[OT] Doc ", docId, " not yet inited - MSG:", msg);
             }
@@ -195,19 +246,18 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
             var aceEditor = document.editor.ace;
             var session = document.getSession().session;
 
-            var doc = new OTDocument(docId, session, document);
-            session.collabDoc = doc;
+            var doc = session.collabDoc = Docs[docId] = new OTDocument(docId, session, document, workspace);
 
             if (progress) {
                 doc.on("joinProgress", progress);
-                doc.once("joined", function(){
-                    callback.apply(null, arguments);
+                doc.once("joined", function(e){
+                    callback(e.err, e.contents);
                     doc.off("joinProgress", progress);
                 });
             }
 
-            doc.once("joined", function(err){
-                emit("documentLoaded", err, doc);
+            doc.once("joined", function(e){
+                emit("documentLoaded", {err: e.err, doc: doc});
             });
 
             // test late join - document syncing - best effort
@@ -228,8 +278,8 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
             var doc = Docs[docId];
             doc.dispose();
 
-            if (activeDoc === doc)
-                activeDoc = null;
+            if (activeDocument === doc)
+                activeDocument = null;
 
             delete Docs[docId];
         }
@@ -238,7 +288,7 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
             var doc = Docs[docId];
             doc.once("saved", function (err, saveData) {
                 callback.apply(null, arguments);
-                emit("documentSaved", err, saveData);
+                emit("documentSaved", {err: err, data: saveData});
             });
             doc.save();
         }
@@ -262,14 +312,6 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
         };
         */
 
-        var activeDoc;
-
-        function setActiveDoc(doc) {
-            activeDoc = doc;
-            if (timeslider.visible)
-                doc.loadTimeslider();
-        }
-
         function isReadOnly() {
             return !!(c9.readonly || timeslider.visible);
         }
@@ -292,7 +334,7 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
         function afterReadFile(e) {
             var path = e.path;
             var tab = tabs.findTab(path);
-            var doc = getDocument(path);
+            var doc = Docs[path];
             if (!tab || !doc || doc.isInited)
                 return;
             var httpLoadedValue = tab.document.value;
@@ -305,7 +347,7 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
         function beforeWriteFile(e) {
             var path = e.path;
             var tab = tabs.findTab(path);
-            var doc = getDocument(path);
+            var doc = Docs[path];
             if (!tab || timeslider.visible || !connect.connected || !doc || !doc.isInited)
                 return;
             var args = e.args;
@@ -329,15 +371,16 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
         plugin.on("documentLoaded", onDocumentLoaded, plugin);
         plugin.on("documentSaved", onDocumentSaved, plugin);
 
-        function onDocumentLoaded(err, doc) {
-            if (err)
+        function onDocumentLoaded(e) {
+            if (e.err)
                 return console.error("JOIN_DOC Error:", err);
 
+            var doc = e.doc;
             var original = doc.original;
             var tab = original.tab;
 
             if (tabs.focussedTab === tab) {
-                activeDoc = doc;
+                activeDocument = doc;
                 doc.authorLayer.refresh();
             }
 
@@ -349,9 +392,10 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
             }
         }
 
-        function onDocumentSaved(err, data) {
-            if (err)
+        function onDocumentSaved(e) {
+            if (e.err)
                 return;
+            var data = e.data;
             var tab = tabs.findTab(data.docId);
             if (!tab)
                 return;
@@ -368,7 +412,7 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
 
             var chatName = ui.escapeXML(user.fullname);
             var md5Email = user.email && apf.crypto.MD5.hex_md5(user.email.trim().toLowerCase());
-            var defaultImgUrl = encodeURIComponent(c9.staticPrefix + "/ext/collaborate/images/room_collaborator_default-white.png");
+            var defaultImgUrl = encodeURIComponent(c9.staticUrl + "/c9.ide.collab/images/collaborator_default-white.png");
             console.log("Collab:", user.fullname, msg);
             Notification.showNotification('<img class="gravatar-image" src="https://secure.gravatar.com/avatar/' +
                 md5Email + '?s=26&d='  + defaultImgUrl + '" /><span>' +
@@ -397,13 +441,87 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
                 };
                 increment = true;
             }
-            chat.addMessage(notif, increment);
+            notif.increment = increment;
+            emit("chatMessage", notif);
         }
 
+        function setActiveDocument(doc) {
+            if (activeDocument && activeDocument.isInited)
+                activeDocument.cursorLayer.hideAllTooltips();
+            activeDocument = doc;
+            if (doc && timeslider.visible)
+                doc.loadTimeslider();
+        }
+
+        function getUser(uid) {
+            return workspace.users[uid];
+        }
+
+        // Timeslider-specific logic
+        function toggleTimeslider() {
+            var tab = tabs.focussedTab;
+            if (!tab || !tab.path)
+                return;
+            var doc = Docs[tab.path];
+            var aceEditor = tab.editor.ace;
+            if (timeslider.visible) {
+                hide();
+                if (doc && doc.isInited) {
+                    doc.updateToRevNum();
+                    if (doc.changed)
+                        tab.className.add("changed");
+                    else
+                        tab.className.remove("changed");
+                }
+                aceEditor.keyBinding.removeKeyboardHandler(timesliderKeyboardHandler);
+                aceEditor.setReadOnly(!!c9.readonly);
+            }
+            else {
+                if (!doc || !doc.revisions[0])
+                    return;
+                // ide.dispatchEvent("track_action", {type: "timeslider"});
+                timeslider.show();
+                aceEditor.setReadOnly(true);
+                collab.activeDocument = doc;
+                aceEditor.keyBinding.addKeyboardHandler(timesliderKeyboardHandler);
+            }
+            aceEditor.renderer.onResize(true);
+        }
+
+        function timesliderAvailable(editor){
+            if (!editor || editor.path != "ext/code/code")
+                return false;
+            var aceEditor = editor.ace;
+            var collabDoc = aceEditor.session.collabDoc;
+            return collabDoc && collabDoc.isInited && collabDoc.revisions[0];
+        }
+
+        function forceHideSlider() {
+            var isVisible = settings.getBool(tsVisibleKey);
+            if (isVisible) {
+                settings.set(tsVisibleKey, false);
+                toggleTimeslider();
+            }
+        }
+
+        /***** Lifecycle *****/
         // Make sure the available event is always called
         plugin.on("newListener", function(event, listener){
             if (event == "connect" && connect.connected)
                 listener(workspace);
+        });
+
+        plugin.on("load", function(){
+            load();
+        });
+        plugin.on("enable", function(){
+
+        });
+        plugin.on("disable", function(){
+
+        });
+        plugin.on("unload", function(){
+            loaded = false;
         });
 
         plugin.freezePublicAPI({
@@ -411,9 +529,11 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
             get connected() { return connect.connected; },
             get DEBUG()     { return connect.DEBUG; },
             get workspace() { return workspace; },
+            get activeDocument() { return activeDocument; },
+            set activeDocument(doc) { setActiveDocument(doc); },
 
             getDocument  : function (docId) { return Docs[docId]; },
-            getUser      : function (uid)   { return workspace.users[uid]; },
+            getUser      : function (uid)   { return getUser(uid); },
             getUserColor : function (uid)   { return (uid && util.formatColor(workspace.colorPool[uid])) || "transparent"; },
 
             send          : function() { return connect.send.apply(connect, arguments); },
