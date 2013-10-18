@@ -533,6 +533,9 @@ define(function(require, exports, module) {
             //     return;
             // var doc = getTabCollabDocument(tab);
             var doc = activeDocument;
+            if (!doc)
+                return;
+            var tab = doc.original.tab;
             var aceEditor = tab.editor.ace;
             if (isVisible) {
                 hide();

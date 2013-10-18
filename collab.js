@@ -187,9 +187,10 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
 
         function saveDocument (docId, callback) {
             var doc = Docs[docId];
-            doc.once("saved", function (err, saveData) {
-                callback.apply(null, arguments);
-                emit("documentSaved", {err: err, data: saveData});
+            doc.once("saved", function(e) {
+                callback(e.err);
+                e.doc = doc;
+                emit("documentSaved", e);
             });
             doc.save();
         }
@@ -293,15 +294,13 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
         function onDocumentSaved(e) {
             if (e.err)
                 return;
-            var data = e.data;
-            var tab = tabs.findTab(data.docId);
-            if (!tab)
-                return;
-            if (data.clean)
+            var doc = e.doc;
+            var tab = doc.original.tab;
+            if (e.clean)
                 //tab.document.undoManager.reset();
                 tab.className.remove("changed");
-            if (tabs.focussedTab === tab && timeslider.visible && data.star)
-                timeslider.addSavedRevision(data.revision);
+            if (e.star && timeslider.visible && timeslider.activeDocument === doc)
+                timeslider.addSavedRevision(e.revision);
         }
 
         function throbNotification(user, msg) {

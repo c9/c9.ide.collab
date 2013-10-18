@@ -281,6 +281,7 @@ define(function(require, module, exports) {
                 var state = c9Document.getState();
                 state.value = contents;
                 c9Document.setState(state);
+                c9Document.tab.className.remove("changed");
                 clearCs(contents.length);
             }
 
