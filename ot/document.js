@@ -271,7 +271,11 @@ define(function(require, module, exports) {
                     state = "COMMITTING";
                     var top = outgoing[0];
                     top.revNum = latestRevNum + 1;
+                    top.selection = lastSel = CursorLayer.selectionToData(session.selection);
                     connect.send("EDIT_UPDATE", top);
+                }
+                else {
+                    onCursorChange();
                 }
                 if (DEBUG)
                     console.log("[OT] send took", new Date() - st, "ms");
@@ -517,6 +521,8 @@ define(function(require, module, exports) {
                     cursorLayer.setInsertRight(msg.clientId, true);
                 }
                 latestRevNum = msg.revNum;
+                if (msg.selection)
+                    cursors.updateSelection(msg);
                 if (DEBUG)
                     console.log("[OT] handleIncomingEdit took", new Date() - st, "ms", latestRevNum);
             }
@@ -558,8 +564,7 @@ define(function(require, module, exports) {
                 if (!isInited || ignoreChanges)
                     return;
                 var sel = session.selection;
-                if (cursorTimer ||
-                    (lastSel && lastSel.join('') === CursorLayer.selectionToData(sel).join('')))
+                if (cursorTimer)
                     return;
                 // Don't send too many cursor change messages
                 cursorTimer = setTimeout(changedSelection, 200);
