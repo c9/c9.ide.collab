@@ -2,7 +2,7 @@
 define(function(require, exports, module) {
     "use strict";
     
-    main.consumes = ["Plugin", "c9", "ui", "jQuery"];
+    main.consumes = ["Plugin", "c9", "ui", "ace", "tabManager", "settings", "menus", "commands", "save", "jQuery"];
     main.provides = ["timeslider"];
     return main;
 
@@ -10,6 +10,12 @@ define(function(require, exports, module) {
         var Plugin       = imports.Plugin;
         var c9           = imports.c9;
         var ui           = imports.ui;
+        var ace          = imports.ace;
+        var tabs         = imports.tabManager;
+        var settings     = imports.settings;
+        var menus        = imports.menus;
+        var commands     = imports.commands;
+        var save         = imports.save;
 
         var jQuery       = imports.jQuery.$;
 
@@ -17,8 +23,20 @@ define(function(require, exports, module) {
         var css          = require("text!./timeslider.css");
         var staticPrefix = options.staticPrefix;
 
+        var tsVisibleKey = "user/collab/@timeslider-visible";
+        // timeslider keyboard handler
+        var timesliderKeyboardHandler = {
+            handleKeyboard: function(data, hashId, keystring) {
+                if (keystring == "esc") {
+                    forceHideSlider();
+                    return {command: "null"};
+                }
+            }
+        };
+
         // ui elements
         var timesliderClose;
+        var activeDocument;
 
         /***** Initialization *****/
 
@@ -39,6 +57,89 @@ define(function(require, exports, module) {
         function load(callback){
             if (loaded) return false;
             loaded = true;
+
+            commands.addCommand({
+                name: "toggleTimeslider",
+                exec: toggleTimeslider,
+                isAvailable: timesliderAvailable
+            }, plugin);
+
+            commands.addCommand({
+                name: "forceToggleTimeslider",
+                exec: function(){
+                    var isVisible = settings.getBool(tsVisibleKey);
+                    settings.set(tsVisibleKey, !isVisible);
+                    toggleTimeslider();
+                },
+                isAvailable: timesliderAvailable
+            }, plugin);
+
+            menus.addItemByPath("File/File Revision History...", new ui.item({
+                type: "check",
+                checked: "[{settings.model}::" + tsVisibleKey + "]",
+                command: "toggleTimeslider"
+            }), 600, plugin);
+
+            settings.on("read", function () {
+                // force-hide-timeslider with initial loading
+                settings.set(tsVisibleKey, false);
+            }, plugin);
+
+            // right click context item in ace
+            var mnuCtxEditorFileHistory = new ui.item({
+                caption: "File History",
+                command: "forceToggleTimeslider"
+            }, plugin);
+
+            ace.getElement("menu", function(menu) {
+                menus.addItemToMenu(menu, mnuCtxEditorFileHistory, 600, plugin);
+                menus.addItemToMenu(menu, new ui.divider(), 650, plugin);
+                menu.on("prop.visible", function(e) {
+                    // only fire when visibility is set to true
+                    if (e.value) {
+                        var editor = tabs.focussedTab.editor;
+                        if (timesliderAvailable(editor))
+                            mnuCtxEditorFileHistory.enable();
+                        else
+                            mnuCtxEditorFileHistory.disable();
+                    }
+                });
+            });
+
+            tabs.on("paneDestroy", function (e){
+                if (!tabs.getPanes(tabs.container).length)
+                    forceHideSlider();
+            }, plugin);
+
+            tabs.on("tabDestroy", function(e) {
+                var doc = getTabCollabDocument(e.tab);
+                if (activeDocument === doc)
+                    activeDocument = null;
+            }, plugin);
+
+            tabs.on("focusSync", function(e) {
+                var doc = getTabCollabDocument(e.tab);
+                activeDocument = doc;
+                if (!isVisible)
+                    return;
+                if (!doc || !doc.isInited || !doc.revisions || !doc.revisions[0])
+                    forceHideSlider();
+                else
+                    doc.loadTimeslider();
+            }, plugin);
+
+            save.on("beforeSave", function(e) {
+                if (isVisible)
+                    return false;
+            }, plugin);
+
+            onSlider(function (revNum) {
+                var doc = activeDocument;
+                if (!doc || !isVisible)
+                    return;
+
+                doc.updateToRevNum(revNum);
+            });
         }
 
         var drawn = false;
@@ -422,6 +523,57 @@ define(function(require, exports, module) {
             drawn  = false;
         });
 
+        function getTabCollabDocument(tab) {
+            return tab.path && tab.document.getSession().session.collabDoc;
+        }
+
+        function toggleTimeslider() {
+            // var tab = tabs.focussedTab;
+            // if (!tab || !tab.path)
+            //     return;
+            // var doc = getTabCollabDocument(tab);
+            var doc = activeDocument;
+            var aceEditor = tab.editor.ace;
+            if (isVisible) {
+                hide();
+                if (doc && doc.isInited) {
+                    doc.updateToRevNum();
+                    if (doc.changed)
+                        tab.className.add("changed");
+                    else
+                        tab.className.remove("changed");
+                }
+                aceEditor.keyBinding.removeKeyboardHandler(timesliderKeyboardHandler);
+                aceEditor.setReadOnly(!!c9.readonly);
+            }
+            else {
+                if (!doc || !doc.revisions[0])
+                    return;
+                // ide.dispatchEvent("track_action", {type: "timeslider"});
+                show();
+                aceEditor.setReadOnly(true);
+                activeDocument = doc;
+                aceEditor.keyBinding.addKeyboardHandler(timesliderKeyboardHandler);
+            }
+            aceEditor.renderer.onResize(true);
+        }
+
+        function timesliderAvailable(editor){
+            if (!editor || editor.type !== "ace")
+                return false;
+            var aceEditor = editor.ace;
+            var collabDoc = aceEditor.session.collabDoc;
+            return collabDoc && collabDoc.isInited && collabDoc.revisions[0];
+        }
+
+        function forceHideSlider() {
+            var isVisible = settings.getBool(tsVisibleKey);
+            if (isVisible) {
+                settings.set(tsVisibleKey, false);
+                toggleTimeslider();
+            }
+        }
+
         /***** Register and define API *****/
 
         /**
@@ -431,6 +583,10 @@ define(function(require, exports, module) {
          **/
         plugin.freezePublicAPI({
             get visible() { return isVisible; },
+
+            get activeDocument() { return activeDocument; },
+            set activeDocument(doc) { activeDocument = doc; },
+
             get sliderLength() { return getSliderLength(); },
             set sliderLength(len) { setSliderLength(len); },
             get sliderPosition() { return getSliderPosition(); },

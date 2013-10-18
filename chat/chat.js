@@ -2,7 +2,7 @@
 define(function(require, exports, module) {
 "use strict";
 
-main.consumes = ["Plugin", "c9", "ui", "apf", "collab", "jQuery"];
+main.consumes = ["Plugin", "c9", "ui", "apf", "collab.util", "collab.workspace", "collab", "jQuery"];
     main.provides = ["chat"];
     return main;
 
@@ -12,6 +12,7 @@ main.consumes = ["Plugin", "c9", "ui", "apf", "collab", "jQuery"];
         var ui           = imports.ui;
         var apf          = imports.apf;
         var util         = imports["collab.util"];
+        var workspace    = imports["collab.workspace"];
         var collab       = imports.collab;
 
         var html         = require("text!./chat.html");
@@ -35,7 +36,7 @@ main.consumes = ["Plugin", "c9", "ui", "apf", "collab", "jQuery"];
                 addMessage(data, data.increment);
             });
 
-            collab.on("connect", function(workspace) {
+            workspace.on("connect", function() {
                 if (!/r/.test(workspace.fs))
                     return console.warn("Don't have read access - You can't use chat");
 
@@ -153,7 +154,6 @@ main.consumes = ["Plugin", "c9", "ui", "apf", "collab", "jQuery"];
             text = text.replace(/\n/g, '<br/>');
             text = emoji.emoji(text);
 
-            var workspace = collab.workspace;
             var user = workspace.users[msg.userId];
             var authorName = util.escapeHTML(user.fullname);
             var color = workspace.colorPool[msg.userId];

@@ -2,9 +2,9 @@
 "use strict";
 define(function(require, exports, module) {
 
-main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
-        "settings", "menus", "commands", "save", "ace", "timeslider",
-        "collab.util", "collab.connect", "OTDocument", "AuthorLayer", "CursorLayer"];
+main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
+        "ace", "timeslider", "collab.util", "collab.connect",
+        "collab.workspace",  "OTDocument", "AuthorLayer", "CursorLayer"];
     main.provides = ["collab"];
     return main;
 
@@ -14,14 +14,10 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
         var tabs         = imports.tabManager;
         var fs           = imports.fs;
         var apf          = imports.apf;
-        var ui           = imports.ui;
-        var settings     = imports.settings;
-        var menus        = imports.menus;
-        var commands     = imports.commands;
-        var save         = imports.save;
         var ace          = imports.ace;
         var util         = imports["collab.util"];
         var connect      = imports["collab.connect"];
+        var workspace    = imports["collab.workspace"];
         var timeslider   = imports.timeslider;
         var OTDocument   = imports.OTDocument;
         var AuthorLayer  = imports.AuthorLayer;
@@ -32,10 +28,7 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
         var plugin          = new Plugin("Ajax.org", main.consumes);
         var emit            = plugin.getEmitter();
 
-        var activeDocument;
-        var tsVisibleKey    = "user/collab/@timeslider-visible";
         var Docs            = {};
-        var workspace       = { authorPool: {}, colorPool: {}, users: {} };
 
         var loaded = false;
         function load() {
@@ -52,6 +45,14 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
             fs.on("beforeWriteFile", beforeWriteFile, plugin);
             fs.on("beforeRename", beforeRename, plugin);
 
+            ace.on("create", function () {
+                var tab = tabs.focussedTab;
+                if (!tab.path || Docs[tab.path])
+                    return;
+                var doc = joinDocument(tab.path, tab.document);
+                doc.fsContents = normalizeTextLT(tab.document.value);
+            });
+
             window.addEventListener("unload", function() {
                 leaveAll();
             }, false);
@@ -61,96 +62,16 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
             }, plugin);
 
             tabs.on("focusSync", function(e) {
-                setActiveDocument(Docs[e.tab.path]);
+                var tab = e.tab;
+                var path = tab.path;
+                if (!path || Docs[path])
+                    return;
+                var doc = joinDocument(tab.path, tab.document);
+                doc.fsContents = normalizeTextLT(tab.document.value);
             }, plugin);
 
             AuthorLayer.initAuthorLayer(plugin);
             CursorLayer.initCursorLayer(plugin);
-
-            // Timeslider logic (can't be moved to timeslider.js because of a dependency cycle)
-            var timesliderKeyboardHandler = {
-                handleKeyboard: function(data, hashId, keystring) {
-                    if (keystring == "esc") {
-                        forceHideSlider();
-                        return {command: "null"};
-                    }
-                }
-            };
-
-            commands.addCommand({
-                name: "toggleTimeslider",
-                exec: toggleTimeslider,
-                isAvailable: timesliderAvailable
-            }, plugin);
-
-            commands.addCommand({
-                name: "forceToggleTimeslider",
-                exec: function(){
-                    var isVisible = settings.getBool(tsVisibleKey);
-                    settings.set(tsVisibleKey, !isVisible);
-                    toggleTimeslider();
-                },
-                isAvailable: timesliderAvailable
-            }, plugin);
-
-            menus.addItemByPath("File/File Revision History...", new ui.item({
-                type: "check",
-                checked: "[{settings.model}::" + tsVisibleKey + "]",
-                command: "toggleTimeslider"
-            }), 600, plugin);
-
-            settings.on("read", function () {
-                // force-hide-timeslider with initial loading
-                settings.set(tsVisibleKey, false);
-            }, plugin);
-
-            // right click context item in ace
-            var mnuCtxEditorFileHistory = new ui.item({
-                caption: "File History",
-                command: "forceToggleTimeslider"
-            }, plugin);
-
-            ace.getElement("menu", function(menu) {
-                menus.addItemToMenu(menu, mnuCtxEditorFileHistory, 600, plugin);
-                menus.addItemToMenu(menu, new ui.divider(), 650, plugin);
-                menu.on("prop.visible", function(e) {
-                    // only fire when visibility is set to true
-                    if (e.value) {
-                        var editor = tabs.getPage().$editor;
-                        if (timesliderAvailable(editor))
-                            mnuCtxEditorFileHistory.enable();
-                        else
-                            mnuCtxEditorFileHistory.disable();
-                    }
-                });
-            });
-
-            tabs.on("paneDestroy", function (e){
-                if (!tabs.getPanes(tabs.container).length)
-                    forceHideSlider();
-            }, plugin);
-
-            tabs.on("focusSync", function(e) {
-                var docId = e.tab.path;
-                var doc = Docs[docId];
-                if (timeslider.visible && (!doc || !doc.isInited || !doc.revisions || !doc.revisions[0]))
-                    forceHideSlider();
-            }, plugin);
-
-            save.on("beforeSave", function(e) {
-                if (timeslider.visible)
-                    return false;
-            }, plugin);
-
-            timeslider.onSlider(function (revNum) {
-                var tab = tabs.focussedTab;
-                var doc = Docs[tab.path];
-                if (!doc || !timeslider.visible)
-                    return;
-
-                doc.updateToRevNum(revNum);
-            });
-            // End of timeslider logic
         }
 
         function onDisconnect() {
@@ -167,29 +88,18 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
         }
 
         function onConnectMsg(msg) {
-            if (workspace.myClientId !== msg.data.myClientId)
-                workspace.myOldClientId = workspace.myClientId;
-            else
-                workspace.myOldClientId = null;
-            syncWorkspace(msg.data);
+            workspace.sync(msg.data, true);
 
             for (var docId in Docs)
                 connect.send("JOIN_DOC", { docId: docId });
 
             throbNotification(null, msg.err || "Collab connected");
-            emit("connect", workspace);
-        }
-
-        function syncWorkspace(data) {
-            var wsIgnore = {clientId: true, userId: true};
-            for (var key in data)
-                if (!wsIgnore[key])
-                    workspace[key] = data[key];
+            emit("connect");
         }
 
         function onMessage(msg) {
             var data = msg.data || {};
-            var user = data && data.userId && getUser(data.userId);
+            var user = data && data.userId && workspace.getUser(data.userId);
             var type = msg.type;
             var docId = data.docId;
             var doc = Docs[docId];
@@ -205,8 +115,8 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
                     data.increment = true;
                     emit("chatMessage", data);
                     break;
-                case "USER_JOIN":var user = data && data.userId && _self.getUser(data.userId);
-                    syncWorkspace(data);
+                case "USER_JOIN":
+                    workspace.sync(data);
                     emit("usersUpdate");
                     throbNotification(user, "came online");
                     chatNotification(user, "came online");
@@ -243,10 +153,8 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
             if (Docs[docId] && Docs[docId].isInited)
                 return console.warn("[OT] Doc already inited...");
 
-            var aceEditor = document.editor.ace;
             var session = document.getSession().session;
-
-            var doc = session.collabDoc = Docs[docId] = new OTDocument(docId, session, document, workspace);
+            var doc = session.collabDoc = Docs[docId] = new OTDocument(docId, session, document);
 
             if (progress) {
                 doc.on("joinProgress", progress);
@@ -270,17 +178,10 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
         function leaveDocument(docId) {
             if (!docId || !Docs[docId] || !connect.connected)
                 return;
-
             console.log("[OT] Leave", docId);
-
             connect.send("LEAVE_DOC", { docId: docId });
-
             var doc = Docs[docId];
             doc.dispose();
-
-            if (activeDocument === doc)
-                activeDocument = null;
-
             delete Docs[docId];
         }
 
@@ -373,16 +274,13 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
 
         function onDocumentLoaded(e) {
             if (e.err)
-                return console.error("JOIN_DOC Error:", err);
+                return console.error("JOIN_DOC Error:", e.err);
 
             var doc = e.doc;
-            var original = doc.original;
-            var tab = original.tab;
+            var tab = doc.original.tab;
 
-            if (tabs.focussedTab === tab) {
-                activeDocument = doc;
+            if (tab.pane.activeTab === tab)
                 doc.authorLayer.refresh();
-            }
 
             var path = doc.docId;
 
@@ -410,7 +308,7 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
             if (!user)
                 return Notification.showNotification(msg);
 
-            var chatName = ui.escapeXML(user.fullname);
+            var chatName = apf.escapeXML(user.fullname);
             var md5Email = user.email && apf.crypto.MD5.hex_md5(user.email.trim().toLowerCase());
             var defaultImgUrl = encodeURIComponent(c9.staticUrl + "/c9.ide.collab/images/collaborator_default-white.png");
             console.log("Collab:", user.fullname, msg);
@@ -445,70 +343,11 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
             emit("chatMessage", notif);
         }
 
-        function setActiveDocument(doc) {
-            if (activeDocument && activeDocument.isInited)
-                activeDocument.cursorLayer.hideAllTooltips();
-            activeDocument = doc;
-            if (doc && timeslider.visible)
-                doc.loadTimeslider();
-        }
-
-        function getUser(uid) {
-            return workspace.users[uid];
-        }
-
-        // Timeslider-specific logic
-        function toggleTimeslider() {
-            var tab = tabs.focussedTab;
-            if (!tab || !tab.path)
-                return;
-            var doc = Docs[tab.path];
-            var aceEditor = tab.editor.ace;
-            if (timeslider.visible) {
-                hide();
-                if (doc && doc.isInited) {
-                    doc.updateToRevNum();
-                    if (doc.changed)
-                        tab.className.add("changed");
-                    else
-                        tab.className.remove("changed");
-                }
-                aceEditor.keyBinding.removeKeyboardHandler(timesliderKeyboardHandler);
-                aceEditor.setReadOnly(!!c9.readonly);
-            }
-            else {
-                if (!doc || !doc.revisions[0])
-                    return;
-                // ide.dispatchEvent("track_action", {type: "timeslider"});
-                timeslider.show();
-                aceEditor.setReadOnly(true);
-                collab.activeDocument = doc;
-                aceEditor.keyBinding.addKeyboardHandler(timesliderKeyboardHandler);
-            }
-            aceEditor.renderer.onResize(true);
-        }
-
-        function timesliderAvailable(editor){
-            if (!editor || editor.path != "ext/code/code")
-                return false;
-            var aceEditor = editor.ace;
-            var collabDoc = aceEditor.session.collabDoc;
-            return collabDoc && collabDoc.isInited && collabDoc.revisions[0];
-        }
-
-        function forceHideSlider() {
-            var isVisible = settings.getBool(tsVisibleKey);
-            if (isVisible) {
-                settings.set(tsVisibleKey, false);
-                toggleTimeslider();
-            }
-        }
-
         /***** Lifecycle *****/
         // Make sure the available event is always called
         plugin.on("newListener", function(event, listener){
             if (event == "connect" && connect.connected)
-                listener(workspace);
+                listener();
         });
 
         plugin.on("load", function(){
@@ -528,13 +367,8 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf", "ui",
             get documents() { return util.cloneObject(Docs); },
             get connected() { return connect.connected; },
             get DEBUG()     { return connect.DEBUG; },
-            get workspace() { return workspace; },
-            get activeDocument() { return activeDocument; },
-            set activeDocument(doc) { setActiveDocument(doc); },
 
             getDocument  : function (docId) { return Docs[docId]; },
-            getUser      : function (uid)   { return getUser(uid); },
-            getUserColor : function (uid)   { return (uid && util.formatColor(workspace.colorPool[uid])) || "transparent"; },
 
             send          : function() { return connect.send.apply(connect, arguments); },
             joinDocument  : joinDocument,

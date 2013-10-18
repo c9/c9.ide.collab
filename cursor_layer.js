@@ -1,6 +1,6 @@
 /*global define console document apf */
 define(function(require, module, exports) {
-    main.consumes = ["Plugin", "ace", "settings", "collab.util", "timeslider"];
+    main.consumes = ["Plugin", "ace", "settings", "collab.util", "collab.workspace", "timeslider"];
     main.provides = ["CursorLayer"];
     return main;
 
@@ -9,6 +9,7 @@ define(function(require, module, exports) {
         var ace         = imports.ace;
         var settings    = imports.settings;
         var util        = imports["collab.util"];
+        var workspace   = imports["collab.workspace"];
         var timeslider  = imports.timeslider;
 
         var operations = require("./ot/operations");
@@ -19,11 +20,11 @@ define(function(require, module, exports) {
         var tooltipsInited = false;
         function initCursorLayer(collab) {
             ace.on("create", function (e) {
-                initTooltipEvents(e.editor.ace, collab.workspace);
+                initTooltipEvents(e.editor.ace);
             }, collab);
         }
 
-        function CursorLayer(session, workspace) {
+        function CursorLayer(session) {
 
             var plugin   = new Plugin("Ajax.org", main.consumes);
             var emit     = plugin.getEmitter();
@@ -348,7 +349,7 @@ define(function(require, module, exports) {
         var editorTooltipIsOpen = false;
         var cursorTooltipTimeout;
 
-        function initTooltipEvents(editor, workspace) {
+        function initTooltipEvents(editor) {
             if (tooltipsInited) return;
             tooltipsInited = true;
 

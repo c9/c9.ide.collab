@@ -1,6 +1,7 @@
 /*global define console document apf */
 define(function(require, module, exports) {
-    main.consumes = ["Plugin", "ace", "settings", "preferences", "tabManager", "collab.util", "timeslider"];
+    main.consumes = ["Plugin", "ace", "settings", "preferences", "tabManager",
+        "collab.workspace", "collab.util", "timeslider"];
     main.provides = ["AuthorLayer"];
     return main;
 
@@ -11,6 +12,7 @@ define(function(require, module, exports) {
         var prefs       = imports.preferences;
         var tabs        = imports.tabManager;
         var util        = imports["collab.util"];
+        var workspace   = imports["collab.workspace"];
         var timeslider  = imports.timeslider;
 
         var dom = require("ace/lib/dom");
@@ -53,7 +55,7 @@ define(function(require, module, exports) {
             }, collab);
         }
 
-        function AuthorLayer(session, workspace) {
+        function AuthorLayer(session) {
             var plugin  = new Plugin("Ajax.org", main.consumes);
             var emit    = plugin.getEmitter();
             var marker  = session.addDynamicMarker({ update: drawAuthInfos }, false);
@@ -79,7 +81,7 @@ define(function(require, module, exports) {
                 var doc = session.collabDoc;
                 var editorDoc = session.doc;
                 var colorPool = workspace.colorPool;
-                var reversedAuthorPool = util.reverseObject(workspace.authorPool);
+                var reversedAuthorPool = workspace.reversedAuthorPool;
 
                 var firstRow = config.firstRow;
                 var lastRow = config.lastRow;
@@ -141,10 +143,13 @@ define(function(require, module, exports) {
                 var editorDoc = _self.session.doc;
                 var doc = _self.session.collabDoc;
                 var range = new Range(i, 0, lastRow, editorDoc.getLine(lastRow).length);
-                var authorKeysCache = createAuthorKeyCache(editorDoc, doc.authAttribs, range).authorKeys;
+                if (doc)
+                    var authorKeysCache = createAuthorKeyCache(editorDoc, doc.authAttribs, range).authorKeys;
 
                 var colorPool = workspace.colorPool;
-                var reversedAuthorPool = util.reverseObject(workspace.authorPool);
+                var reversedAuthorPool = workspace.reversedAuthorPool;
+
+                var isCollabGutter = doc && showAuthorInfo && util.isRealCollab(workspace);
 
                 while (true) {
                     if(i > foldStart) {
@@ -157,7 +162,7 @@ define(function(require, module, exports) {
 
                     var annotation = _self.$annotations[i] || emptyAnno;
 
-                    if (showAuthorInfo && util.isRealCollab(workspace)) {
+                    if (isCollabGutter) {
                         var authorKey = authorKeysCache[i];
                         var authorColor = "transparent";
                         var fullname = null;
@@ -338,7 +343,6 @@ define(function(require, module, exports) {
             if (gutterInited) return;
             gutterInited = true;
 
-            var workspace = collab.workspace;
             var highlightedCell;
 
             var tooltip = editor.tooltip = dom.createElement("div");
@@ -414,8 +418,7 @@ define(function(require, module, exports) {
                 if (!lineOwnerKey || lineOwnerKey === authorKey)
                     return tooltip.style.display = "none";
 
-                var workspace = collab.workspace;
-                var reversedAuthorPool = util.reverseObject(workspace.authorPool);
+                var reversedAuthorPool = workspace.reversedAuthorPool;
                 var uid = reversedAuthorPool[authorKey];
                 var fullname = workspace.users[uid].fullname;
 

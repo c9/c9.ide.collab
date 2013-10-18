@@ -1,6 +1,6 @@
 /*global define console document apf */
 define(function(require, module, exports) {
-    main.consumes = ["Plugin", "ace", "collab.connect", "collab.util", "timeslider",
+    main.consumes = ["Plugin", "ace", "collab.connect", "collab.util", "collab.workspace", "timeslider",
         "CursorLayer", "AuthorLayer"];
     main.provides = ["OTDocument"];
     return main;
@@ -10,6 +10,7 @@ define(function(require, module, exports) {
         var ace                   = imports.ace;
         var connect               = imports["collab.connect"];
         var util                  = imports["collab.util"];
+        var workspace             = imports["collab.workspace"];
         var timeslider            = imports.timeslider;
         var CursorLayer           = imports.CursorLayer;
         var AuthorLayer           = imports.AuthorLayer;
@@ -24,7 +25,7 @@ define(function(require, module, exports) {
         var IndexCache            = require("./index_cache");
         var applyAuthorAttributes = require("./author_attributes")().apply;
 
-        function OTDocument(docId, session, c9Document, workspace) {
+        function OTDocument(docId, session, c9Document) {
 
             var plugin      = new Plugin("Ajax.org", main.consumes);
             var emit        = plugin.getEmitter();
@@ -53,6 +54,14 @@ define(function(require, module, exports) {
             var packedCs      = [];
 
             IndexCache(session.doc);
+
+            session.doc.oldSetValue = session.doc.oldSetValue || session.doc.setValue;
+            session.doc.setValue = function (text) {
+                var prev = this.getValue();
+                if (!prev)
+                    return session.doc.oldSetValue(text);
+                applyAce(operations.operation(prev, text), session.doc);
+            };
 
             session.doc.applyDeltas = function(deltas) {
                 for (var i=0; i<deltas.length; i++) {
@@ -144,7 +153,7 @@ define(function(require, module, exports) {
                     var newText = data.text || (data.lines.join(nlCh) + nlCh);
                     /*if (aceDoc.fromDelta && aceDoc.fromDelta.authAttribs) {
                         var undoAuthAttribs = aceDoc.fromDelta.authAttribs;
-                        var reversedAuthorPool = utils.reverseObject(workspace.authorPool);
+                        var reversedAuthorPool = workspace.reversedAuthorPool;
 
                         var i = 0;
                         while (i < undoAuthAttribs.length) {
@@ -208,7 +217,7 @@ define(function(require, module, exports) {
             var MAX_DELAY = 5000;
 
             function calculateDelay() {
-                var selections = cursorLayer.selections;
+                var selections = cursorLayer ? cursorLayer.selections : {};
                 var aceEditor = c9Document.editor.ace;
                 var config = aceEditor.renderer.layerConfig;
 
@@ -269,14 +278,9 @@ define(function(require, module, exports) {
             }
 
             function setValue(contents) {
-                var originalDoc = session.collabDoc.original;
-                var state = originalDoc.getState();
-                // must use c9doc setValue at first to trigger eventlisteners
-                if (!session.c9doc  || session.c9doc.isInited)
-                    session.setValue(contents);
-                else
-                    session.c9doc.setValue(contents);
-                originalDoc.setState(state);
+                var state = c9Document.getState();
+                state.value = contents;
+                c9Document.setState(state);
                 clearCs(contents.length);
             }
 
@@ -400,7 +404,7 @@ define(function(require, module, exports) {
                     finalContents = doc.contents;
                 }
 
-                fsContents = undefined;
+                setValue(finalContents);
 
                 return finalContents;
             }
@@ -574,7 +578,7 @@ define(function(require, module, exports) {
                 // if (DEBUG > 1)
                 //     getRevWithContent(msg.revNum);
          
-                if (activeOT === _self && timeslider.visible)
+                if (timeslider.visible && timeslider.activeDocument === plugin)
                     timeslider.sliderLength = msg.revNum;
             }
 
@@ -777,6 +781,7 @@ define(function(require, module, exports) {
                 get session() { return session; },
                 get original() { return c9Document; },
                 get isInited() { return isInited; },
+                set isInited(inited) { isInited = inited; },
                 get fsHash() { return doc && doc.fsHash; },
                 get docHash() { return doc && doc.docHash; },
                 set fsContents(contents) { fsContents = contents; },
