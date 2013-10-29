@@ -66,6 +66,7 @@ define(function(require, exports, module) {
             get fs()            { return workspace.fs; },
             get chatHistory()   { return workspace.chatHistory; },
 
+            addChatMessage: function (msg) { workspace.chatHistory.push(msg); },
             getUser      : function (uid)   { return workspace.users[uid]; },
             getUserColor : function (uid)   { return (uid && util.formatColor(workspace.colorPool[uid])) || "transparent"; },
             sync         : syncWorkspace

@@ -522,7 +522,7 @@ define(function(require, module, exports) {
                 }
                 latestRevNum = msg.revNum;
                 if (msg.selection)
-                    cursors.updateSelection(msg);
+                    cursorLayer.updateSelection(msg);
                 if (DEBUG)
                     console.log("[OT] handleIncomingEdit took", new Date() - st, "ms", latestRevNum);
             }

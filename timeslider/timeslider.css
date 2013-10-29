@@ -1,8 +1,10 @@
 #timeslider-top {
+    color: rgb(255,255,255);
+    color: rgba(255,255,255,0.85);
     border-bottom: solid rgb(194, 194, 194) 1px;
     width: 100%;
     z-index: 10;
-    box-shadow: 0 -5px 10px rgba(22, 64, 80, 0.07) inset;
+    box-shadow: 0 -5px 10px rgba(134, 134, 134, 0.4) inset;
 }
 
 #timeslider {
@@ -69,7 +71,7 @@
     right: 5px;
     top: 4px;
     background-position: -28px 0;
-    background-image: url(../../plugins/c9.ide.layout.classic/images/close_tab_btn.png);
+    background-image: url(images/close_tab_btn.png);
     background-repeat: no-repeat;
 }
 
@@ -112,7 +114,7 @@
     top: 15px;
     width: 9px;
     z-index: 2;
-    background: rgb(64, 164, 211);
+    background: rgb(120, 164, 185);
     height: 28px;
     border-radius: 4px;
     box-shadow: 3px 3px 10px rgba(255,255,255,0.3) inset;
@@ -134,7 +136,7 @@
     width: 1px;
     top: 18px;
     height: 22px;
-    background-color: black;
+    background-color: rgb(233, 233, 233);
     z-index: 1
 }
 
@@ -144,7 +146,7 @@
     right: 0;
     top: 26px;
     height: 6px;
-    background-color: rgb(117, 117, 117);
+    background-color: rgb(155, 155, 155);
 }
 
 #ui-slider-bar {

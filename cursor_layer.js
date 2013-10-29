@@ -1,6 +1,7 @@
 /*global define console document apf */
 define(function(require, module, exports) {
-    main.consumes = ["Plugin", "ace", "settings", "collab.util", "collab.workspace", "timeslider"];
+    main.consumes = ["Plugin", "ace", "settings", "tabManager",
+        "collab.util", "collab.workspace", "timeslider"];
     main.provides = ["CursorLayer"];
     return main;
 
@@ -8,6 +9,7 @@ define(function(require, module, exports) {
         var Plugin      = imports.Plugin;
         var ace         = imports.ace;
         var settings    = imports.settings;
+        var tabs        = imports.tabManager;
         var util        = imports["collab.util"];
         var workspace   = imports["collab.workspace"];
         var timeslider  = imports.timeslider;
@@ -94,7 +96,7 @@ define(function(require, module, exports) {
             function drawTimeSliderOperation(html, markerLayer, session, config) {
                 if (!timeslider.visible)
                     return;
-                var revNum = timeslider.getSliderPosition();
+                var revNum = timeslider.sliderPosition;
                 if (!revNum)
                     return;
 
@@ -140,7 +142,7 @@ define(function(require, module, exports) {
                         return;
 
                     tabs.open({
-                        path: page.path,
+                        path: doc.id,
                         document: {
                             ace: {
                                 jump: {

@@ -1,0 +1,7 @@
+<a:application xmlns:a="http://ajax.org/2005/aml">
+    <a:bar id="winChat" skin="panel-bar">
+        <div id="chatText" class="authorColors"></div>
+        <a:codebox id="chatInput" realtime="true" skin="codebox" clearbutton="true"
+          focusselect="true" left="5" bottom="5" right="5" />
+    </a:bar>
+</a:application>

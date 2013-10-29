@@ -2,12 +2,13 @@
 define(function(require, exports, module) {
 "use strict";
 
-main.consumes = ["Plugin", "c9", "ui", "apf", "collab.util", "collab.workspace", "collab", "jQuery"];
+main.consumes = ["Panel", "panels", "c9", "ui", "apf", "collab.util", "collab.workspace", "collab"];
     main.provides = ["chat"];
     return main;
 
     function main(options, imports, register) {
-        var Plugin       = imports.Plugin;
+        var Panel        = imports.Panel;
+        var panels       = imports.panels;
         var c9           = imports.c9;
         var ui           = imports.ui;
         var apf          = imports.apf;
@@ -16,128 +17,160 @@ main.consumes = ["Plugin", "c9", "ui", "apf", "collab.util", "collab.workspace",
         var collab       = imports.collab;
 
         var html         = require("text!./chat.html");
+        var markup       = require("text!./chat.xml");
         var css          = require("text!./chat.css");
+        var timeago      = require("./timeago");
         var staticPrefix = options.staticPrefix;
 
-        var jQuery       = imports.jQuery.$;
+        var plugin = new Panel("Ajax.org", main.consumes, {
+            index        : 25,
+            width        : 250,
+            caption      : "Chat",
+            elementName  : "winChat",
+            minWidth     : 130,
+            where        : "right",
+            autohide     : true
+        });
 
-        var plugin = new Plugin("Ajax.org", main.consumes);
         var emit   = plugin.getEmitter();
-        // require("./jquery.timeago");
-        // var Tinycon = require('../lib/tinycon');
         var emoji = require("./my_emoji");
+
+        // panel-relared UI elements
+        var winChat, chatInput, chatText;
+        // non-panel related UI elements
+        var chatThrob, chatCounter, chatNotif;
 
         var loaded = false;
         function load() {
             if (loaded) return;
             loaded = true;
 
-            collab.on("chatMessage", function (data) {
-                addMessage(data, data.increment);
-            });
-
-            workspace.on("connect", function() {
-                if (!/r/.test(workspace.fs))
-                    return console.warn("Don't have read access - You can't use chat");
-
-                draw();
-                var chatHistory = workspace.chatHistory;
-                jQuery.each(chatHistory, function(i, o) {
-                    addMessage(o);
-                });
-                jQuery("#chatcounter").text(chatHistory.length);
-            });
-
+            collab.on("chatMessage", onChatMessage);
         }
 
         var drawn = false;
-        function draw() {
+        function draw(options) {
             if (drawn) return;
             drawn = true;
 
-            ui.insertHtml(null, html, plugin);
-            ui.insertCss(css, staticPrefix, plugin);
+            drawNonPanelElements();
 
-            var chatInputBox = jQuery("#chatinput");
-            chatInputBox.keypress(function(evt) {
-                //if the user typed enter, fire the send
-                if ((evt.which == 13 || evt.which == 10) &&
-                    !evt.shiftKey && !evt.altKey && !evt.ctrlKey && !evt.metaKey) {
-                    evt.preventDefault();
-                    send();
+            ui.insertMarkup(options.aml, markup, plugin);
+
+            winChat     = plugin.getElement("winChat");
+            chatInput   = plugin.getElement("chatInput");
+            chatText    = plugin.getElement("chatText").$ext;
+
+            function onWorkspaceConnect() {
+                if (!/r/.test(workspace.fs))
+                    return console.warn("Don't have read access - You can't use chat");
+                var chatHistory = workspace.chatHistory;
+                chatHistory.forEach(function(msg){
+                    addMessage(msg, msg.increment);
+                });
+                scrollDown();
+                chatCounter.innerHTML = chatHistory.length;
+            }
+
+            plugin.on("show", function(e){
+                chatInput.focus();
+                workspace.on("connect", onWorkspaceConnect);
+            });
+            plugin.on("hide", function(e){
+                workspace.off("connect", onWorkspaceConnect);
+            });
+
+            chatInput.ace.setOption("wrap", "free");
+            chatInput.ace.commands.addCommands([
+                {
+                    bindKey : "ESC",
+                    exec    : function(){
+                        if (chatInput.getValue())
+                            chatInput.setValue("");
+                        else
+                            plugin.hide();
+                    }
+                }, {
+                    bindKey : "Enter",
+                    exec    : send
                 }
-            });
-            chatInputBox.keydown(function(evt) {
-                if (evt.which == 27)
-                    hide();
-            });
-            chatInputBox.focus(function() {
-                if (typeof apf !== "undefined" && apf.activeElement)
-                    apf.activeElement.blur();
-            });
-
-            var chatText = jQuery('#chattext');
-            autoResizeChatText(chatInputBox.get(0), function (height) {
-                // scrollDown(); - flaky scrolling
-                chatText.css("bottom", height+12);
-            });
-
-            jQuery("#chaticon").click(function () {
-                show();
-                return false;
-            });
-
-            jQuery("#chatmembers").click(function () {
-                // Collab.showMembers();
-            });
-
-            jQuery("#chatthrob").click(function () {
-                jQuery(this).hide();
-                show();
-            });
-
-            jQuery("#chatcross").click(function () {
-                hide();
-                return false;
-            });
+            ]);
         }
 
         var seenMsgs = {};
         var throbTimeout;
 
-        function show() {
-            jQuery("#chaticon").hide();
-            jQuery("#chatbox").show();
-            setTimeout(function(){
-                jQuery("#chatinput").focus();
-            });
-            scrollDown();
-            // Tinycon.setBubble(0);
-            // ide.dispatchEvent("track_action", {type: "chat"});
-        }
-
-        function hide() {
-            jQuery("#chatcounter").text("0");
-            jQuery("#chaticon").show();
-            jQuery("#chatbox").hide();
-        }
-
         function scrollDown() {
-            if(jQuery('#chatbox').css("display") != "none"){
-                if(!self.lastMessage || !self.lastMessage.position() || self.lastMessage.position().top < jQuery('#chattext').height()) {
-                    jQuery('#chattext').animate({scrollTop: jQuery('#chattext')[0].scrollHeight}, "fast");
-                    self.lastMessage = jQuery('#chattext > p').eq(-1);
-                }
-            }
+            var chatMessages = chatText.getElementsByTagName("p");
+            if (!chatMessages.length)
+                return;
+            var lastMessage = chatMessages[chatMessages.length-1];
+            lastMessage.scrollIntoView();
+        }
+
+        function isOpen() {
+            return panels.isActive("chat");
         }
 
         function send() {
-            var text = jQuery("#chatinput").val();
+            var text = chatInput.getValue().trim();
+            if (!text)
+                return;
             text = emoji.toEmojiUnicode(text);
             collab.send("CHAT_MESSAGE", { text: text });
-            jQuery("#chatinput").val("");
-
+            chatInput.setValue("");
             // ide.dispatchEvent("track_action", {type: "chat"});
+        }
+
+        function getAuthorName(userId) {
+            var user = workspace.users[userId];
+            return util.escapeHTML(user.fullname);
+        }
+
+        function getAuthorColor(userId) {
+            var color = workspace.colorPool[userId];
+            return util.formatColor(color);
+        }
+
+        function formatMessageText(text) {
+            text = util.escapeHtmlWithClickableLinks(text.trim(), "_blank");
+            text = text.replace(/\n/g, "<br/>");
+            text = emoji.emoji(text);
+            return text;
+        }
+
+        function onChatMessage(msg) {
+            drawNonPanelElements();
+            workspace.addChatMessage(msg);
+            if (isOpen()) {
+                addMessage(msg);
+            }
+            else {
+                var throbText = "<b>" + getAuthorName(msg.userId) + "</b> ";
+                var text = formatMessageText(msg.text);
+                var notif = msg.notification;
+                if (notif) {
+                    throbText += text + " " + notif.linkText;
+                } else {
+                     throbText += ": " + text;
+                }
+
+                chatThrob.innerHTML = throbText;
+                chatThrob.style.display = "block";
+                clearTimeout(throbTimeout);
+                throbTimeout = setTimeout(function () {
+                    chatThrob.style.display = "none";
+                }, 5000);
+            }
+
+            if (msg.increment) {
+                var count = Number(chatCounter.innerHTML);
+                chatCounter.innerHTML = count + 1;
+            }
+
+            var inputFocussed = chatInput && chatInput.ace.isFocused();
+            if (!inputFocussed)
+                chatNotif.play();
         }
 
         function addMessage(msg, increment) {
@@ -146,126 +179,91 @@ main.consumes = ["Plugin", "c9", "ui", "apf", "collab.util", "collab.workspace",
             seenMsgs[msg.id] = true;
             //correct the time
             // msg.timestamp += clientTimeOffset;
-            msg.timestamp = new Date(msg.timestamp);
+            var msgDate = new Date(msg.timestamp);
 
             //create the time string
-            var msgDate = new Date(msg.timestamp);
-            var text = util.escapeHtmlWithClickableLinks(msg.text.trim(), "_blank");
-            text = text.replace(/\n/g, '<br/>');
-            text = emoji.emoji(text);
+            var text = formatMessageText(msg.text);
+            var authorName = getAuthorName(msg.userId);
+            var authorColor = getAuthorColor(msg.userId);
 
-            var user = workspace.users[msg.userId];
-            var authorName = util.escapeHTML(user.fullname);
-            var color = workspace.colorPool[msg.userId];
-            var authorColor = util.formatColor(color);
+            var authorNameEl = document.createElement("a");
+            authorNameEl.href = "javascript:void(0)";
+            authorNameEl.className = "authorName";
+            authorNameEl.innerHTML = "<b>" + authorName + "</b>";
+            // authorNameEl.addEventListener("click", function () {
+            // });
 
-            var authorNameEl = jQuery("<a href='javascript:void(0)' style='text-decoration: none'><b>" + authorName + "</b></a>").click(function () {
-                // Collab.showMembers();
-                // Collab.selectMember(msg.userId);
-            });
-
-            var chatOpen = jQuery("#chatbox").is(":visible");
-
-            var html;
-            var chatThrob = jQuery('#chatthrob');
-            var throbText = "";
+            var html = document.createElement("p");
 
             var notif = msg.notification;
             if (notif) {
-                html = jQuery("<p class='author'>").css("color", "gray")
-                    .append(authorNameEl.css("color", "gray"))
-                    .append("<span> " + text + "</span>");
+                html.appendChild(authorNameEl);
+                html.appendChild(document.createTextNode(" " + text));
 
                 if (notif.linkText) {
-                    html.append(jQuery("<a href='javascript:void(0)'>" + notif.linkText + "</a>").click(function() {
+                    var link = document.createElement("a");
+                    link.href = "javascript:void(0)";
+                    link.innerText = notif.linkText;
+                    link.addEventListener("click", function() {
                         notif.linkHandler();
-                    }));
-                    throbText = "<b>" + authorName + "</b> " + text + " " + notif.linkText;
+                    });
+                    html.appendChild(link);
                 }
-
-                html.append("<br/>").append(jQuery("<span class='chattime timeago' title='" + msgDate.toISOString() + "'>" + msgDate + "</span> ").timeago());
             }
             else {
-                html = jQuery("<p class='author'>")
-                    .append(authorNameEl.css("color", "black"))
-                    .append("<span style='color:" + authorColor + "'>: " + text + "<br/></span>")
-                    .append(jQuery("<span class='chattime timeago' title='" + msgDate.toISOString() + "'>" + msgDate + "</span> ").timeago());
-                    throbText = "<b>"+authorName+"</b>" + ": " + text;
+                authorNameEl.innerHTML += ": ";
+                html.appendChild(authorNameEl);
+                var textEl = document.createElement("span");
+                textEl.style.color = authorColor;
+                textEl.innerHTML = text + "<br/>";
+                html.appendChild(textEl);
+                var timeEl = document.createElement("span");
+                timeEl.className = "chattime";
+                timeEl.title = msgDate.toISOString();
+                timeEl.innerHTML = msgDate;
+                timeago(timeEl);
+                html.appendChild(timeEl);
             }
 
-            jQuery("#chattext").append(html);
-
-            //should we increment the counter??
-            if(increment) {
-                var count = Number(jQuery("#chatcounter").text());
-                count++;
-
-                // is the users focus already in the chatbox?
-                var inputFocussed = jQuery("#chatinput").is(":focus");
-
-                if (!inputFocussed)
-                    jQuery("#chat-notif").get(0).play();
-                if (!chatOpen) {
-                    chatThrob.html(throbText).show();
-                    clearTimeout(throbTimeout);
-                    throbTimeout = setTimeout(function () {
-                        chatThrob.hide(500);
-                    }, 5000);
-                }
-
-                jQuery("#chatcounter").text(count);
-            }
-             // Clear the chat mentions when the user clicks on the chat input box
-            // jQuery('#chatinput').click(function(){
-                // Tinycon.setBubble(0);
-            // });
+            chatText.appendChild(html);
             scrollDown();
         }
 
-        function autoResizeChatText(text, resizeCallback) {
-            var observe;
-            if (window.attachEvent) {
-                observe = function (element, event, handler) {
-                    element.attachEvent('on'+event, handler);
-                };
-            }
-            else {
-                observe = function (element, event, handler) {
-                    element.addEventListener(event, handler, false);
-                };
+        var nonPanelDrawn = false;
+        function drawNonPanelElements (argument) {
+            if (nonPanelDrawn) return;
+            nonPanelDrawn = true;
+
+            ui.insertHtml(null, html, plugin);
+            ui.insertCss(css, staticPrefix, plugin);
+
+            function $(id) {
+                return document.getElementById(id);
             }
 
-            function resize () {
-                text.style.height = 'auto';
-                var height = text.scrollHeight || 13;
-                text.style.height = height+'px';
-                resizeCallback(height);
-            }
-            /* 0-timeout to get the already changed text */
-            function delayedResize () {
-                window.setTimeout(resize, 5);
-            }
-            observe(text, 'change',  delayedResize);
-            observe(text, 'cut',     delayedResize);
-            observe(text, 'paste',   delayedResize);
-            observe(text, 'drop',    delayedResize);
-            observe(text, 'keydown', delayedResize);
+            chatThrob   = $("chatThrob");
+            chatCounter = $("chatCounter");
+            chatNotif   = $("chatNotif");
 
-            text.focus();
-            text.select();
-            resize();
+            chatThrob.addEventListener("click", function () {
+                chatThrob.style.display = "none";
+                plugin.show();
+            });
         }
 
         /***** Lifecycle *****/
         plugin.on("load", function(){
             load();
         });
+        plugin.on("draw", function(e){
+            draw(e);
+        });
         plugin.on("enable", function(){
 
         });
         plugin.on("disable", function(){
-
         });
+
         plugin.on("unload", function(){
             loaded = false;
             drawn  = false;
@@ -279,9 +277,6 @@ main.consumes = ["Plugin", "c9", "ui", "apf", "collab.util", "collab.workspace",
          * @singleton
          **/
         plugin.freezePublicAPI({
-            show       : show,
-            hide       : hide,
-            addMessage : addMessage
         });
 
         register(null, {

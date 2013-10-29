@@ -28,7 +28,7 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
         var plugin          = new Plugin("Ajax.org", main.consumes);
         var emit            = plugin.getEmitter();
 
-        var Docs            = {};
+        var documents            = {};
 
         var loaded = false;
         function load() {
@@ -47,7 +47,7 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
 
             ace.on("create", function () {
                 var tab = tabs.focussedTab;
-                if (!tab.path || Docs[tab.path])
+                if (!tab.path || documents[tab.path])
                     return;
                 var doc = joinDocument(tab.path, tab.document);
                 doc.fsContents = normalizeTextLT(tab.document.value);
@@ -64,7 +64,7 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
             tabs.on("focusSync", function(e) {
                 var tab = e.tab;
                 var path = tab.path;
-                if (!path || Docs[path])
+                if (!path || documents[path])
                     return;
                 var doc = joinDocument(tab.path, tab.document);
                 doc.fsContents = normalizeTextLT(tab.document.value);
@@ -75,8 +75,8 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
         }
 
         function onDisconnect() {
-            for(var docId in Docs) {
-                var doc = Docs[docId];
+            for(var docId in documents) {
+                var doc = documents[docId];
                 doc.isInited = false;
             }
             throbNotification(null, "Collab disconnected");
@@ -90,7 +90,7 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
         function onConnectMsg(msg) {
             workspace.sync(msg.data, true);
 
-            for (var docId in Docs)
+            for (var docId in documents)
                 connect.send("JOIN_DOC", { docId: docId });
 
             throbNotification(null, msg.err || "Collab connected");
@@ -102,7 +102,7 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
             var user = data && data.userId && workspace.getUser(data.userId);
             var type = msg.type;
             var docId = data.docId;
-            var doc = Docs[docId];
+            var doc = documents[docId];
 
             if (!connect.connected && type !== "CONNECT")
                 return console.warn("[OT] Not connected - ignoring:", msg);
@@ -117,6 +117,7 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
                     break;
                 case "USER_JOIN":
                     workspace.sync(data);
+                    user = workspace.getUser(data.userId);
                     emit("usersUpdate");
                     throbNotification(user, "came online");
                     chatNotification(user, "came online");
@@ -150,11 +151,19 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
         }
 
         function joinDocument(docId, document, progress, callback) {
-            if (Docs[docId] && Docs[docId].isInited)
+            if (documents[docId] && documents[docId].isInited)
                 return console.warn("[OT] Doc already inited...");
 
             var session = document.getSession().session;
-            var doc = session.collabDoc = Docs[docId] = new OTDocument(docId, session, document);
+            var doc = session.collabDoc = documents[docId] = new OTDocument(docId, session, document);
+
+            doc.on("saved", function (e) {
+                onDocumentSaved(e.err, doc, e);
+            });
+
+            doc.on("joined", function(e){
+                onDocumentLoaded(e.err, doc);
+            });
 
             if (progress) {
                 doc.on("joinProgress", progress);
@@ -164,10 +173,6 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
                 });
             }
 
-            doc.once("joined", function(e){
-                emit("documentLoaded", {err: e.err, doc: doc});
-            });
-
             // test late join - document syncing - best effort
             if (connect.connected)
                 connect.send("JOIN_DOC", { docId: docId });
@@ -176,37 +181,35 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
         }
 
         function leaveDocument(docId) {
-            if (!docId || !Docs[docId] || !connect.connected)
+            if (!docId || !documents[docId] || !connect.connected)
                 return;
             console.log("[OT] Leave", docId);
             connect.send("LEAVE_DOC", { docId: docId });
-            var doc = Docs[docId];
+            var doc = documents[docId];
             doc.dispose();
-            delete Docs[docId];
+            delete documents[docId];
         }
 
         function saveDocument (docId, callback) {
-            var doc = Docs[docId];
+            var doc = documents[docId];
             doc.once("saved", function(e) {
                 callback(e.err);
-                e.doc = doc;
-                emit("documentSaved", e);
             });
             doc.save();
         }
 
         function leaveAll() {
-            Object.keys(Docs).forEach(function(docId) {
+            Object.keys(documents).forEach(function(docId) {
                 leaveDocument(docId);
             });
         }
 
         /*
-        function getDocsWithinPath(path) {
-            var docIds = Object.keys(Docs);
+        function getDocumentsWithinPath(path) {
+            var docIds = Object.keys(documents);
             var docs = [];
             for (var i = 0, l = docIds.length; i < l; ++i) {
-                var doc = Docs[docIds[i]];
+                var doc = documents[docIds[i]];
                 if (doc.id.indexOf(path) === 0)
                     docs.push(doc);
             }
@@ -236,7 +239,7 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
         function afterReadFile(e) {
             var path = e.path;
             var tab = tabs.findTab(path);
-            var doc = Docs[path];
+            var doc = documents[path];
             if (!tab || !doc || doc.isInited)
                 return;
             var httpLoadedValue = tab.document.value;
@@ -249,7 +252,7 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
         function beforeWriteFile(e) {
             var path = e.path;
             var tab = tabs.findTab(path);
-            var doc = Docs[path];
+            var doc = documents[path];
             if (!tab || timeslider.visible || !connect.connected || !doc || !doc.isInited)
                 return;
             var args = e.args;
@@ -270,14 +273,10 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
             return text.split(/\r\n|\r|\n/).join(nlCh);
         }
 
-        plugin.on("documentLoaded", onDocumentLoaded, plugin);
-        plugin.on("documentSaved", onDocumentSaved, plugin);
+        function onDocumentLoaded(err, doc) {
+            if (err)
+                return console.error("JOIN_DOC Error:", err);
 
-        function onDocumentLoaded(e) {
-            if (e.err)
-                return console.error("JOIN_DOC Error:", e.err);
-
-            var doc = e.doc;
             var tab = doc.original.tab;
 
             if (tab.pane.activeTab === tab)
@@ -291,16 +290,15 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
             }
         }
 
-        function onDocumentSaved(e) {
-            if (e.err)
-                return;
-            var doc = e.doc;
+        function onDocumentSaved(err, doc, data) {
+            if (err)
+                return console.error("[OT] Failed saving file !", err, doc.id);
             var tab = doc.original.tab;
-            if (e.clean)
+            if (data.clean)
                 //tab.document.undoManager.reset();
                 tab.className.remove("changed");
-            if (e.star && timeslider.visible && timeslider.activeDocument === doc)
-                timeslider.addSavedRevision(e.revision);
+            if (data.star && timeslider.visible && timeslider.activeDocument === doc)
+                timeslider.addSavedRevision(data.revision);
         }
 
         function throbNotification(user, msg) {
@@ -363,11 +361,11 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
         });
 
         plugin.freezePublicAPI({
-            get documents() { return util.cloneObject(Docs); },
+            get documents() { return util.cloneObject(documents); },
             get connected() { return connect.connected; },
             get DEBUG()     { return connect.DEBUG; },
 
-            getDocument  : function (docId) { return Docs[docId]; },
+            getDocument  : function (docId) { return documents[docId]; },
 
             send          : function() { return connect.send.apply(connect, arguments); },
             joinDocument  : joinDocument,

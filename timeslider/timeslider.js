@@ -2,7 +2,7 @@
 define(function(require, exports, module) {
     "use strict";
     
-    main.consumes = ["Plugin", "c9", "ui", "ace", "tabManager", "settings", "menus", "commands", "save", "jQuery"];
+    main.consumes = ["Plugin", "c9", "ui", "ace", "tabManager", "settings", "menus", "commands", "save"];
     main.provides = ["timeslider"];
     return main;
 
@@ -17,10 +17,10 @@ define(function(require, exports, module) {
         var commands     = imports.commands;
         var save         = imports.save;
 
-        var jQuery       = imports.jQuery.$;
-
         var html         = require("text!./timeslider.html");
         var css          = require("text!./timeslider.css");
+        var dom          = require("ace/lib/dom");
+
         var staticPrefix = options.staticPrefix;
 
         var tsVisibleKey = "user/collab/@timeslider-visible";
@@ -34,8 +34,10 @@ define(function(require, exports, module) {
             }
         };
 
-        // ui elements
-        var timesliderClose;
+        // UI elements
+        var container, timeslider, editorContainer, timesliderClose, slider, sliderBar, handle,
+            playButton, playButtonIcon, revisionDate, revisionLabel, leftStep, rightStep;
+
         var activeDocument;
 
         /***** Initialization *****/
@@ -46,7 +48,6 @@ define(function(require, exports, module) {
         var sliderLength      = 1000;
         var sliderPos         = 0;
         var sliderActive      = false;
-        var slidercallbacks   = [];
         var savedRevisions    = [];
         var savedRevisionNums = [];
         var sliderPlaying     = false;
@@ -133,7 +134,7 @@ define(function(require, exports, module) {
                     return false;
             }, plugin);
 
-            onSlider(function (revNum) {
+            plugin.on("slider", function (revNum) {
                 var doc = activeDocument;
                 if (!doc || !isVisible)
                     return;
@@ -150,134 +151,122 @@ define(function(require, exports, module) {
             ui.insertHtml(null, html, plugin);
             ui.insertCss(css, staticPrefix, plugin);
 
-            timesliderClose    = plugin.getElement("timesliderClose");
+            function $(id) {
+                return document.getElementById(id);
+            }
 
-            timesliderClose.on("click", function() {
+            container       = $("timeslider-top");
+            timeslider      = $("timeslider");
+            timesliderClose = $("timesliderClose");
+            slider          = $("timeslider-slider");
+            sliderBar       = $("ui-slider-bar");
+            handle          = $("ui-slider-handle");
+            playButton      = $("playpause_button");
+            playButtonIcon  = $("playpause_button_icon");
+            revisionDate    = $("revision_date");
+            revisionLabel   = $("revision_label");
+            leftStep        = $("leftstep");
+            rightStep       = $("rightstep");
+
+            // HACKY WAY to get the correct div without jQuery selector: $(".basic.codeditorHolder")
+            var editorHolders = document.getElementsByClassName("codeditorHolder");
+            editorHolders = toArray(editorHolders);
+            editorContainer = editorHolders.filter(function (holder) {
+                return holder.classList.contains("basic");
+            })[0];
+
+            timesliderClose.addEventListener("click", function() {
                 forceHideSlider();
             });
 
-            var codeCt = getCodeEditorConiatner();
-            var tsCt = getTimeSliderContainer();
-            codeCt.prepend(tsCt);
+            editorContainer.insertBefore(container, editorContainer.firstChild);
 
-            disableSelection(jQuery("#playpause_button")[0]);
-            disableSelection(jQuery("#timeslider")[0]);
+            disableSelection(playButton);
+            disableSelection(timeslider);
 
-            jQuery(window).resize(function() {
+            window.addEventListener("resize", function() {
                 updateSliderElements();
             });
 
-            jQuery("#timeslider-slider").mousedown(function(evt) {
+            slider.addEventListener("mousedown", function(evt) {
                 if (evt.target.className == "star" && !sliderActive)
-                    jQuery("#ui-slider-bar").trigger(evt);
+                    onBarMouseDown(evt);
             });
             
-            jQuery("#ui-slider-bar").mousedown(function(evt) {
-                var newloc = evt.clientX - jQuery("#ui-slider-bar").offset().left;
-                var newSliderPos = Math.round(newloc * sliderLength / (jQuery("#ui-slider-bar").width() - 2));
-                jQuery("#ui-slider-handle").css('left', calcHandlerLeft(newSliderPos));
-                jQuery("#ui-slider-handle").trigger(evt);
-            });
+            sliderBar.addEventListener("mousedown", onBarMouseDown);
 
             // Slider dragging
-            jQuery("#ui-slider-handle").mousedown(function(evt) {
-                this.startLoc = evt.clientX;
-                this.currentLoc = parseInt(jQuery(this).css('left'), 10);
-                var _self = this;
-                sliderActive = true;
-                jQuery(document).mousemove(function(evt2) {
-                    jQuery(_self).css('pointer', 'move');
-                    var newloc = _self.currentLoc + (evt2.clientX - _self.startLoc) - LEFT_PADDING;
-                    if (newloc < 0) newloc = 0;
-                    if (newloc > (jQuery("#ui-slider-bar").width() - 2)) newloc = (jQuery("#ui-slider-bar").width() - 2);
-                    var newSliderPos = Math.round(newloc * sliderLength / (jQuery("#ui-slider-bar").width() - 2));
-                    jQuery("#revision_label").html("Version " + newSliderPos);
-                    jQuery(_self).css('left', calcHandlerLeft(newSliderPos));
-                    if (getSliderPosition() != newSliderPos)
-                        _callSliderCallbacks(newSliderPos);
-                });
-                jQuery(document).mouseup(function(evt2) {
-                    jQuery(document).unbind('mousemove');
-                    jQuery(document).unbind('mouseup');
-                    sliderActive = false;
-                    var newloc = _self.currentLoc + (evt2.clientX - _self.startLoc) + - LEFT_PADDING;
-                    if (newloc < 0)
-                        newloc = 0;
-                    if (newloc > (jQuery("#ui-slider-bar").width() - 2))
-                        newloc = (jQuery("#ui-slider-bar").width() - 2);
-                    var newSliderPos = Math.round(newloc * sliderLength / (jQuery("#ui-slider-bar").width() - 2));
-                    jQuery(_self).css('left', calcHandlerLeft(newSliderPos));
-                    // if(getSliderPosition() != Math.round(newloc * sliderLength / (jQuery("#ui-slider-bar").width()-2)))
-                    setSliderPosition(newSliderPos);
-                    _self.currentLoc = parseInt(jQuery(_self).css('left'), 10);
-                });
-            });
+            handle.addEventListener("mousedown", onHandleMouseDown);
 
             // play/pause toggling
-            jQuery("#playpause_button").mousedown(function(evt) {
-                var _self = this;
-                var staticPrefix = window.cloud9config.staticUrl + "/ext/ot/style";
-
-                jQuery(_self).css('background-image', 'url('+ staticPrefix + '/play_depressed.png)');
-                jQuery(_self).mouseup(function(evt2) {
-                    jQuery(_self).css('background-image', 'url(' + staticPrefix + '/play_undepressed.png)');
-                    jQuery(_self).unbind('mouseup');
-                    BroadcastSlider.playpause();
+            playButton.addEventListener("mousedown", function(evt) {
+                playButton.style["background-image"] = "url("+ staticPrefix + "/images/play_depressed.png)";
+                playButton.addEventListener("mouseup", function onMouseUp(evt2) {
+                    playButton.style["background-image"] = "url(" + staticPrefix + "/images/play_undepressed.png)";
+                    playButton.removeEventListener("mouseup", onMouseUp);
+                    playpause();
                 });
-                jQuery(document).mouseup(function(evt2) {
-                    jQuery(_self).css('background-image', 'url(' + staticPrefix + '/play_undepressed.png)');
-                    jQuery(document).unbind('mouseup');
+                document.addEventListener("mouseup", function onMouseUp(evt2) {
+                    playButton.style["background-image"] = "url(" + staticPrefix + "/images/play_undepressed.png)";
+                    document.removeEventListener("mouseup", onMouseUp);
                 });
             });
 
-            // next/prev saved revision and changeset
-            jQuery('.stepper').mousedown(function(evt) {
-                var _self = this;
-                var origcss = jQuery(_self).css('background-position');
-                if (!origcss)
-                    origcss = jQuery(_self).css('background-position-x') + " " + jQuery(_self).css('background-position-y');
-                var origpos = parseInt(origcss.split(" ")[1], 10);
-                var newpos = (origpos - 43);
-                if (newpos < 0) newpos += 87;
+            // next/prev revisions and changeset
+            var steppers = [leftStep, rightStep];
+            steppers.forEach(function (stepper) {
+                stepper.addEventListener("mousedown", function(evt) {
+                    var origcss = stepper.style["background-position"];
+                    if (!origcss)
+                        origcss = stepper.style["background-position-x"].split("px")[0] + " " + stepper.style["background-position-y"].split("px")[0];
+                    var origpos = parseInt(origcss.split(" ")[1], 10);
+                    var newpos = origpos - 43;
+                    if (newpos < 0)
+                        newpos += 87;
 
-                var newcss = (origcss.split(" ")[0] + " " + newpos + "px");
-                if (jQuery(_self).css('opacity') != 1.0) newcss = origcss;
+                    var newcss = (origcss.split(" ")[0] + " " + newpos + "px");
+                    if (stepper.style.opacity != 1.0)
+                        newcss = origcss;
 
-                jQuery(_self).css('background-position', newcss);
+                    stepper.style["background-position"] = newcss;
 
-                var pos, nextStar, i;
+                    var pos, nextStar, i;
 
-                jQuery(_self).mouseup(function(evt2) {
-                    jQuery(_self).css('background-position', origcss);
-                    jQuery(_self).unbind('mouseup');
-                    jQuery(document).unbind('mouseup');
-                    if (jQuery(_self).attr("id") == ("leftstep")) {
-                        setSliderPosition(getSliderPosition() - 1);
-                    }
-                    else if (jQuery(_self).attr("id") == ("rightstep")) {
-                        setSliderPosition(getSliderPosition() + 1);
-                    }
-                    else if (jQuery(_self).attr("id") == ("leftstar")) {
-                        nextStar = 0; // default to first revision in document
-                        for (i = 0; i < savedRevisions.length; i++) {
-                            pos = parseInt(savedRevisions[i].attr('pos'), 10);
-                            if (pos < getSliderPosition() && nextStar < pos) nextStar = pos;
+                    stepper.addEventListener("mouseup", function onMouseUp(evt2) {
+                        stepper.style["background-position"] = origcss;
+                        stepper.removeEventListener("mouseup", onMouseUp);
+                        // document.removeEventListener("mouseup". onMouseUp);
+                        var id = stepper.id;
+                        if (id == "leftstep") {
+                            setSliderPosition(sliderPos - 1);
                         }
-                        setSliderPosition(nextStar);
-                    }
-                    else if (jQuery(_self).attr("id") == ("rightstar")) {
-                        nextStar = sliderLength; // default to last revision in document
-                        for (i = 0; i < savedRevisions.length; i++) {
-                            pos = parseInt(savedRevisions[i].attr('pos'), 10);
-                            if (pos > getSliderPosition() && nextStar > pos) nextStar = pos;
+                        else if (id == "rightstep") {
+                            setSliderPosition(sliderPos + 1);
                         }
-                        setSliderPosition(nextStar);
-                    }
-                });
-                jQuery(document).mouseup(function(evt2) {
-                    jQuery(_self).css('background-position', origcss);
-                    jQuery(_self).unbind('mouseup');
-                    jQuery(document).unbind('mouseup');
+                        else if (id == "leftstar") {
+                            nextStar = 0; // default to first revision in document
+                            for (i = 0; i < savedRevisionNums.length; i++) {
+                                pos = savedRevisionNums[i];
+                                if (pos < sliderPos && nextStar < pos)
+                                    nextStar = pos;
+                            }
+                            setSliderPosition(nextStar);
+                        }
+                        else if (id == "rightstar") {
+                            nextStar = sliderLength; // default to last revision in document
+                            for (i = 0; i < savedRevisionNums.length; i++) {
+                                pos = savedRevisionNums[i];
+                                if (pos > sliderPos && nextStar > pos)
+                                    nextStar = pos;
+                            }
+                            setSliderPosition(nextStar);
+                        }
+                    });
+                    document.addEventListener("mouseup", function onMouseUp(evt2) {
+                        stepper.style["background-position"] = origcss;
+                        document.removeEventListener("mouseup". onMouseUp);
+                        // stepper.removeEventListener("mouseup", onMouseUp);
+                    });
                 });
             });
 
@@ -295,24 +284,78 @@ define(function(require, exports, module) {
             element.style.cursor = "default";
         }
 
-        function _callSliderCallbacks(newval) {
-            sliderPos = newval;
-            for (var i = 0; i < slidercallbacks.length; i++)
-                slidercallbacks[i](newval);
+        function cumulativeOffset(element) {
+            var top = 0, left = 0;
+            do {
+                top += element.offsetTop  || 0;
+                left += element.offsetLeft || 0;
+                element = element.offsetParent;
+            } while(element);
+
+            return {
+                top: top,
+                left: left
+            };
         }
 
-        var starWidth = null;
+        function onBarMouseDown(evt) {
+            var newloc = evt.clientX - cumulativeOffset(sliderBar).left;
+            var newSliderPos = Math.round(newloc * sliderLength / (sliderBar.offsetWidth - 2));
+            handle.style.left = calcHandlerLeft(newSliderPos) + "px";
+            onHandleMouseDown(evt);
+        }
+
+        function onHandleMouseDown(evt) {
+            var startLoc = evt.clientX;
+            var currentLoc = parseInt(handle.style.left.split("px")[0], 10);
+            sliderActive = true;
+
+            function calcSliderPos(clientX) {
+                var newloc = currentLoc + (clientX - startLoc) - LEFT_PADDING;
+                if (newloc < 0)
+                    newloc = 0;
+                var barWidth = sliderBar.offsetWidth - 2;
+                if (newloc > barWidth)
+                    newloc = barWidth;
+                return Math.round(newloc * sliderLength / barWidth);
+            }
+
+            function onMouseMove(evt2) {
+                handle.style.pointer = "move";
+                var newSliderPos = calcSliderPos(evt2.clientX);
+                revisionLabel.innerHTML = "Version " + newSliderPos;
+                handle.style.left = calcHandlerLeft(newSliderPos) + "px";
+                if (sliderPos != newSliderPos) {
+                    sliderPos = newSliderPos;
+                    emit("slider", newSliderPos);
+                }
+            }
+
+            function onMouseUp(evt2) {
+                document.removeEventListener("mousemove", onMouseMove);
+                document.removeEventListener("mouseup", onMouseUp);
+                sliderActive = false;
+                var newSliderPos = calcSliderPos(evt2.clientX);
+                currentLoc = calcHandlerLeft(newSliderPos);
+                handle.style.left = currentLoc + "px";
+                // if(sliderPos != Math.round(newloc * sliderLength / ($("#ui-slider-bar").width()-2)))
+                setSliderPosition(newSliderPos);
+            }
+
+            document.addEventListener("mousemove", onMouseMove);
+            document.addEventListener("mouseup", onMouseUp);
+        }
+
+        var starWidth = 15;
         function updateSliderElements() {
             var prevX, prevStar, firstHidden;
-            if (!starWidth && savedRevisions[0])
-                starWidth = savedRevisions[0].width();
             for (var i = 0; i < savedRevisions.length; i++) {
                 var star = savedRevisions[i];
-                var position = parseInt(star.attr('pos'), 10);
+                var position = parseInt(star.pos, 10);
                 var x = calcHandlerLeft(position) - 1;
                 if (x - prevX < 2 * starWidth) {
                     if (prevStar)
-                        prevStar.css("opacity", 0.05);
+                        prevStar.style.opacity = 0.05;
                     prevStar = star;
                     if (!firstHidden) {
                         firstHidden = x;
@@ -323,31 +366,33 @@ define(function(require, exports, module) {
                     firstHidden = prevStar = null;
                 }
                 prevX = x;
-                star.css('left', x).css("opacity", 1);
+                star.style.left = x + "px";
+                star.style.opacity = 1;
             }
-            jQuery("#ui-slider-handle").css('left', calcHandlerLeft(sliderPos));
+            handle.style.left = calcHandlerLeft(sliderPos) + "px";
         }
 
         function addSavedRevision(revision) {
             var position = revision.revNum;
-            var newSavedRevision = jQuery('<div></div>')
-                .addClass("star")
-                .attr("title", "File Saved on " + dateFormat(revision.updated_at))
-                .attr('pos', position)
-                .css('position', 'absolute')
-                .css('left', calcHandlerLeft(position) - 1)
-                .appendTo(jQuery("#timeslider-slider"))
-                .mouseup(function(evt) {
-                    BroadcastSlider.setSliderPosition(position);
-                });
-            savedRevisions.push(newSavedRevision);
+            var newSR = document.createElement("div");
+            newSR.className = "star";
+            newSR.title = "File Saved on " + dateFormat(revision.updated_at);
+            newSR.pos = position;
+            newSR.style.left = (calcHandlerLeft(position) - 1) + "px";
+            slider.appendChild(newSR);
+            newSR.addEventListener("mouseup", function() {
+                setSliderPosition(position);
+            });
+            savedRevisions.push(newSR);
             savedRevisionNums.push(position);
             if (position === sliderPos)
                 setSliderPosition(position);
         }
 
         function setSavedRevisions(revisions) {
-            jQuery("#timeslider-slider .star").remove();
+            toArray(slider.getElementsByClassName("star")).forEach(function (star) {
+                star.remove();
+            });
             savedRevisions = [];
             savedRevisionNums = [];
             revisions.forEach(function(revision) {
@@ -355,18 +400,14 @@ define(function(require, exports, module) {
             });
         }
 
-        function removeSavedRevision(position) {
-            var element = jQuery("div.star [pos=" + position + "]");
-            savedRevisions.remove(element);
-            savedRevisionNums.splice(savedRevisionNums.indexOf(position), 1);
-            element.remove();
-            return element;
+        function toArray(arg) {
+            return Array.prototype.slice.apply(arg);
         }
 
         function zpad(str, length) {
             str = str + "";
             while (str.length < length)
-            str = '0' + str;
+            str = "0" + str;
             return str;
         }
 
@@ -378,23 +419,15 @@ define(function(require, exports, module) {
             var hours = zpad(date.getHours(), 2);
             var minutes = zpad(date.getMinutes(), 2);
             var seconds = zpad(date.getSeconds(), 2);
-            return ([month, ' ', day, ', ', year, ' ', hours, ':', minutes, ':', seconds].join(""));
+            return ([month, " ", day, ", ", year, " ", hours, ":", minutes, ":", seconds].join(""));
         }
 
         function updateTimer(time) {
-            jQuery('#revision_date').html(dateFormat(time));
-        }
-
-        function onSlider(callback) {
-            slidercallbacks.push(callback);
-        }
-
-        function getSliderPosition() {
-            return sliderPos;
+            revisionDate.innerHTML = dateFormat(time);
         }
 
         function calcHandlerLeft(pos) {
-            var left = pos * (jQuery("#ui-slider-bar").width() - 2) / (sliderLength * 1.0);
+            var left = pos * (sliderBar.offsetWidth - 2) / (sliderLength * 1.0);
             left = (left || 0) + LEFT_PADDING;
             return left;
         }
@@ -403,34 +436,29 @@ define(function(require, exports, module) {
             newpos = Number(newpos);
             if (newpos < 0 || newpos > sliderLength) return;
 
-            jQuery("#ui-slider-handle").css('left', calcHandlerLeft(newpos));
+            handle.style.left = calcHandlerLeft(newpos) + "px";
 
-            var revLabel = jQuery("#revision_label");
-            if (savedRevisionNums.indexOf(newpos) === -1)
-                revLabel.html("Version " + newpos).css("color", "");
+            if (savedRevisionNums.indexOf(newpos) === -1) {
+                revisionLabel.innerHTML = "Version " + newpos;
+                revisionLabel.style.color = "";
+            }
+            else {
+                revisionLabel.innerHTML = "Saved Version " + newpos;
+                revisionLabel.style.color = "rgb(168, 231, 168)";
+            }
+
+            if (newpos === 0)
+                leftStep.style.opacity = 0.5;
             else
-                revLabel.html("Saved Version " + newpos).css("color", "green");
+                leftStep.style.opacity = 1;
 
-            if (newpos === 0) {
-                jQuery("#leftstar").css('opacity', 0.5);
-                jQuery("#leftstep").css('opacity', 0.5);
-            }
-            else {
-                jQuery("#leftstar").css('opacity', 1);
-                jQuery("#leftstep").css('opacity', 1);
-            }
-
-            if (newpos == sliderLength) {
-                jQuery("#rightstar").css('opacity', 0.5);
-                jQuery("#rightstep").css('opacity', 0.5);
-            }
-            else {
-                jQuery("#rightstar").css('opacity', 1);
-                jQuery("#rightstep").css('opacity', 1);
-            }
+            if (newpos == sliderLength)
+                rightStep.style.opacity = 0.5;
+            else
+                rightStep.style.opacity = 1;
 
             sliderPos = newpos;
-            _callSliderCallbacks(newpos);
+            emit("slider", newpos);
         }
 
         function getSliderLength() {
@@ -444,22 +472,22 @@ define(function(require, exports, module) {
 
         function playButtonUpdater() {
             if (sliderPlaying) {
-                if (getSliderPosition() + 1 > sliderLength) {
-                    jQuery("#playpause_button_icon").toggleClass('pause');
+                if (sliderPos + 1 > sliderLength) {
+                    dom.toggleCssClass(playButtonIcon, "pause");
                     sliderPlaying = false;
                     return;
                 }
-                setSliderPosition(getSliderPosition() + 1);
+                setSliderPosition(sliderPos + 1);
 
                 setTimeout(playButtonUpdater, 100);
             }
         }
 
         function playpause() {
-            jQuery("#playpause_button_icon").toggleClass('pause');
+            dom.toggleCssClass(playButtonIcon, "pause");
 
             if (!sliderPlaying) {
-                if (getSliderPosition() == sliderLength) setSliderPosition(0);
+                if (sliderPos == sliderLength) setSliderPosition(0);
                 sliderPlaying = true;
                 playButtonUpdater();
             }
@@ -468,32 +496,24 @@ define(function(require, exports, module) {
             }
         }
 
-        function getTimeSliderContainer() {
-            return jQuery("#timeslider-top");
-        }
-
-        function getCodeEditorConiatner() {
-            return jQuery(".codeditorHolder");
-        }
-
         function getCodeEditorTab() {
-            return jQuery(".codeditorHolder .editor_tab");
+            return $(".codeditorHolder .hsplitbox");
         }
 
         var isVisible = false;
         var resizeInterval;
 
         function show() {
-            getTimeSliderContainer().show();
-            getCodeEditorTab().height(getCodeEditorConiatner().outerHeight() - getTimeSliderContainer().outerHeight());
+            draw();
+            container.style.display = "block";
+            // getCodeEditorTab().height(editorContainer.outerHeight() - container.outerHeight());
 
             clearInterval(resizeInterval);
-            var ts = jQuery("#timeslider");
-            var oldWidth = ts.outerWidth();
+            var oldWidth = timeslider.offsetWidth;
             resizeInterval = setInterval(function () {
-                if (ts.outerWidth() !== oldWidth) {
+                if (timeslider.offsetWidth !== oldWidth) {
                     updateSliderElements();
-                    oldWidth = ts.outerWidth();
+                    oldWidth = timeslider.offsetWidth;
                 }
             }, 100);
             isVisible = true;
@@ -501,8 +521,9 @@ define(function(require, exports, module) {
         }
 
         function hide() {
-            getTimeSliderContainer().hide();
-            getCodeEditorTab().height(getCodeEditorConiatner().outerHeight());
+            draw();
+            container.style.display = "none";
+            // getCodeEditorTab().height(editorContainer.outerHeight());
             clearInterval(resizeInterval);
             isVisible = false;
             emit("visible", isVisible);
@@ -557,6 +578,7 @@ define(function(require, exports, module) {
                 aceEditor.setReadOnly(true);
                 activeDocument = doc;
                 aceEditor.keyBinding.addKeyboardHandler(timesliderKeyboardHandler);
+                doc.loadTimeslider();
             }
             aceEditor.renderer.onResize(true);
         }
@@ -566,12 +588,12 @@ define(function(require, exports, module) {
                 return false;
             var aceEditor = editor.ace;
             var collabDoc = aceEditor.session.collabDoc;
-            return collabDoc && collabDoc.isInited && collabDoc.revisions[0];
+            return collabDoc && collabDoc.revisions[0];
         }
 
         function forceHideSlider() {
-            var isVisible = settings.getBool(tsVisibleKey);
-            if (isVisible) {
+            var tsVisible = isVisible || settings.getBool(tsVisibleKey);
+            if (tsVisible) {
                 settings.set(tsVisibleKey, false);
                 toggleTimeslider();
             }
@@ -592,7 +614,7 @@ define(function(require, exports, module) {
 
             get sliderLength() { return getSliderLength(); },
             set sliderLength(len) { setSliderLength(len); },
-            get sliderPosition() { return getSliderPosition(); },
+            get sliderPosition() { return sliderPos; },
             set sliderPosition(pos) { setSliderPosition(pos); },
             set timer(time) { updateTimer(time); },
             set savedRevisions(revs) { setSavedRevisions(revs); },
@@ -600,8 +622,7 @@ define(function(require, exports, module) {
             show: show,
             hide: hide,
             playpause: playpause,
-            addSavedRevision: addSavedRevision,
-            onSlider: onSlider,
+            addSavedRevision: addSavedRevision
         });
 
         register(null, {

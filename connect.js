@@ -1,11 +1,11 @@
 /**
- * File Finder module for the Cloud9 IDE that uses nak
+ * Collab module for the Cloud9 IDE that uses collab
  *
  * @copyright 2012, Ajax.org B.V.
  * @license GPLv3 <http://www.gnu.org/licenses/gpl.txt>
  */
 define(function(require, exports, module) {
-    main.consumes = ["c9", "Plugin", "ext", "ui", "proc"];
+    main.consumes = ["c9", "Plugin", "ext", "info", "ui", "proc", "vfs"];
     main.provides = ["collab.connect"];
     return main;
 
@@ -13,8 +13,10 @@ define(function(require, exports, module) {
         var Plugin   = imports.Plugin;
         var c9       = imports.c9;
         var ext      = imports.ext;
+        var info     = imports.info;
         var ui       = imports.ui;
         var proc     = imports.proc;
+        var vfs      = imports.vfs;
 
         /***** Initialization *****/
 
@@ -31,6 +33,16 @@ define(function(require, exports, module) {
             DEBUG = Number((/debug=(\d)/.exec(window.location.search) || [null, DEBUG])[1]);
         else
             DEBUG = 0;
+
+        var uid      = info.getUser().id;
+        var pid      = info.getWorkspace().id;
+        var userIds  = {
+            // clientId : set when a connection trial is triggered
+            userId   : uid,
+            email    : "email@something.com",
+            fullname : "Mostafa",
+            fs       : "rw"
+        };
 
         var CODE   = require("text!./server/collab-server.js");
         var markup = require("text!./connect.xml");
@@ -156,14 +168,10 @@ define(function(require, exports, module) {
         }
 
         function doConnect() {
-            var userIds = {
-                clientId: "abc",
-                userId: "1",
-                email: "email@something.com",
-                fullname: "Mostafa",
-                fs: "rw"
-            };
-            collab.connect(options.pid, options.basePath, userIds, function (err, meta) {
+            // socket.id
+            userIds.clientId  = vfs.connection.id;
+
+            collab.connect(pid, options.basePath, userIds, function (err, meta) {
                 if (err)
                     return console.error("COLLAB connect failed", err);
                 console.log("COLLAB connected -", meta.isMaster ? "MASTER" : "SLAVE");
@@ -197,7 +205,7 @@ define(function(require, exports, module) {
                     stream.off("data", onData);
                     stream.destroy();
                     isClosed = true;
-                    onDisconnect();
+                    // onDisconnect();
                 }
                 stream.once("end", function (){
                     console.log("COLLAB STREAM END");
@@ -217,7 +225,7 @@ define(function(require, exports, module) {
                 return console.log("[OT] Collab not connected - SKIPPING ", msg);
             if (DEBUG)
                 console.log("[OT] SENDING TO SERVER", msg);
-            collab.send("abc", msg);
+            collab.send(userIds.clientId, msg);
         }
 
         function sshCheckInstall() {
@@ -304,7 +312,7 @@ define(function(require, exports, module) {
         /***** Register and define API *****/
 
         /**
-         * Finder implementation using nak
+         * Finder implementation using collab
          **/
         plugin.freezePublicAPI({
             get DEBUG()     { return DEBUG; },
