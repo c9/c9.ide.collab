@@ -2,7 +2,8 @@
 define(function(require, exports, module) {
 "use strict";
 
-main.consumes = ["Panel", "panels", "c9", "ui", "apf", "collab.util", "collab.workspace", "collab"];
+main.consumes = ["Panel", "panels", "c9", "ui", "apf", "menus",
+        "collab.util", "collab.workspace", "collab"];
     main.provides = ["chat"];
     return main;
 
@@ -12,6 +13,7 @@ main.consumes = ["Panel", "panels", "c9", "ui", "apf", "collab.util", "collab.wo
         var c9           = imports.c9;
         var ui           = imports.ui;
         var apf          = imports.apf;
+        var menus        = imports.menus;
         var util         = imports["collab.util"];
         var workspace    = imports["collab.workspace"];
         var collab       = imports.collab;
@@ -22,11 +24,14 @@ main.consumes = ["Panel", "panels", "c9", "ui", "apf", "collab.util", "collab.wo
         var timeago      = require("./timeago");
         var staticPrefix = options.staticPrefix;
 
+        var Tree         = require("ace_tree/tree");
+        var TreeData     = require("./membersdp");
+
         var plugin = new Panel("Ajax.org", main.consumes, {
             index        : 25,
             width        : 250,
-            caption      : "Chat",
-            elementName  : "winChat",
+            caption      : "Collaboration",
+            elementName  : "winCollab",
             minWidth     : 130,
             where        : "right",
             autohide     : true
@@ -36,7 +41,7 @@ main.consumes = ["Panel", "panels", "c9", "ui", "apf", "collab.util", "collab.wo
         var emoji = require("./my_emoji");
 
         // panel-relared UI elements
-        var winChat, chatInput, chatText;
+        var winCollab, chatInput, chatText, membersParent, membersTree, membersDataProvider;
         // non-panel related UI elements
         var chatThrob, chatCounter, chatNotif;
 
@@ -57,9 +62,10 @@ main.consumes = ["Panel", "panels", "c9", "ui", "apf", "collab.util", "collab.wo
 
             ui.insertMarkup(options.aml, markup, plugin);
 
-            winChat     = plugin.getElement("winChat");
-            chatInput   = plugin.getElement("chatInput");
-            chatText    = plugin.getElement("chatText").$ext;
+            winCollab     = plugin.getElement("winCollab");
+            chatInput     = plugin.getElement("chatInput");
+            chatText      = plugin.getElement("chatText").$ext;
+            membersParent = plugin.getElement("membersTree").$ext;
 
             function onWorkspaceConnect() {
                 if (!/r/.test(workspace.fs))
@@ -94,6 +100,53 @@ main.consumes = ["Panel", "panels", "c9", "ui", "apf", "collab.util", "collab.wo
                     bindKey : "Enter",
                     exec    : send
                 }
+            ]);
+
+            // Members panel
+            membersTree = new Tree(membersParent);
+            membersDataProvider = new TreeData();
+            membersTree.renderer.setScrollMargin(0, 10);
+            membersTree.renderer.setTheme({cssClass: "memberstree"});
+            // Assign the dataprovider
+            membersTree.setDataProvider(membersDataProvider);
+            // Some global render metadata
+            membersDataProvider.staticPrefix = staticPrefix;
+
+            membersTree.on("changeSelection", function(){
+                setTimeout(onSelect, 40);
+            });
+
+            // APF + DOM HACK: popup menu
+            membersTree.on("mousedown", function(e){
+                var domTarget = e.domEvent.target;
+                var pos = e.getDocumentPosition();
+                var node = membersDataProvider.findItemAtOffset(pos.y);
+                if (! (node && domTarget && domTarget.className === "access_control"))
+                    return;
+                // TODO force-trigger the context menu
+                // var amlTab = node.tab.aml;
+                // amlTab.parentNode.remove(amlTab, {});
+            });
+
+            membersTree.focus = function() {};
+
+            var mnuCtxTree = plugin.getElement("mnuCtxTree");
+            plugin.addElement(mnuCtxTree);
+
+            menus.addItemToMenu(mnuCtxTree, new ui.item({
+                class   : "strong",
+                caption : "Open",
+                onclick : function() {
+                    // TODO
+                }
+            }), 100, plugin);
+
+            var wsOwnerUid = 1;
+            membersDataProvider.iAmAdmin = true; // TODO
+            membersDataProvider.setRoot([
+                { name: "Me", uid: 1, access: "rw", status: "online", color: "red", isAdmin: true },
+                { name: "Mostafa Eweda", uid: 2, access: "rw", status: "offline", color: "green" },
+                { name: "Maged Eweda", uid: 3, access: "r", status: "idle", color: "blue" }
             ]);
         }
 

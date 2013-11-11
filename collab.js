@@ -4,7 +4,8 @@ define(function(require, exports, module) {
 
 main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
         "ace", "timeslider", "collab.util", "collab.connect",
-        "collab.workspace",  "OTDocument", "AuthorLayer", "CursorLayer"];
+        "collab.workspace",  "OTDocument", "AuthorLayer", "CursorLayer",
+        "ui", "layout"];
     main.provides = ["collab"];
     return main;
 
