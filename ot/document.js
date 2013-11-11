@@ -25,6 +25,9 @@ define(function(require, module, exports) {
         var IndexCache            = require("./index_cache");
         var applyAuthorAttributes = require("./author_attributes")().apply;
 
+        var MIN_DELAY = options.minDelay;
+        var MAX_DELAY = options.maxDelay;
+
         function OTDocument(docId, session, c9Document) {
 
             var plugin      = new Plugin("Ajax.org", main.consumes);
@@ -36,6 +39,7 @@ define(function(require, module, exports) {
             var fsContents;
 
             var docStream;
+            var revStream;
             var doc;
             var cursorLayer;
             var authorLayer;
@@ -213,9 +217,6 @@ define(function(require, module, exports) {
 
             // Calculate the edit update delays based on the number of clients
             // joined to a document and thier latest updated cursor positions
-            var MIN_DELAY = 500;
-            var MAX_DELAY = 5000;
-
             function calculateDelay() {
                 var selections = cursorLayer ? cursorLayer.selections : {};
                 var aceEditor = c9Document.editor.ace;
@@ -224,7 +225,7 @@ define(function(require, module, exports) {
                 var delay = MAX_DELAY;
 
                 for (var clientId in selections) {
-                    delay -= 2000;
+                    delay -= 3000;
                     var ranges = selections[clientId].screenRanges || [];
                     for (var i = 0; i < ranges.length; i++) {
                         var range = ranges[i];
@@ -304,38 +305,41 @@ define(function(require, module, exports) {
                 if (data.chunkNum !== data.chunksLength)
                     return emit("joinProgress", {loaded: data.chunkNum, total: data.chunksLength});
 
-                var dataDoc = JSON.parse(docStream);
+                doc = JSON.parse(docStream);
                 docStream = null;
 
                 if (docId !== data.docId)
                     console.error("docId mismatch", docId, data.docId);
 
+                doc.revisions = [];
+                doc.starRevNums = [];
+                revCache = {
+                    revNum: doc.revNum,
+                    contents: doc.contents,
+                    authAttribs: cloneObject(doc.authAttribs)
+                 };
+
+                 state = "IDLE";
+
                 // re-joining the document
                 var latestContents;
-                if (doc) {
-                    syncOfflineEdits(dataDoc);
-                    authorLayer.dispose();
+                if (latestRevNum === doc.revNum) {
+                    scheduleSend();
                     latestContents = session.doc.getValue();
                 }
                 else {
-                    doc = dataDoc;
-                    revCache = {
-                        revNum: doc.revNum,
-                        contents: doc.contents,
-                        authAttribs: cloneObject(doc.authAttribs)
-                    };
                     latestContents = syncFileSystemState();
-                    cursorLayer = new CursorLayer(session, workspace);
-                    cursorTimer = setTimeout(changedSelection, 500);
                 }
 
-                state = "IDLE";
+                cursorLayer = new CursorLayer(session, workspace);
+                cursorTimer = setTimeout(changedSelection, 500);
 
-                latestRevNum = dataDoc.revNum;
+                latestRevNum = doc.revNum;
 
-                delete dataDoc.selections[workspace.myOldClientId]; // in case of away
+                delete doc.selections[workspace.myOldClientId]; // in case of away
 
-                cursorLayer.updateSelections(dataDoc.selections);
+                cursorLayer.updateSelections(doc.selections);
+                authorLayer && authorLayer.dispose();
                 authorLayer = new AuthorLayer(session, workspace);
 
                 if (DEBUG)
@@ -344,30 +348,6 @@ define(function(require, module, exports) {
                 emit("joined", {contents: latestContents});
 
                 isInited = true;
-            }
-
-            function syncOfflineEdits(dataDoc) {
-                var fromRevNum = latestRevNum + 1;
-                var revisions = dataDoc.revisions;
-                for (var i = fromRevNum; i < revisions.length; i++) {
-                    var rev = revisions[i];
-                    if (workspace.myUserId == rev.author)
-                        delete rev.operation;
-                    handleIncomingEdit({
-                        op: rev.operation,
-                        revNum: rev.revNum,
-                        userId: rev.author,
-                        updated_at: rev.updated_at
-                    });
-                }
-                // already synced
-                delete dataDoc.authAttribs;
-                delete dataDoc.contents;
-                delete dataDoc.revisions;
-
-                for (var key in dataDoc)
-                    doc[key] = dataDoc[key];
-                scheduleSend();
             }
 
             function syncFileSystemState() {
@@ -584,8 +564,12 @@ define(function(require, module, exports) {
                 // if (DEBUG > 1)
                 //     getRevWithContent(msg.revNum);
          
-                if (timeslider.visible && timeslider.activeDocument === plugin)
+                if (isActiveTimesliderDocument())
                     timeslider.sliderLength = msg.revNum;
+            }
+
+            function isActiveTimesliderDocument() {
+                return timeslider.visible && timeslider.activeDocument === plugin;
             }
 
             function getRevWithContent(revNum) {
@@ -645,9 +629,9 @@ define(function(require, module, exports) {
             }
 
             function updateToRevNum(revNum) {
-                var revisions = doc && doc.revisions;
-                if (!revisions || !revisions[0])
-                    return console.error("[OT] doc null - document may haven't yet been inited !");
+                var revisions = (doc || {}).revisions || [];
+                if (!revisions[0])
+                    return console.warn("[OT] revisions may haven't yet been loaded !");
                 if (!isReadOnly())
                     return console.error("[OT] Can't updateToRevNum while editing !!");
                 if (typeof revNum === "undefined")
@@ -699,26 +683,55 @@ define(function(require, module, exports) {
                         break;
                     }
 
-                    if (data.star)
-                        doc.starRevNums.push(data.revNum);
+                    data.star && doc.starRevNums.push(data.revNum);
                     emit("saved", {
                         star: data.star,
                         revision: doc.revisions[data.revNum],
                         clean: !outgoing.length && latestRevNum === data.revNum
                     });
                     break;
-                }
+                case "GET_REVISIONS":
+                   receiveRevisions(data);
+                   break;
+                 default:
+                   console.error("[OT] Unkown document event type:", event.type, docId, event);
+               }
             }
 
-            function loadTimeslider() {
-                var revisions = doc && doc.revisions;
-                if (!revisions || !revisions[0])
-                    return console.error("[OT] doc null - document may haven't yet been inited !");
+            function receiveRevisions (data) {
+               if (data.chunkNum === 1)
+                    revStream = "";
+
+                revStream += data.chunk;
+
+                if (data.chunkNum !== data.chunksLength)
+                    return;
+
+                var revisionsObj = JSON.parse(revStream);
+                revStream = null;
+                doc.revisions = revisionsObj.revisions;
+                doc.starRevNums = revisionsObj.starRevNums;
+
+                if (isActiveTimesliderDocument())
+                    loadRevisions();
+            }
+
+            function loadRevisions() {
+                var revisions = (doc || {}).revisions || [];
+                if (!revisions[0]) {
+                    console.log("[OT] Loading revisions ...");
+                    timeslider.loading = true;
+                    connect.send("GET_REVISIONS", { docId: docId });
+                    return;
+                }
+                if (!isActiveTimesliderDocument())
+                    return;
                 var numRevs = revisions.length - 1;
                 var lastRev = revisions[numRevs];
                 var starRevisions = doc.starRevNums.map(function (revNum) {
                     return revisions[revNum];
                 });
+                timeslider.loading = false;
                 timeslider.sliderLength = numRevs;
                 timeslider.savedRevisions = starRevisions;
                 timeslider.sliderPosition = numRevs;
@@ -799,7 +812,7 @@ define(function(require, module, exports) {
                 get changed() { return isChanged(); },
 
                 leave: leave,
-                loadTimeslider: loadTimeslider,
+                loadRevisions: loadRevisions,
                 updateToRevNum:  updateToRevNum,
                 save: save,
                 historicalSearch: historicalSearch,

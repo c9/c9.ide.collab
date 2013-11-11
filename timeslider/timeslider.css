@@ -39,6 +39,7 @@
 
 #playpause_button {
     background-image: url(images/play_undepressed.png);
+    background-repeat: no-repeat;
     left: 10px;
     top: 9px;
 }
@@ -99,7 +100,7 @@
     z-index: 3;
 }
 
-#revision-info {
+#revision_info {
     position: absolute;
     left: 66px;
     top: 10px;

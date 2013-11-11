@@ -102,6 +102,8 @@ define(function(require, module, exports) {
 
                 var doc = session.collabDoc;
                 var revision = doc.revisions[revNum];
+                if (!revision)
+                   return;
                 var uid = revision.author;
                 var bgColor;
                 var editorDoc = session.doc;

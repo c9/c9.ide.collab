@@ -59,8 +59,8 @@ define(function(require, exports, module) {
             'export PATH=$BIN_DIR:$PATH', // hack on nvm installed node versions
             'NPM_BIN=$(which npm)',
             'echo "mkdir -p ' + options.nodePath + '"', // result[2]
-            'echo "$NPM_BIN --prefix ' + options.nodePath + ' install sequelize@1.6.0-beta4"', // result[3]
-            'echo "$NPM_BIN --prefix ' + options.nodePath + ' install sqlite3@2.1.7"', // result[4]
+            'echo "$NPM_BIN --prefix ' + options.nodePath + ' install sequelize@2.0.0-beta.0"', // result[3]
+            'echo "$NPM_BIN --prefix ' + options.nodePath + ' install sqlite3@2.1.18"', // result[4]
             // result[5]
             'case `uname` in',
             '  Linux )',

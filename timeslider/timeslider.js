@@ -22,6 +22,7 @@ define(function(require, exports, module) {
         var dom          = require("ace/lib/dom");
 
         var staticPrefix = options.staticPrefix;
+        var isLoading;
 
         var tsVisibleKey = "user/collab/@timeslider-visible";
         // timeslider keyboard handler
@@ -36,7 +37,7 @@ define(function(require, exports, module) {
 
         // UI elements
         var container, timeslider, editorContainer, timesliderClose, slider, sliderBar, handle,
-            playButton, playButtonIcon, revisionDate, revisionLabel, leftStep, rightStep;
+            playButton, playButtonIcon, revisionInfo, revisionDate, revisionLabel, leftStep, rightStep;
 
         var activeDocument;
 
@@ -93,8 +94,8 @@ define(function(require, exports, module) {
             }, plugin);
 
             ace.getElement("menu", function(menu) {
-                menus.addItemToMenu(menu, mnuCtxEditorFileHistory, 600, plugin);
-                menus.addItemToMenu(menu, new ui.divider(), 650, plugin);
+                menus.addItemToMenu(menu, mnuCtxEditorFileHistory, 500, plugin);
+                menus.addItemToMenu(menu, new ui.divider(), 550, plugin);
                 menu.on("prop.visible", function(e) {
                     // only fire when visibility is set to true
                     if (e.value) {
@@ -123,10 +124,10 @@ define(function(require, exports, module) {
                 activeDocument = doc;
                 if (!isVisible)
                     return;
-                if (!doc || !doc.isInited || !doc.revisions || !doc.revisions[0])
+                if (!doc || !doc.isInited)
                     forceHideSlider();
                 else
-                    doc.loadTimeslider();
+                    doc.loadRevisions();
             }, plugin);
 
             save.on("beforeSave", function(e) {
@@ -163,6 +164,7 @@ define(function(require, exports, module) {
             handle          = $("ui-slider-handle");
             playButton      = $("playpause_button");
             playButtonIcon  = $("playpause_button_icon");
+            revisionInfo    = $("revision_info");
             revisionDate    = $("revision_date");
             revisionLabel   = $("revision_label");
             leftStep        = $("leftstep");
@@ -571,14 +573,14 @@ define(function(require, exports, module) {
                 aceEditor.setReadOnly(!!c9.readonly);
             }
             else {
-                if (!doc || !doc.revisions[0])
+                if (!doc)
                     return;
                 // ide.dispatchEvent("track_action", {type: "timeslider"});
                 show();
                 aceEditor.setReadOnly(true);
                 activeDocument = doc;
                 aceEditor.keyBinding.addKeyboardHandler(timesliderKeyboardHandler);
-                doc.loadTimeslider();
+                doc.loadRevisions();
             }
             aceEditor.renderer.onResize(true);
         }
@@ -588,7 +590,7 @@ define(function(require, exports, module) {
                 return false;
             var aceEditor = editor.ace;
             var collabDoc = aceEditor.session.collabDoc;
-            return collabDoc && collabDoc.revisions[0];
+            return !!collabDoc;
         }
 
         function forceHideSlider() {
@@ -596,6 +598,24 @@ define(function(require, exports, module) {
             if (tsVisible) {
                 settings.set(tsVisibleKey, false);
                 toggleTimeslider();
+            }
+        }
+
+        function setLoading(loading) {
+            if (loading === isLoading)
+                return;
+            isLoading = loading;
+
+            if (loading) {
+                playButton.style["background-image"] = "url("+ staticPrefix + "/images/loading.gif)";
+                playButton.style.margin = "7px 0px 0px 5px";
+                playButtonIcon.style.display = revisionInfo.style.display = "none";
+                setSavedRevisions([]);
+            }
+            else {
+                playButton.style["background-image"] = "url(" + staticPrefix + "/images/play_depressed.png)";
+                playButton.style.margin = "";
+                playButtonIcon.style.display = revisionInfo.style.display = "block";
             }
         }
 
@@ -608,9 +628,10 @@ define(function(require, exports, module) {
          **/
         plugin.freezePublicAPI({
             get visible() { return isVisible; },
+            get loading() { return isLoading; },
+            set loading(loading) { setLoading(loading); },
 
             get activeDocument() { return activeDocument; },
-            set activeDocument(doc) { activeDocument = doc; },
 
             get sliderLength() { return getSliderLength(); },
             set sliderLength(len) { setSliderLength(len); },

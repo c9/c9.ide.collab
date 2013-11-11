@@ -8,6 +8,7 @@ var crypto = require('crypto');
 var exists = Fs.exists || Path.exists;
 
 /* diff_match_patch start */
+
 var DIFF_EQUAL = 0;
 var DIFF_INSERT = 1;
 var DIFF_DELETE = -1;
@@ -113,6 +114,9 @@ var User, Document, Revision, Workspace, ChatMessage;
 var basePath;
 var PID;
 var dbFilePath;
+// Cache the workspace state got from the database
+var cachedWS;
+var cachedUsers;
 
 function getDocPath (path) {
     if (path.indexOf(basePath) === 0)
@@ -177,7 +181,7 @@ function initDB(callback) {
         pool: { maxConnections: 5, maxIdleTime: 30}
     });
 
-    User = sequelize.define("User", {
+    Store.User = User = sequelize.define("User", {
         uid            : { type: Sequelize.STRING, primaryKey: true },
         fullname       : { type: Sequelize.STRING },
         email          : { type: Sequelize.STRING }
@@ -185,7 +189,7 @@ function initDB(callback) {
         timestamps: true, paranoid: true
     });
 
-    Workspace = sequelize.define("Workspace", {
+    Store.Workspace = Workspace = sequelize.define("Workspace", {
         authorPool     : { type: Sequelize.TEXT }, // Stringified JSON  - uid -> 1,2, ...etc.
         colorPool      : { type: Sequelize.TEXT }, // Stringified JSON - uid --> "{r: 256, g: 0, b: 0}"
         basePath       : { type: Sequelize.STRING, allowNull: false }
@@ -193,53 +197,80 @@ function initDB(callback) {
         timestamps: true, paranoid: true
     });
 
-    Document = sequelize.define("Document", {
+    Store.Document = Document = sequelize.define("Document", {
         id             : { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
         path           : { type: Sequelize.STRING, unique: true },
         contents       : { type: Sequelize.TEXT },
         fsHash         : { type: Sequelize.STRING },
         authAttribs    : { type: Sequelize.TEXT }, // Stringified JSON
         starRevNums    : { type: Sequelize.TEXT }, // Stringified JSON list of integers
-        revNum         : { type: Sequelize.INTEGER, defaultValue: 0 }
+        revNum         : { type: Sequelize.INTEGER, defaultValue: 0 },
+        created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.NOW },
+        updated_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.NOW }
     }, {
-        timestamps: true, paranoid: true
+        timestamps: false
     });
 
-    Revision = sequelize.define("Revision", {
+    Store.Revision = Revision = sequelize.define("Revision", {
         id        : { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
         operation : { type: Sequelize.TEXT }, // Stringified JSON Array - can be empty for rev:0
         author    : { type: Sequelize.STRING }, // userId if exists, 0 in syncing operations, -1 in undo non authored text
-        revNum    : { type: Sequelize.INTEGER }
+        revNum    : { type: Sequelize.INTEGER },
+        created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.NOW },
+        updated_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.NOW }
     }, {
-        timestamps: true, paranoid: true
+        timestamps: false
     });
 
-    ChatMessage = sequelize.define("ChatMessage", {
+    Store.ChatMessage = ChatMessage = sequelize.define("ChatMessage", {
         id        : { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
         text      : { type: Sequelize.STRING },
         userId    : { type: Sequelize.STRING, allowNull: false },
         timestamp : { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.NOW }
+    }, {
+        timestamps: true
     });
 
     Document.hasMany(Revision);
     Revision.belongsTo(Document);
 
-    async.forEachSeries([
-        // http://www.sqlite.org/pragma.html#pragma_synchronous
-        sequelize.query("PRAGMA synchronous = 0;"),
-        // Document.drop(), // Cleanup on init
-        // Revision.drop(), // Cleanup on init
-        User.sync(),
-        Workspace.sync(),
-        Document.sync(),
-        Revision.sync(),
-        ChatMessage.sync(),
-        Workspace.findOrCreate({id: 1}, {
-            authorPool: "{}",
-            colorPool: "{}",
-            basePath: basePath
-        })
-    ], wrapSeq, callback);
+    async.series([
+        function (next) {
+            async.forEachSeries([
+                // http://www.sqlite.org/pragma.html#pragma_synchronous
+                sequelize.query("PRAGMA synchronous = 0;"),
+                // Document.drop(), // Cleanup on init
+                // Revision.drop(), // Cleanup on init
+                User.sync(),
+                Workspace.sync(),
+                Document.sync(),
+                Revision.sync(),
+                ChatMessage.sync()
+            ], wrapSeq, next);
+        },
+        function (next) {
+            wrapSeq(Workspace.findOrCreate({id: 1}, {
+                authorPool: "{}",
+                colorPool: "{}",
+                basePath: basePath
+            }), function(err, ws) {
+                if (err)
+                    return next(err);
+                ws.authorPool = JSON.parse(ws.authorPool);
+                ws.colorPool = JSON.parse(ws.colorPool);
+                cachedWS = ws;
+                next();
+            });
+        },
+        function (next) {
+            // ignore error of existing indexe
+            wrapSeq(sequelize.query("CREATE INDEX DocumentRevisionsIndex ON Revisions(document_id)"), next.bind(null, null));
+        },
+        function (next) {
+            // ignore error of existing indexe
+            wrapSeq(sequelize.query("CREATE INDEX ChatMessageTimestampIndex ON ChatMessages(timestamp)"), next.bind(null, null));
+        }
+    ], callback);
 }
 
 /**************** operations.js ******************/
@@ -268,7 +299,7 @@ var operations = (function() {
         case "i":
             return "insert";
         default:
-            throw new TypeError("Unknown type of edit: ", edit);
+            throw new TypeError("Unknown type of edit: " + edit);
         }
     }
 
@@ -357,38 +388,50 @@ var operations = (function() {
             return type(edit) === "insert";
         },
 
-        inverse: function (edit) {
-            if (this.isRetain(edit))
-                return edit;
-            if (this.isInsert(edit))
-                return del(edit.slice(1));
-            if (this.isDelete(edit))
-                return insert(edit.slice(1));
-            throw new TypeError("Unknown type of edit: ", edit);
+        inverse: function (edits) {
+            var edit, t, v, inversed = new Array(edits.length);
+            for (var i = 0, el = edits.length; i < el; i++) {
+                edit = edits[i];
+                t = type(edit);
+                v = val(edit);
+                switch (t) {
+                    case "retain":
+                        inversed[i] = edits[i];
+                        break;
+                    case "insert":
+                        inversed[i] = del(v);
+                        break;
+                    case "delete":
+                        inversed[i] = insert(v);
+                        break;
+                }
+            }
+            return inversed;
         }
-
     };
 })();
 
 /**************** apply.js ******************/
 
 function applyContents(op, doc) {
-    var i, len, newDoc = "";
-    for (i = 0, len = op.length; i < len; i += 1) {
-        switch (operations.type(op[i])) {
-        case "retain":
-            newDoc += doc.slice(0, operations.val(op[i]));
-            doc = doc.slice(operations.val(op[i]));
+    var val, newDoc = "";
+    for (var i = 0, len = op.length; i < len; i += 1) {
+        val = op[i].slice(1);
+        switch (op[i][0]) {
+        case "r": // retain
+            val = Number(val);
+            newDoc += doc.slice(0, val);
+            doc = doc.slice(val);
             break;
-        case "insert":
-            newDoc += operations.val(op[i]);
+        case "i": // insert
+            newDoc += val;
             break;
-        case "delete":
-            if (doc.indexOf(operations.val(op[i])) !== 0)
-                throw new TypeError("Expected '" + operations.val(op[i]) +
+        case "d": // delete
+            if (doc.indexOf(val) !== 0)
+                throw new TypeError("Expected '" + val +
                     "' to delete, found '" + doc.slice(0, 10) + "'");
             else
-                doc = doc.slice(operations.val(op[i]).length);
+                doc = doc.slice(val.length);
             break;
         default:
             throw new TypeError("Unknown operation: " + operations.type(op[i]));
@@ -561,7 +604,7 @@ var applyAuthororAttributes = AuthorAttributes().apply;
 
 
 /**************** ot.js ******************/
-function applyOperation(userIds, doc, op, callback) {
+function applyOperation(userIds, docId, doc, op, callback) {
     userIds = userIds || {userId: 0};
     var userId = userIds.userId;
     Store.getWorkspaceState(function (err, ws) {
@@ -585,11 +628,11 @@ function applyOperation(userIds, doc, op, callback) {
         if (err)
             return callback(err);
         doc.revNum++;
-        Store.saveDocument(doc, function (err) {
+        Store.saveDocument(doc, /*["contents", "authAttribs", "revNum"],*/ function (err) {
             if (err)
                 return callback(err);
             var msg = {
-                docId: doc.path,
+                docId: docId,
                 clientId: userIds.clientId,
                 userId: userId,
                 revNum: doc.revNum,
@@ -599,7 +642,6 @@ function applyOperation(userIds, doc, op, callback) {
         });
     }
 }
-
 
 var Store = {
 
@@ -633,23 +675,16 @@ var Store = {
         wrapSeq(Document.find(docId), function (err, doc) {
             if (err || !doc)
                 return callback(err || "No document found to rename !");
-            if (!doc.author)
-                return doUpdate(doc);
-            wrapSeq(Document.remove({where: {path: newPath}}), function  (err) {
-                if (err)
-                    return callback(err);
-                return doUpdate(doc);
-            });
-        });
-        function doUpdate (doc) {
             doc.path = newPath;
             wrapSeq(doc.save(), callback);
-        }
+        });
     },
 
     $parseDocument: function(doc) {
-        doc.authAttribs = JSON.parse(doc.authAttribs);
-        doc.starRevNums = JSON.parse(doc.starRevNums);
+        if (doc.authAttribs)
+            doc.authAttribs = JSON.parse(doc.authAttribs);
+        if (doc.starRevNums)
+            doc.starRevNums = JSON.parse(doc.starRevNums);
         return doc;
     },
 
@@ -663,15 +698,18 @@ var Store = {
         };
     },
 
-    getDocument: function (path, options, callback) {
+    getDocument: function (path, attributes, callback) {
         var query = { where: {path: getDocPath(path)} };
         if (!callback) {
-            callback = options;
-            options = query;
-        } else {
-            options.where = query.where;
+            callback = attributes;
+            attributes = undefined;
         }
-        return wrapSeq(Document.find(options), this.$parseDocumentCallback(callback));
+        else {
+            attributes.unshift("id");
+            query.attributes = attributes; // ["id", other attributes]
+        }
+
+        return wrapSeq(Document.find(query), this.$parseDocumentCallback(callback));
     },
 
     getRevisions: function (doc, callback) {
@@ -688,35 +726,75 @@ var Store = {
         });
     },
 
+    $prepareAttributes : function(doc, attributes) {
+        var update = {};
+        for (var i = 0; i < attributes.length; i++)
+            update[attributes[i]] = doc[attributes[i]];
+        return update;
+    },
+
     saveDocument: function (doc, attributes, callback) {
         if (!callback) {
             callback = attributes;
             attributes = undefined;
         }
-        doc.authAttribs = JSON.stringify(doc.authAttribs);
-        doc.starRevNums = JSON.stringify(doc.starRevNums);
-        return wrapSeq(doc.save(attributes), callback);
+        else {
+            // attributes.push("updated_at");
+        }
+        var authAttribs = doc.authAttribs;
+        var starRevNums = doc.starRevNums;
+        doc.authAttribs = JSON.stringify(authAttribs);
+        doc.starRevNums = JSON.stringify(starRevNums);
+        // doc.updated_at = new Date(doc.updated_at);
+
+        return wrapSeq(
+            attributes ? doc.updateAttributes(this.$prepareAttributes(doc, attributes)) : doc.save(),
+            function(err) {
+                doc.authAttribs = authAttribs;
+                doc.starRevNums = starRevNums;
+                callback(err, doc);
+            }
+        );
     },
 
     getWorkspaceState: function (callback) {
         // the table has only a single entry
+        if (cachedWS)
+            return callback(null, cachedWS);
         wrapSeq(Workspace.find(1), function (err, ws) {
             if (err || !ws)
                 return callback(err || "No workspace state found !");
             ws.authorPool = JSON.parse(ws.authorPool);
             ws.colorPool = JSON.parse(ws.colorPool);
+            cachedWS = ws;
             callback(null, ws);
         });
     },
 
     saveWorkspaceState: function (ws, callback) {
-        ws.authorPool = JSON.stringify(ws.authorPool);
-        ws.colorPool = JSON.stringify(ws.colorPool);
-        return wrapSeq(ws.save(), callback);
+        var authorPool = ws.authorPool;
+        var colorPool = ws.colorPool;
+        ws.authorPool = JSON.stringify(authorPool);
+        ws.colorPool = JSON.stringify(colorPool);
+        return wrapSeq(ws.save(), function(err, savedWS) {
+            if (err) {
+                cachedWS = null;
+                return callback(err);
+            }
+            savedWS.authorPool = authorPool;
+            savedWS.colorPool = colorPool;
+            cachedWS = savedWS;
+            callback(null, savedWS);
+        });
     },
 
     getUsers: function (callback) {
-        wrapSeq(User.all(), callback);
+        if (cachedUsers)
+            return callback(null, cachedUsers);
+        wrapSeq(User.all(), function (err, users) {
+            cachedUsers = users;
+            callback(err, users);
+        });
     },
 
     saveChatMessage: function(text, userId, callback) {
@@ -742,7 +820,7 @@ var Store = {
 // This object should have the following structure:
 //
 //     { <document id> : { <client id> : true } }
-var documents;
+var documents = {};
 
 // This object should have the following structure:
 //
@@ -843,11 +921,26 @@ function handleConnect(userIds, client, callback) {
         var fullname = userIds.fullname;
         var email = userIds.email;
 
-        wrapSeq(User.findOrCreate({uid: userId}, {fullname: fullname, email: email}), function (err, user) {
+        wrapSeq(User.find({where: {uid: userId}}), function (err, user) {
             if (err)
                 return console.error("[vfs-collab] syncUserInfo", err);
+
+            if (!user) {
+                return wrapSeq(User.create({
+                    uid: userId,
+                    fullname: fullname,
+                    email: email
+                }), function(err, createdUser) {
+                    if (err)
+                        return console.error("[vfs-collab] Failed creating user", err);
+                    cachedUsers && cachedUsers.push(createdUser);
+                    augmentWorkspaceInfo();
+                });
+            }
+
             if (user.fullname == fullname && user.email == email)
                 return augmentWorkspaceInfo();
+
             user.fullname = fullname;
             user.email = email;
             wrapSeq(user.save(), function (err, user) {
@@ -981,7 +1074,7 @@ function handleUpdate(userIds, client, message) {
         return callback("User " + userIds.userId + " don't have write access to edit document " + docId + " - fs: " + userIds.fs);
 
     lock(docId, function () {
-        Store.getDocument(docId, function (err, doc) {
+        Store.getDocument(docId, ["contents", "authAttribs", "revNum"], function (err, doc) {
             if (err || !doc)
                 return callback(err || ("No Document to update ! " + docId));
 
@@ -991,7 +1084,7 @@ function handleUpdate(userIds, client, message) {
                 return callback("Version log:" + docId + " "  + doc.revNum + " " + newRev);
 
             // message.author for udno auth attributes
-            applyOperation(userIds, doc, message.op, function (err, msg) {
+            applyOperation(userIds, docId, doc, message.op, function (err, msg) {
                 if (err)
                     return callback("OT Error:" + err);
 
@@ -1042,13 +1135,13 @@ function handleCursorUpdate(userIds, client, data) {
     var docId = data.docId;
     var clientId = userIds.clientId;
 
-    if (!documents[docId] || !documents[docId][userIds.clientId] || !client.openDocIds[docId])
+    if (!documents[docId] || !documents[docId][clientId] || !client.openDocIds[docId])
         return console.error("[vfs-collab] Trying to select in a non-member document !",
             docId, clientId, documents[docId] && Object.keys(documents[docId]), Object.keys(client.openDocIds),
             Object.keys(documents), Object.keys(clients));
 
-    documents[docId][userIds.clientId].selection = data.selection;
-    data.clientId = userIds.clientId;
+    documents[docId][clientId].selection = data.selection;
+    data.clientId = clientId;
     data.userId = userIds.userId;
     broadcast({
         type: "CURSOR_UPDATE",
@@ -1092,10 +1185,10 @@ function initWatcher(docId) {
             Store.getDocument(docId, function (err, doc) {
                 if (err)
                     return callback(err);
-                syncDocument(docId, doc, function (err) {
+                syncDocument(docId, doc, function (err, doc2) {
                     if (err)
                         return callback(err);
-                    docSaveFile(docId, -1, true, callback);
+                    docSaveFile(docId, doc2, -1, true, callback);
                 });
             });
         });
@@ -1162,21 +1255,18 @@ function handleJoinDocument(userIds, client, data) {
                 return callback("getDocument " + err);
 
             if (doc && documents[docId])
-                return joinDocument(null, doc);
+                return joinDocument(doc);
 
             console.error("[vfs-collab] Joining a closed document", docId, " - Syncing");
-            syncDocument(docId, doc, function (err) {
+            syncDocument(docId, doc, function (err, doc2) {
                 if (err)
                     return callback(err);
-                Store.getDocument(docId, joinDocument);
+                joinDocument(doc2);
             });
         });
     })
 
-    function joinDocument(err, doc) {
-        if (err)
-            return callback(err);
-
+    function joinDocument(doc) {
         if (!documents[docId]) {
             documents[docId] = {};
             initWatcher(docId);
@@ -1187,65 +1277,104 @@ function handleJoinDocument(userIds, client, data) {
                 Object.keys(documents[docId]).length, "other document members");
         }
 
-        Store.getRevisions(doc, function (err, revisions) {
-            if (err)
-                return callback("getRevisions: joinDocument " + err);
+        var docHash = hashString(doc.contents);
 
-            var docHash = hashString(doc.contents);
+        var clientDoc = JSON.stringify({
+            selections: documents[docId],
+            authAttribs: doc.authAttribs,
+            contents: doc.contents,
+            fsHash: doc.fsHash,
+            docHash: docHash,
+            revNum: doc.revNum,
+            created_at: doc.created_at,
+            updated_at: doc.updated_at
+        });
 
-            if (JSON.stringify(revisions).length > 1024*1024)
-                revisions = [];
+        documents[docId][userIds.clientId] = userIds;
+        client.openDocIds[docId] = true;
 
-            var clientDoc = JSON.stringify({
-                selections: documents[docId],
-                authAttribs: doc.authAttribs,
-                contents: doc.contents,
-                starRevNums: doc.starRevNums,
-                fsHash: doc.fsHash,
-                docHash: docHash,
-                revNum: doc.revNum,
-                revisions: revisions,
-                created_at: doc.created_at,
-                updated_at: doc.updated_at
-            });
-
-            documents[docId][userIds.clientId] = userIds;
-            client.openDocIds[docId] = true;
-
-            var chunkSize = 10*1024; // 10 KB
-            var contentsLen = clientDoc.length;
-            var chunksLen = Math.ceil(contentsLen / chunkSize);
-            for (var i = 0; i < contentsLen; i += chunkSize) {
-                var chunk = clientDoc.slice(i, i + chunkSize);
-                client.send({
-                    type: "JOIN_DOC",
-                    data: {
-                        userId: userIds.userId,
-                        clientId: userIds.clientId,
-                        docId: data.docId,
-                        chunkNum: (i / chunkSize) + 1,
-                        chunksLength: chunksLen,
-                        chunk: chunk
-                    }
-                });
-            }
-
-            broadcast({
+        var chunkSize = 10*1024; // 10 KB
+        var contentsLen = clientDoc.length;
+        var chunksLen = Math.ceil(contentsLen / chunkSize);
+        for (var i = 0; i < contentsLen; i += chunkSize) {
+            var chunk = clientDoc.slice(i, i + chunkSize);
+            client.send({
                 type: "JOIN_DOC",
                 data: {
-                    docId: data.docId,
                     userId: userIds.userId,
-                    clientId: userIds.clientId
+                    clientId: userIds.clientId,
+                    docId: data.docId,
+                    chunkNum: (i / chunkSize) + 1,
+                    chunksLength: chunksLen,
+                    chunk: chunk
                 }
-            }, client);
+            });
+        }
 
-            callback();
-        });
+        broadcast({
+            type: "JOIN_DOC",
+            data: {
+                docId: data.docId,
+                userId: userIds.userId,
+                clientId: userIds.clientId
+            }
+        }, client);
+
+        callback();
     }
+}
+
+function handleGetRevisions(userIds, client, data) {
+    var docId = data.docId;
+
+    function callback (err) {
+        if (err)
+            console.error("[vfs-collab] handleGetRevisions ERR:", docId, err);
+        unlock(docId);
+    }
+
+    if (!collabReadAccess(userIds.fs))
+        return callback("User " + userIds.userId + " don't have read access to get revisions " + docId + " - fs: " + userIds.fs);
+
+    lock(docId, function () {
+        Store.getDocument(docId, function (err, doc) {
+            if (err)
+                return callback("getDocument " + err);
+
+            Store.getRevisions(doc, function (err, revisions) {
+                var docRevisions = JSON.stringify({
+                    revisions: revisions,
+                    starRevNums: doc.starRevNums,
+                    revNum: doc.revNum
+                });
+
+                var chunkSize = 10*1024; // 10 KB
+                var contentsLen = docRevisions.length;
+                var chunksLen = Math.ceil(contentsLen / chunkSize);
+                for (var i = 0; i < contentsLen; i += chunkSize) {
+                    var chunk = docRevisions.slice(i, i + chunkSize);
+                    client.send({
+                        type: "GET_REVISIONS",
+                        data: {
+                            userId: userIds.userId,
+                            clientId: userIds.clientId,
+                            docId: data.docId,
+                            chunkNum: (i / chunkSize) + 1,
+                            chunksLength: chunksLen,
+                            chunk: chunk
+                        }
+                    });
+                }
+                callback();
+            });
+        });
+    });
+
 }
 
 function handleLeaveDocument(userIds, client, data) {
     var docId = data.docId;
+    var userId = userIds.userId;
     var clientId = userIds.clientId;
     if (!documents[docId] || !documents[docId][clientId] || !client.openDocIds[docId])
         return console.error("[vfs-collab] Trying to leave a non-member document !",
@@ -1256,25 +1385,236 @@ function handleLeaveDocument(userIds, client, data) {
     delete documents[docId][clientId];
     if (!Object.keys(documents[docId]).length) {
         console.error("[vfs-collab] Closing document", docId);
-        delete documents[docId];
-        if (watchers[docId]) {
-            watchers[docId].close();
-            delete watchers[docId];
-        }
+        closeDocument(docId);
     }
 
     broadcast({
         type: "LEAVE_DOC",
         data: {
             docId: docId,
-            userId: userIds.userId,
+            userId: userId,
             clientId: clientId
         }
     }, client);
 }
 
+function closeDocument(docId) {
+    delete documents[docId];
+
+    setTimeout(function () {
+        compressDocument(docId, {
+            MAX_REVISION_NUM: 256,
+            COMPRESSED_REV_NUM: 128
+        });
+    }, 100000);
+
+    if (watchers[docId]) {
+        watchers[docId].close();
+        delete watchers[docId];
+    }
+}
+
+function compressDocument(docId, options, _callback) {
+    if (documents[docId])
+        return;
+
+    var ALREADY_COMPRESSED = "ALREADY_COMPRESSED";
+    var MAX_REVISION_NUM   = options.MAX_REVISION_NUM;
+    var COMPRESSED_REV_NUM = options.COMPRESSED_REV_NUM;
+
+    var doc, revisions, path;
+    var newRevisions, newStarRevNums;
+    var starsHash, rev0Contents, lastRevTime, docTimeDiff, optimalRevTimeDiff;
+
+    // compaction modes
+    var mergeDifferentAuthors = false;
+    var isAggressive = false;
+
+    var secondTime   = 1000;
+    var minuteTime   = secondTime * 60;
+    var hourTime     = minuteTime * 60;
+    var dayTime      = hourTime * 24;
+    var fourDaysTime = dayTime << 2;
+
+    function callback(err) {
+        unlock(docId);
+        if (err === ALREADY_COMPRESSED)
+            err = undefined;
+        if (err)
+            console.error("[vfs-collab] ERROR Closing Document", docId, err);
+        _callback && _callback(err);
+    }
+
+    function cloneRevision(rev, revNum) {
+        return {
+            document_id : rev.document_id,
+            operation   : rev.operation.slice(),
+            author      : rev.author,
+            revNum      : revNum,
+            created_at  : rev.created_at,
+            updated_at  : rev.updated_at
+        };
+    }
+
+    function shouldMergeTimeDiff(rev, lastRev) {
+        if (lastRev.author != rev.author) {
+            if (mergeDifferentAuthors)
+                lastRev.author = "0";
+            else
+                return false;
+        }
+
+        var latestRevDiff = lastRevTime - rev.created_at;
+        var prevRevDiff = rev.created_at - lastRev.created_at;
+
+        if (isAggressive)
+            return prevRevDiff < (optimalRevTimeDiff << 1);
+
+        if (latestRevDiff < hourTime)
+            // previous revision is < 8-seconds away (co-editing)
+            return prevRevDiff < (secondTime << 3);
+        else if (latestRevDiff < dayTime)
+            // previous revision is < 4-minutes away
+            return prevRevDiff < (minuteTime << 2);
+        else if (latestRevDiff < fourDaysTime)
+            // previous revision is < 1-hour away
+            return prevRevDiff < (hourTime);
+        else
+            return prevRevDiff < optimalRevTimeDiff;
+    }
+
+    lock(docId, function() {
+        async.series([
+            function (next) {
+                Store.getDocument(docId, function (err, docL) {
+                    if (err || !docL)
+                        return next(err || "No document to close !");
+                    path = docL.path;
+                    doc = docL;
+                    next();
+                });
+            },
+            function (next) {
+                Store.getRevisions(doc, function (err, revisionsL) {
+                    if (err || !revisionsL)
+                        return next(err || "No document revisions found !");
+                    if (revisionsL.length < MAX_REVISION_NUM)
+                        return next(ALREADY_COMPRESSED);
+                    revisions = revisionsL;
+                    next();
+                });
+            },
+            function prepare(next) {
+                // compress to the latest N/2 saves only
+                var newStars = doc.starRevNums.slice(-COMPRESSED_REV_NUM);
+
+                starsHash = {};
+                var i;
+                for (i = 0; i < newStars.length; i++)
+                    starsHash[newStars[i]] = true;
+
+                rev0Contents = doc.contents;
+                for (i = revisions.length - 1; i > 0; i--) {
+                    var op = operations.inverse(revisions[i].operation);
+                    revisions[i].contents = rev0Contents;
+                    rev0Contents = applyContents(op, rev0Contents);
+                }
+
+                lastRevTime = revisions[revisions.length-1].created_at;
+                docTimeDiff = lastRevTime - revisions[0].created_at;
+                optimalRevTimeDiff = docTimeDiff / COMPRESSED_REV_NUM;
+
+                next();
+            },
+            function compressDoc (next) {
+                var shouldCompress = revisions.length - COMPRESSED_REV_NUM;
+
+                console.error("[vfs-collab] Compress document trial", docId, shouldCompress, mergeDifferentAuthors, isAggressive);
+
+                newRevisions = [ cloneRevision(revisions[0], 0) ];
+                newStarRevNums = [];
+
+                var lastRev = {author: -9};
+                var prevContents, prevLastContents;
+                var lastContents = rev0Contents;
+                var i, rev;
+                for (i = 1; i < revisions.length && shouldCompress; i++) {
+                    rev = revisions[i];
+                    prevLastContents = lastContents;
+                    lastContents = applyContents(rev.operation, lastContents);
+                    // Check if can merge revisions and clear lastRev's author if different & can merge different authors
+                    // TODO: remove the side-effect on parameters the function do
+                    if (shouldMergeTimeDiff(rev, lastRev)) {
+                        var compressedOp = operations.operation(prevContents, lastContents);
+                        lastRev.operation = compressedOp;
+                        shouldCompress--;
+                    }
+                    else {
+                        lastRev = cloneRevision(rev, newRevisions.length);
+                        newRevisions.push(lastRev);
+                        prevContents = prevLastContents;
+                    }
+                    if (starsHash[i] && !lastRev.isStar) {
+                        newStarRevNums.push(lastRev.revNum);
+                        lastRev.isStar = true;
+                    }
+                }
+                if (!shouldCompress) {
+                    while (i < revisions.length) {
+                        newRevisions.push(cloneRevision(revisions[i++], newRevisions.length));
+                    }
+                }
+                else if (!mergeDifferentAuthors) {
+                    console.error("[vfs-collab] Merge single-author failed to compact the document enough", revisions.length, newRevisions.length);
+                    mergeDifferentAuthors = true;
+                    return compressDoc(next);
+                }
+                else if (!isAggressive) {
+                    console.error("[vfs-collab] Merge multi-author failed to compact the document enough", revisions.length, newRevisions.length);
+                    isAggressive = true;
+                    return compressDoc(next);
+                }
+                else if (newRevisions.length >= MAX_REVISION_NUM) {
+                    console.error("[vfs-collab] All compression modes failed to compact the document enough", revisions.length, newRevisions.length);
+                }
+
+                console.error("[vfs-collab] Compressed document:", revisions.length, newRevisions.length,
+                    "Different Authors:", mergeDifferentAuthors,
+                    "isAggressive:", isAggressive);
+
+                // var newContents = rev0Contents;
+                // for (i = 1; i < newRevisions.length; i++) {
+                //     var newRev = newRevisions[i];
+                //     newContents = applyContents(newRev.operation, newContents);
+                // }
+                // console.error("[vfs-collab] Compressed document:", newContents == doc.contents, revisions.length, newRevisions.length);
+                // console.error("[vfs-collab] New Revisions:", newRevisions);
+                // console.error("[vfs-collab] Stars:", doc.starRevNums, newStarRevNums);
+
+                next();
+            },
+            function (next) {
+                wrapSeq(Revision.destroy({document_id: doc.id}), next);
+            },
+            function (next) {
+                doc.starRevNums = newStarRevNums;
+                doc.revNum = newRevisions.length - 1;
+                Store.saveDocument(doc, /*["revNum", "starRevNums"],*/ next);
+            },
+            function (next) {
+                newRevisions.forEach(function(newRev) {
+                    delete newRev.isStar;
+                    newRev.operation = JSON.stringify(newRev.operation);
+                });
+                wrapSeq(Revision.bulkCreate(newRevisions), next);
+            }
+        ], callback);
+    });
+}
+
 function handleSaveFile(userIds, client, data) {
     var docId = data.docId;
+    var userId = userIds.userId;
 
     function callback(err) {
         unlock(docId);
@@ -1291,7 +1631,7 @@ function handleSaveFile(userIds, client, data) {
     }
 
     lock(docId, function () {
-        Store.getDocument(docId, function (err, doc) {
+        Store.getDocument(docId, ["contents", "revNum", "starRevNums"], function (err, doc) {
             if (err || !doc)
                 return callback((err || "Writing a non-collab document !") + " : " +  docId);
 
@@ -1303,36 +1643,30 @@ function handleSaveFile(userIds, client, data) {
                 if (err)
                     return callback("Failed saving file ! : " + docId  + " ERR: " + err);
 
-                docSaveFile(docId, userIds.userId, !data.silent, callback);
+                docSaveFile(docId, doc, userId, !data.silent, callback);
             });
         });
     });
 }
 
-function docSaveFile (docId, userId, star, callback) {
-    Store.getDocument(docId, function (err, doc) {
-        if (err || !doc)
-            return callback(err || ("No Document to star ! " + docId));
+function docSaveFile(docId, doc, userId, star, callback) {
+    if (star && doc.starRevNums.indexOf(doc.revNum) === -1)
+        doc.starRevNums.push(doc.revNum);
 
-        if (star && doc.starRevNums.indexOf(doc.revNum) === -1)
-            doc.starRevNums.push(doc.revNum);
-
-        doc.fsHash = hashString(doc.contents);
-        Store.saveDocument(doc, function (err) {
-            console.error("[vfs-collab] starRevision added", doc.revNum);
-            var data = {
-                userId: userId,
-                docId: docId,
-                star: star,
-                revNum: doc.revNum
-            };
-            broadcast({
-                type: "FILE_SAVED",
-                data: data
-            }, null, docId);
-
-            callback();
-        });
+    doc.fsHash = hashString(doc.contents);
+    Store.saveDocument(doc, /*["fsHash", "starRevNums"],*/ function (err) {
+        console.error("[vfs-collab] starRevision added", doc.revNum);
+        var data = {
+            userId: userId,
+            docId: docId,
+            star: star,
+            revNum: doc.revNum
+        };
+        broadcast({
+            type: "FILE_SAVED",
+            data: data
+        }, null, docId);
+        callback();
     });
 }
 
@@ -1362,6 +1696,9 @@ function onConnect(userIds, client) {
         switch (msg.type) {
         case "JOIN_DOC":
             handleJoinDocument(userIds, client, msg.data);
+            break;
+        case "GET_REVISIONS":
+            handleGetRevisions(userIds, client, msg.data);
             break;
         case "LEAVE_DOC":
             handleLeaveDocument(userIds, client, msg.data);
@@ -1507,21 +1844,24 @@ function syncDocument(docId, doc, callback) {
                 console.error("[vfs-collab] SYNC: Updating document:", docId, op.length, fsHash, doc.fsHash);
                 // non-user sync operation
                 doc.fsHash = fsHash; // applyOperation will save it for me
-                applyOperation(null, doc, op, function (err, msg) {
+                applyOperation(null, docId, doc, op, function (err, msg) {
                     if (err)
                         return callback("SYNC: Failed updating OT database document state !! " + err.toString());
                     broadcast({
                         type: "EDIT_UPDATE",
                         data: msg
                     }, null, docId);
-                    callback();
+
+                    callback(null, doc);
                 });
             }
             else
-                callback();
+                callback(null, doc);
         });
     })
 }
+
+// ********* VFS Stream, net.Socket Collab Communication Infrastructure ************ //
 
 function createServer() {
     var server = net.createServer(function(client) {
@@ -1596,7 +1936,6 @@ function createServer() {
     });
     return server;
 }
-
 
 function initSocket(userIds, callback) {
 
@@ -1733,7 +2072,7 @@ function initSocket(userIds, callback) {
     }
 }
 
-module.exports = function (vfs, register) {
+exports = module.exports = function (vfs, register) {
 
     var vfsClientMap = {};
     var isMaster;
@@ -1794,7 +2133,8 @@ module.exports = function (vfs, register) {
 };
 
 // export for testing
-module.exports.Store = Store;
+exports.Store = Store;
+exports.compressDocument = compressDocument;
 
 /*
 // Quick testing:
