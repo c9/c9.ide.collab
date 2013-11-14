@@ -12,8 +12,8 @@ define(function(require, module, exports) {
         var ui       = imports.ui;
         var alert    = imports["dialog.alert"].show;
         var layout   = imports.layout;
-        var api      = imports["api"];
-        var info     = imports["info"];
+        var api      = imports.api;
+        var info     = imports.info;
 
         var markup   = require("text!./share.xml");
 
@@ -62,19 +62,15 @@ define(function(require, module, exports) {
             if (loaded) return;
             loaded = true;
 
-            var isWorkspaceOwner = true; // TODO
-            if (!isWorkspaceOwner)
+            var isWorkspaceAdmin = true; // TODO
+            if (!isWorkspaceAdmin)
                 return;
 
             commands.addCommand({
                 name    : "sharedialog",
                 hint    : "Share the workspace",
                 group   : "General",
-                exec    : function () {
-                    // "Share Workspace"
-                    // "Share workspace with Cloud9 users"
-                    show();
-                }
+                exec    : show
             }, plugin);
 
             menus.addItemByPath("Window/Share Workspace", new ui.item({
@@ -97,8 +93,7 @@ define(function(require, module, exports) {
         /***** Methods *****/
 
         function doInvite(username, access, callback) {
-            api.request(pid + "/collab/members/add", {
-                method: "post",
+            api.collab.post("members/add", {
                 body: {
                     username : username,
                     access   : access

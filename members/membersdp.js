@@ -6,7 +6,7 @@ define(function(require, exports, module) {
         BaseClass.call(this, root || {});
 
         this.rowHeight      = 20;
-        this.innerRowHeight = 18;
+        this.rowHeightInner = 18;
 
         Object.defineProperty(this, "loaded", {
             get : function(){ return this.visibleItems.length; }
@@ -19,7 +19,7 @@ define(function(require, exports, module) {
         this.$sortNodes = false;
 
         this.getEmptyMessage = function(){
-            return "No open files";
+            return "Loading Members ...";
         };
 
         this.setRoot = function(root){
@@ -33,21 +33,29 @@ define(function(require, exports, module) {
             this._signal("change");
         };
 
+        this.getCaptionHtml = function (datarow) {
+            if (datarow.uid)
+                return datarow.name;
+            else
+                return "<strong>" + datarow.name + "</strong>";
+        };
+
         this.getIconHTML = function (datarow) {
-            var access = datarow.access || "r";
+            if (!datarow.uid)
+                return "";
+            var access = datarow.acl || "r";
             var status = datarow.status || "offline";
             var color = datarow.color || "transparent";
 
             var html = [
                 "<span class='status ", status, "'></span>\n",
                 "<span class='collaborator_color' style='background-color: ", color, ";'></span>\n",
+                "<span class='access_menu'>",
                 "<span class='access ", access, "'>", access.toUpperCase(), "</span>\n",
-                (!this.iAmAdmin || datarow.isAdmin) ? "" : "<span class='access_control'></span>\n"
+                (!this.iAmAdmin || datarow.isAdmin) ? "" : "<span class='access_control'></span>\n",
+                "</span>",
             ];
 
-            // var className = datarow.access === "r" ? "readonly" : "readwrite";
-            // if (className)
-            //     html += "<strong class='" + className + "'> </strong>";
             return html.join("");
         };
 

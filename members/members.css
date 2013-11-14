@@ -1,0 +1,102 @@
+.memberstree .tree-row {
+  padding: 2px 0 0 18px;
+}
+
+.memberstree .tree-row .toggler {
+    background-image: url(images/tree_close_arrow_small.png);
+    margin-right: 6px;
+    margin-left: -9px;
+}
+
+.memberstree .tree-row .access_menu {
+  cursor: pointer;
+  pointer-events: auto;
+  width: 40px;
+  float: right;
+  margin-right: 12px;
+}
+
+.memberstree .tree-row .access_control {
+  background: url(images/tree_option_arrows.png) no-repeat -13px 0;
+  float: left;
+  height: 18px;
+  width: 15px;
+  pointer-events: none;
+}
+
+.memberstree .tree-row .access {
+    margin-top: 2px;
+    width: 20px;
+    height: 14px;
+    margin-right: 2px;
+    float: left;
+    pointer-events: none;
+    background-color: rgb(68, 68, 68);
+    background: url(images/collaborator_permissions_sprite.png) no-repeat 1 -14px;
+    z-index: 10;
+    -webkit-animation: none;
+    -moz-animation: none;
+    animation: none;
+}
+
+.memberstree .tree-row{
+    border-radius: 25px;
+}
+
+.memberstree .tree-row.selected {
+    background: #526660;
+}
+
+.memberstree_focus .tree-row.selected {
+    background: #748512;
+}
+
+.memberstree.focus .tree-row.selected {
+    background: #748512;
+}
+
+.memberstree .tree-row .access.r {
+    background-position: 0 1px;
+}
+
+.memberstree .tree-row .access.rw {
+    background-position: -22px -12px;
+}
+
+.memberstree .tree-row .access.r:hover,
+.memberstree .tree-row .access.r:active {
+    background-position: 0 -51px;
+}
+
+.memberstree .tree-row .access.rw:hover,
+.memberstree .tree-row .access.rw:active {
+    background-position: -22px -38px;
+}
+
+
+.memberstree .tree-row .status {
+  display: block;
+  float: left;
+  width: 8px;
+  height: 10px;
+  margin: 3px 6px 0 0;
+  background: url(images/collab-led-states.png) 1px 0 no-repeat;
+}
+
+.memberstree .tree-row .collaborator_color {
+  display: block;
+  float: left;
+  width: 9px;
+  height: 9px;
+  margin: 3px 6px 0 0;
+  border: 1px solid #3b3b3b;
+}
+
+.memberstree .tree-row .status.online { background-position: -7px -24px; }
+.memberstree .tree-row .status.idle { background-position : -43px -25px }
+.memberstree .tree-row .status.offline { background-position : -25px -5px; }
+
+.memberstree {
+    background : #303130;
+    color: #AAA;
+}

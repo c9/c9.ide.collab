@@ -18,7 +18,7 @@ define(function(require, exports, module) {
         var plugin = new Plugin("Ajax.org", main.consumes);
         var emit   = plugin.getEmitter();
 
-        var workspace = { authorPool: {}, colorPool: {}, users: {} };
+        var workspace = { authorPool: {}, colorPool: {}, users: {}, onlineUserIds: [] };
         var isInited  = false;
         /***** Register and define API *****/
 
@@ -34,6 +34,7 @@ define(function(require, exports, module) {
             workspace.reversedAuthorPool = util.reverseObject(workspace.authorPool);
             workspace.colorPool          = data.colorPool;
             workspace.users              = data.users;
+            workspace.onlineUserIds      = data.onlineUserIds;
 
             if (mine) {
                 workspace.myClientId  = data.myClientId;
@@ -69,6 +70,7 @@ define(function(require, exports, module) {
             addChatMessage: function (msg) { workspace.chatHistory.push(msg); },
             getUser      : function (uid)   { return workspace.users[uid]; },
             getUserColor : function (uid)   { return (uid && util.formatColor(workspace.colorPool[uid])) || "transparent"; },
+            isUserOnline : function(uid) { return workspace.onlineUserIds.indexOf(uid) !== -1; },
             sync         : syncWorkspace
         });
         

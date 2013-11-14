@@ -1005,7 +1005,8 @@ function handleConnect(userIds, client, callback) {
                     fs: userIds.fs,
                     authorPool: authorPool,
                     colorPool: colorPool,
-                    users: usersMap
+                    users: usersMap,
+                    onlineUserIds: onlineUserIds
                 }
             }, client);
 
@@ -1017,7 +1018,7 @@ function handleConnect(userIds, client, callback) {
                     type: "CONNECT",
                     data: {
                         // clients: onlineClientIds, // Online clients (clientIds)
-                        // members: onlineUserIds, // Online members (userIds) - filter duplicates
+                        onlineUserIds: onlineUserIds, // Online members (userIds)
                         myClientId: clientId,
                         myUserId: userId,
                         fs: userIds.fs,

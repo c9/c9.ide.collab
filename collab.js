@@ -2,7 +2,7 @@
 "use strict";
 define(function(require, exports, module) {
 
-main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
+main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
         "ace", "timeslider", "collab.util", "collab.connect",
         "collab.workspace",  "OTDocument", "AuthorLayer", "CursorLayer",
         "ui", "layout"];
@@ -10,10 +10,11 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
     return main;
 
     function main(options, imports, register) {
-        var Plugin       = imports.Plugin;
+        var Panel        = imports.Panel;
         var c9           = imports.c9;
         var tabs         = imports.tabManager;
         var fs           = imports.fs;
+        var ui           = imports.ui;
         var apf          = imports.apf;
         var ace          = imports.ace;
         var util         = imports["collab.util"];
@@ -26,10 +27,19 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
 
         var Notification = {showNotification: function() {console.warn("TODO showNotification:", arguments);}};
 
-        var plugin          = new Plugin("Ajax.org", main.consumes);
-        var emit            = plugin.getEmitter();
+        var plugin       = new Panel("Ajax.org", main.consumes, {
+            index        : 25,
+            width        : 250,
+            caption      : "Collaboration",
+            elementName  : "winCollab",
+            minWidth     : 130,
+            where        : "right",
+            autohide     : true
+        });
+        
+        var emit         = plugin.getEmitter();
 
-        var documents            = {};
+        var documents    = {};
 
         var loaded = false;
         function load() {
@@ -73,6 +83,24 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
 
             AuthorLayer.initAuthorLayer(plugin);
             CursorLayer.initCursorLayer(plugin);
+        }
+
+
+        var drawn = false;
+        function draw(options) {
+            if (drawn) return;
+            drawn = true;
+
+            var bar = options.aml.appendChild(new ui.bar({
+                "id"    : "winCollab",
+                "skin"  : "panel-bar"
+            }));
+            plugin.addElement(bar);
+
+            var scroller = bar.$ext.appendChild(document.createElement("div"));
+            scroller.className = "scroller";
+
+            emit("drawPanels", { html: scroller, aml: bar }, true);
         }
 
         function onDisconnect() {
@@ -350,6 +378,9 @@ main.consumes = ["Plugin", "c9", "tabManager", "fs", "apf",
 
         plugin.on("load", function(){
             load();
+        });
+        plugin.on("draw", function(e){
+            draw(e);
         });
         plugin.on("enable", function(){
 

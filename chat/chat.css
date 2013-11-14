@@ -22,12 +22,10 @@
   -ms-overflow-y: scroll;
   overflow-y: scroll;
   font-size: 12px;
+  min-height: 50px;
+  max-height: 200px;
   font-weight: 600;
-  position: absolute;
-  top: 18px;
-  left: 5px;
-  right: 5px;
-  bottom: 40px;
+  padding: 5px;
 }
 #chatText p {
   padding: 3px;
@@ -51,86 +49,4 @@
     font-size: smaller;
     color: #AAA;
     float: right;
-}
-
-.collabPanelHeading {
-  border-radius: 10px;
-  background-color: gray;
-  COLOR: white;
-  text-align:center;
-}
-
-/* Members tree */
-.memberstree.ace_tree .tree-row {
-  padding: 2px 0 0 15px;
-}
-
-.memberstree.ace_tree .tree-row .access_control {
-  background: url(images/tree_option_arrows.png) no-repeat -13px 0;
-  float: right;
-  margin-right: -38px;
-  height: 18px;
-  width: 15px;
-  cursor: pointer;
-}
-
-.memberstree.ace_tree .tree-row .access {
-    margin-top: 3px;
-    width: 20px;
-    height: 14px;
-    float: right;
-    margin-right: 25px;
-    background-color: rgb(68, 68, 68);
-    background: url(images/collaborator_permissions_sprite.png) no-repeat 1 -14px;
-    cursor: pointer;
-    z-index: 10;
-    -webkit-animation: none;
-    -moz-animation: none;
-    animation: none;
-}
-
-.memberstree.ace_tree .tree-row .access.r {
-    background-position: 0 1px;
-}
-
-.memberstree.ace_tree .tree-row .access.rw {
-    background-position: -22px -12px;
-}
-
-.memberstree.ace_tree .tree-row .access.r:hover,
-.memberstree.ace_tree .tree-row .access.r:active {
-    background-position: 0 -51px;
-}
-
-.memberstree.ace_tree .tree-row .access.rw:hover,
-.memberstree.ace_tree .tree-row .access.rw:active {
-    background-position: -22px -38px;
-}
-
-
-.memberstree.ace_tree .tree-row .status {
-  display: block;
-  float: left;
-  width: 8px;
-  height: 10px;
-  margin: 3px 6px 0 0;
-  background: url(images/collab-led-states.png) -7px -5px no-repeat;
-}
-
-.memberstree.ace_tree .tree-row .collaborator_color {
-  display: block;
-  float: left;
-  width: 9px;
-  height: 9px;
-  margin: 3px 6px 0 0;
-  border: 1px solid #3b3b3b;
-}
-
-.memberstree.ace_tree .tree-row .status.online { background-position: -7px -24px; }
-.memberstree.ace_tree .tree-row .status.idle { background-position : -43px -25px }
-.memberstree.ace_tree .tree-row .status.offline { background-position : -25px -5px; }
-
-.memberstree.ace_tree {
-    background : #303130;
-    color: #AAA;
 }
