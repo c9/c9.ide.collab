@@ -6,7 +6,7 @@ require(["lib/architect/architect", "lib/chai/chai"], function (architect, chai)
     var expect = chai.expect;
     var Assert = chai.assert;
     
-    architect.resolveConfig([
+    expect.setupArchitectTest([
         {
             packagePath : "plugins/c9.core/c9",
             workspaceId : "ubuntu/ip-10-35-77-180",
@@ -46,11 +46,7 @@ require(["lib/architect/architect", "lib/chai/chai"], function (architect, chai)
             provides : [],
             setup    : main
         }
-    ], function (err, config) {
-        if (err) throw err;
-        var app = architect.createApp(config);
-        app.on("service", function(name, plugin){ plugin.name = name; });
-    });
+    ], architect);
     
     function main(options, imports, register) {
         var collab   = imports.collab;
