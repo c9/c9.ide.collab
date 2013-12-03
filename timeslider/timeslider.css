@@ -38,24 +38,24 @@
 }
 
 #playpause_button {
-    background-image: url(images/play_undepressed.png);
+    background-image: url(/static/plugins/c9.ide.collab/timeslider/images/play_undepressed.png);
     background-repeat: no-repeat;
     left: 10px;
     top: 9px;
 }
 
 #playpause_button_icon {
-    background-image: url(images/play.png);
+    background-image: url(/static/plugins/c9.ide.collab/timeslider/images/play.png);
     left: 0;
     top: 0;
 }
 
 .pause#playpause_button_icon {
-    background-image: url(images/pause.png)
+    background-image: url(/static/plugins/c9.ide.collab/timeslider/images/pause.png)
 }
 
 #leftstep, #rightstep {
-    background: url(images/stepper_buttons.png) 0 0 no-repeat;
+    background: url(/static/plugins/c9.ide.collab/timeslider/images/stepper_buttons.png) 0 0 no-repeat;
     height: 21px;
     overflow: hidden;
     position: absolute;
@@ -72,7 +72,7 @@
     right: 5px;
     top: 4px;
     background-position: -28px 0;
-    background-image: url(images/close_tab_btn.png);
+    background-image: url(/static/plugins/c9.ide.collab/timeslider/images/close_tab_btn.png);
     background-repeat: no-repeat;
 }
 
@@ -91,7 +91,7 @@
 }
 
 #timeslider .star {
-    background-image: url(images/star.png);
+    background-image: url(/static/plugins/c9.ide.collab/timeslider/images/star.png);
     cursor: pointer;
     height: 16px;
     position: absolute;

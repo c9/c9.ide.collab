@@ -3,7 +3,7 @@
 }
 
 .memberstree .tree-row .toggler {
-    background-image: url(images/tree_close_arrow_small.png);
+    background-image: url("@{image-path}/tree_close_arrow_small.png");
     margin-right: 6px;
     margin-left: -9px;
 }
@@ -17,7 +17,7 @@
 }
 
 .memberstree .tree-row .access_control {
-  background: url(images/tree_option_arrows.png) no-repeat -13px 0;
+  background: url(/static/plugins/c9.ide.collab/members/images/tree_option_arrows.png) no-repeat -13px 0;
   float: left;
   height: 18px;
   width: 15px;
@@ -32,7 +32,7 @@
     float: left;
     pointer-events: none;
     background-color: rgb(68, 68, 68);
-    background: url(images/collaborator_permissions_sprite.png) no-repeat 1 -14px;
+    background: url(/static/plugins/c9.ide.collab/members/images/collaborator_permissions_sprite.png) no-repeat 1 -14px;
     z-index: 10;
     -webkit-animation: none;
     -moz-animation: none;
@@ -40,19 +40,19 @@
 }
 
 .memberstree .tree-row{
-    border-radius: 25px;
+    border-radius: 4px;
 }
 
 .memberstree .tree-row.selected {
-    background: #526660;
+    background: rgb(33, 117, 217);
 }
 
 .memberstree_focus .tree-row.selected {
-    background: #748512;
+    background: rgb(33, 117, 217);
 }
 
 .memberstree.focus .tree-row.selected {
-    background: #748512;
+    background: rgb(33, 117, 217);
 }
 
 .memberstree .tree-row .access.r {
@@ -73,6 +73,14 @@
     background-position: -22px -38px;
 }
 
+.memberstree .tree-row .member_name {
+  display: block;
+  float: left;
+  color: white;
+  width: 38px;
+  height: 38px;
+  margin: 3px 6px 0 0;
+}
 
 .memberstree .tree-row .status {
   display: block;
@@ -80,7 +88,7 @@
   width: 8px;
   height: 10px;
   margin: 3px 6px 0 0;
-  background: url(images/collab-led-states.png) 1px 0 no-repeat;
+  background: url(/static/plugins/c9.ide.collab/members/images/collab-led-states.png) 1px 0 no-repeat;
 }
 
 .memberstree .tree-row .collaborator_color {

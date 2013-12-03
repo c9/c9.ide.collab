@@ -20,7 +20,7 @@
     position: absolute;
     height: 20px;
     width: auto;
-    background: url([%otStatic%]/tooltip_elements.png) repeat-x 0 -80px !important;
+    background: url(/static/plugins/c9.ide.collab/images/tooltip_elements.png) repeat-x 0 -80px !important;
     -webkit-border-radius: 6px;
     -moz-border-radius: 6px;
     border-radius: 6px;
@@ -38,7 +38,7 @@
 
 .cool_tooltip_cursor_arrow {
     position: absolute;
-    background: url([%otStatic%]/tooltip_elements.png) no-repeat 0 -100px;
+    background: url(/static/plugins/c9.ide.collab/images/tooltip_elements.png) no-repeat 0 -100px;
     padding: 0;
     margin: 0;
     width: 23px;
@@ -65,7 +65,7 @@
 .cool_tooltip_cursor_button {
     width: 20px;
     height: 20px;
-    background-image: url([%otStatic%]/tooltip_elements.png);
+    background-image: url(/static/plugins/c9.ide.collab/images/tooltip_elements.png);
     background-repeat: no-repeat;
     background-position: 0 -40px;
     float: right;
@@ -99,7 +99,7 @@
 .cool_tooltip_selection_button {
     width: 20px;
     height: 20px;
-    background-image: url([%otStatic%]/tooltip_elements.png);
+    background-image: url(/static/plugins/c9.ide.collab/images/tooltip_elements.png);
     background-repeat: no-repeat;
     background-position: 0 0;
     border-left: 1px solid #969696;

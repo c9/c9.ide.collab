@@ -19,17 +19,17 @@ define(function(require, exports, module) {
         var timeago      = require("./timeago");
         var staticPrefix = options.staticPrefix;
 
-        var ROLE_NONE = "n";
-        var ROLE_VISITOR = "v";
+        var ROLE_NONE         = "n";
+        var ROLE_VISITOR      = "v";
         var ROLE_COLLABORATOR = "c";
-        var ROLE_ADMIN = "a";
+        var ROLE_ADMIN        = "a";
 
         var plugin = new CollabPanel("Ajax.org", main.consumes, {
             index        : 200,
             caption      : "Group Chat"
         });
 
-        var emit   = plugin.getEmitter();
+        var emit  = plugin.getEmitter();
         var emoji = require("./my_emoji");
 
         // panel-relared UI elements
@@ -52,20 +52,19 @@ define(function(require, exports, module) {
 
             drawNonPanelElements();
 
-            var parent = options.aml;
+            var parent = options.html;
+            parent.className += " chatContainer";
+            
+            chatText = parent.appendChild(document.createElement("div"));
+            chatText.setAttribute("class", "chatText");
 
-            chatText = parent.appendChild(new ui.bar({
-                flex: "1",
-                style: "height:100%"
-            })).$int;
-            chatText.id = "chatText";
-
-            chatInput = parent.appendChild(new apf.codebox({
-                skin : "codebox",
-                clearbutton: "true",
-                focusselect: "true",
-                style: "width:100%; padding:5px;"
-            }));
+            chatInput = new apf.codebox({
+                htmlNode         : parent,
+                skin             : "codebox",
+                "initial-message": "Hello World!",
+                clearbutton      : "true",
+                focusselect      : "true"
+            });
 
             plugin.addElement(chatInput);
 
@@ -132,6 +131,9 @@ define(function(require, exports, module) {
         }
 
         function getAuthorName(userId) {
+            if (userId == workspace.myUserId)
+                return "You";
+            
             var user = workspace.users[userId];
             return util.escapeHTML(user.fullname);
         }
@@ -220,10 +222,15 @@ define(function(require, exports, module) {
                 }
             }
             else {
-                authorNameEl.innerHTML += ": ";
+                
+                var borderEl = document.createElement("span");
+                html.appendChild(borderEl);
+                borderEl.className = "chatBorder";
+                borderEl.style.borderLeftColor = authorColor;
+                
                 html.appendChild(authorNameEl);
                 var textEl = document.createElement("span");
-                textEl.style.color = authorColor;
+                textEl.className = "chatmessage";
                 textEl.innerHTML = text + "<br/>";
                 html.appendChild(textEl);
                 var timeEl = document.createElement("span");

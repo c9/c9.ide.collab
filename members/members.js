@@ -56,20 +56,21 @@ main.consumes = ["CollabPanel", "ui", "apf", "menus", "Menu", "MenuItem",
 
             var parent = options.aml;
             
-            membersParent = parent.appendChild(new ui.bar({
-                border: "0",
-                margin: "0 0 0 0",
-                flex  : "1"
-            }));
-            plugin.addElement(membersParent);
+            membersParent = parent;
+            // .appendChild(new ui.bar({
+            //     border: "0",
+            //     margin: "0 0 0 0",
+            //     flex  : "1"
+            // }));
+            // plugin.addElement(membersParent);
 
             // Members panel
             membersTree = new Tree(membersParent.$int);
             membersDataProvider = new TreeData();
             membersTree.renderer.setScrollMargin(0, 10);
             membersTree.renderer.setTheme({cssClass: "memberstree"});
-            membersTree.setOption("maxLines", 10);
-            membersTree.setOption("minLines", 2);
+            // membersTree.setOption("maxLines", 4);
+            // membersTree.setOption("minLines", 2);
             // Assign the dataprovider
             membersTree.setDataProvider(membersDataProvider);
             // Some global render metadata
@@ -193,16 +194,30 @@ main.consumes = ["CollabPanel", "ui", "apf", "menus", "Menu", "MenuItem",
             var me = info.getUser();
             var members = {r: [], rw: []};
             var myRow = {};
-            // cachedMembers =  [{ name: "ME", uid: 5, acl: "rw", role: "a" }, { name: "ABC", uid: 1, acl: "r" }, { name: "DEF", uid: 2, acl: "rw" }, { name: "LOL", uid: 4, acl: "rw" }, { name: "LOLesqe", uid: 7, acl: "rw" }, { name: "KSA", uid: 8, acl: "rw" }];
+
+            if (!cachedMembers.length || !Array.isArray(cachedMembers)) {
+                // standalone version test
+                cachedMembers = [
+                    { name: "ME", uid: 1, acl: "rw", role: "a", email: "mostafa.eweda17@gmail.com" },
+                    { name: "ABC", uid: 5, acl: "r", color: "yellow", status: "online", email: "mo.eweda@gmail.com" },
+                    { name: "DEF", uid: 2, acl: "rw", color: "blue", status: "idle", email: "mostafa@c9.io" },
+                    { name: "LOL", uid: 4, acl: "rw", color: "green", status: "online", email: "mostafa_eweda17@yahoo.com" },
+                    { name: "SQL", uid: 7, acl: "rw", color: "red", status: "idle" },
+                    { name: "KSA", uid: 8, acl: "rw", color: "purple" }
+                ];
+            }
+
             cachedMembers.forEach(function (m) {
                 m.isAdmin = m.role == ROLE_ADMIN;
-                m.color = workspace.getUserColor(m.uid);
+                m.color = m.color || workspace.getUserColor(m.uid);
                 // TODO support idle state
-                m.status = workspace.isUserOnline(m.uid) ? "online" : "offline";
+                m.status = m.status || (workspace.isUserOnline(m.uid) ? "online" : "offline");
+                m.md5Email = m.email ? apf.crypto.MD5.hex_md5(m.email.trim().toLowerCase()) : "";
                 members[m.acl].push(m);
 
                 if (m.uid == me.id) {
                     m.name = "0000"; // top in every sory
+                    m.status = "online";
                     myRow = m;
                     // m.status = "online";
                     membersDataProvider.iAmAdmin = m.isAdmin;

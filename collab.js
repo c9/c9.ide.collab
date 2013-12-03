@@ -25,6 +25,9 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
         var AuthorLayer  = imports.AuthorLayer;
         var CursorLayer  = imports.CursorLayer;
 
+        var css          = require("text!./collab.css");
+        var staticPrefix = options.staticPrefix;
+
         var Notification = {showNotification: function() {console.warn("TODO showNotification:", arguments);}};
 
         var plugin       = new Panel("Ajax.org", main.consumes, {
@@ -91,16 +94,22 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
             if (drawn) return;
             drawn = true;
 
+            ui.insertCss(css, staticPrefix, plugin);
+
             var bar = options.aml.appendChild(new ui.bar({
                 "id"    : "winCollab",
-                "skin"  : "panel-bar"
+                "skin"  : "panel-bar",
+                childNodes : [
+                    new apf.vsplitbox({
+                        splitter : true,
+                        anchors  : "0 0 0 0"
+                    })
+                ]
             }));
             plugin.addElement(bar);
 
-            var scroller = bar.$ext.appendChild(document.createElement("div"));
-            scroller.className = "scroller";
-
-            emit("drawPanels", { html: scroller, aml: bar }, true);
+            var html = bar.firstChild.$int;
+            emit("drawPanels", { html: html, aml: bar.firstChild }, true);
         }
 
         function onDisconnect() {
@@ -123,7 +132,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
                 connect.send("JOIN_DOC", { docId: docId });
 
             throbNotification(null, msg.err || "Collab connected");
-            emit("connect");
+            emit("connect", null, true);
         }
 
         function onMessage(msg) {
@@ -370,12 +379,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
         }
 
         /***** Lifecycle *****/
-        // Make sure the available event is always called
-        plugin.on("newListener", function(event, listener){
-            if (event == "connect" && connect.connected)
-                listener();
-        });
-
+        
         plugin.on("load", function(){
             load();
         });
@@ -393,15 +397,39 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
         });
 
         plugin.freezePublicAPI({
+            /**
+             * 
+             */
             get documents() { return util.cloneObject(documents); },
+            /**
+             * 
+             */
             get connected() { return connect.connected; },
+            /**
+             * 
+             */
             get DEBUG()     { return connect.DEBUG; },
 
+            /**
+             * 
+             */
             getDocument  : function (docId) { return documents[docId]; },
 
+            /**
+             * 
+             */
             send          : function() { return connect.send.apply(connect, arguments); },
+            /**
+             * 
+             */
             joinDocument  : joinDocument,
+            /**
+             * 
+             */
             leaveDocument : leaveDocument,
+            /**
+             * 
+             */
             leaveAll      : leaveAll
         });
 

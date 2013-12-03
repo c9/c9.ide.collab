@@ -25,12 +25,19 @@ define(function(require, module, exports) {
 
             function draw(e){
                 amlFrame = ui.frame({
-                    htmlNode    : e.html,
                     buttons     : "min",
                     activetitle : "min",
+                    "class"     : "absframe",
+                    height      : "50%",
                     caption     : caption
                 });
-                ui.insertByIndex(e.html, amlFrame.$ext, index, false);
+                
+                if (index == 100)
+                    e.aml.insertBefore(amlFrame, e.aml.firstChild);
+                else
+                    e.aml.appendChild(amlFrame);
+                    
+                // ui.insertByIndex(e.html, amlFrame.$ext, index, false);
                 plugin.addElement(amlFrame);
 
                 emit("draw", { aml: amlFrame, html: amlFrame.$int }, true);

@@ -1,52 +1,87 @@
 #chatThrob {
-  display: none;
-  position: absolute;
-  bottom: 40px;
-  font-size: 12px;
-  width: 150px;
-  height: 40px;
-  right: 20px;
-  z-index: 1000;
-  color: rgb(39, 39, 39);
-  background-color: rgb(236, 236, 236);
-  background-color: rgba(236, 236, 236, 0.7);
-  padding: 10px;
-  -webkit-border-radius: 6px;
-  -moz-border-radius: 6px;
-  border-radius: 6px;
-  -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=80)";
-  filter: alpha(opacity=80);
-  opacity: .8;
+    display: none;
+    position: absolute;
+    bottom: 40px;
+    font-size: 12px;
+    width: 150px;
+    height: 40px;
+    right: 20px;
+    z-index: 1000;
+    color: rgb(39, 39, 39);
+    background-color: rgb(236, 236, 236);
+    background-color: rgba(236, 236, 236, 0.7);
+    padding: 10px;
+    -webkit-border-radius: 6px;
+    -moz-border-radius: 6px;
+    border-radius: 6px;
+    -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=80)";
+    filter: alpha(opacity=80);
+    opacity: .8;
 }
-#chatText {
-  -ms-overflow-y: scroll;
-  overflow-y: scroll;
-  font-size: 12px;
-  min-height: 50px;
-  max-height: 200px;
-  font-weight: 600;
-  padding: 5px;
+
+.chatContainer{
+    .display-flex();
+    .flex-direction(column);
 }
-#chatText p {
-  padding: 3px;
-  -ms-overflow-x: hidden;
-  overflow-x: hidden;
-  word-wrap: break-word
+
+.chatText {
+    overflow: auto;
+    font-size: 12px;
+    padding: 0 0 0 2px;
+    .flex(1);
+    background: #292929;
 }
-#chatText .emoji {
-  vertical-align: middle;
+.chatText p {
+    padding: 7px 7px 7px 10px;
+    word-wrap: break-word;
+    border-bottom : 1px dotted #151515;
+    border-top : 1px dotted #373737;
+    position : relative;
+    margin : 0;
 }
-#chatText .authorName {
-  text-decoration: none;
-  color: #BBB
+.chatText p:first-child{
+    border-top: 0;
+}
+.chatText .chatBorder{
+    position : absolute;
+    left : 0;
+    top : 3px;
+    bottom : 3px;
+    width : 0;
+    border-left : 1px solid white;
+}
+.chatText .emoji {
+    vertical-align: middle;
+}
+.chatText .authorName {
+    text-decoration: none;
+    color: #f1f1f1;
+    display : block;
+}
+.chatText .chatmessage {
+    color : #b1b4ba;
+    display : block;
+    padding: 3px 0 0 0;
+}
+.chatText .chattime {
+    position : absolute;
+    right: 4px;
+    top: 4px;
+    color: #6C6E74;
+    font-size: 10px;
+    font-weight: normal;
+    text-shadow: 0 1px rgb(29, 29, 29);
+}
+.chatContainer .ace_searchbox{
+    background: #292929;
+    height:30px;
+    padding:5px;
+}
+.chatContainer .ace_searchbox .sbtb_middle{
+    min-height : 37px;
 }
 #chatCounter {
-  color: #777;
-  font-size: 10px;
-  vertical-align: middle;
-}
-.chattime {
-    font-size: smaller;
-    color: #AAA;
-    float: right;
+    color: #777;
+    font-size: 10px;
+    vertical-align: middle;
 }

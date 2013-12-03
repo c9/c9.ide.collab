@@ -5,8 +5,8 @@ define(function(require, exports, module) {
     function DataProvider(root) {
         BaseClass.call(this, root || {});
 
-        this.rowHeight      = 20;
-        this.rowHeightInner = 18;
+        this.rowHeight      = 40;
+        this.rowHeightInner = 38;
 
         Object.defineProperty(this, "loaded", {
             get : function(){ return this.visibleItems.length; }
@@ -37,7 +37,7 @@ define(function(require, exports, module) {
             if (datarow.uid)
                 return datarow.name;
             else
-                return "<strong>" + datarow.name + "</strong>";
+                return "<span class='member_name'>" + datarow.name + "</span>";
         };
 
         this.getIconHTML = function (datarow) {
@@ -47,7 +47,12 @@ define(function(require, exports, module) {
             var status = datarow.status || "offline";
             var color = datarow.color || "transparent";
 
+            var defaultImgUrl = encodeURIComponent("/static/plugins/c9.ide.collab/members/images/room_collaborator_default-white.png");
+            var avatarImg = '<img class="gravatar-image" src="https://secure.gravatar.com/avatar/' +
+                datarow.md5Email + '?s=38&d='  + defaultImgUrl + '" />';
+
             var html = [
+                "<span class='avatar'>" + avatarImg + "</span>\n",
                 "<span class='status ", status, "'></span>\n",
                 "<span class='collaborator_color' style='background-color: ", color, ";'></span>\n",
                 "<span class='access_menu'>",
