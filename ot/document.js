@@ -321,22 +321,48 @@ define(function(require, module, exports) {
 
                  state = "IDLE";
 
-                // re-joining the document
-                var latestContents;
-                if (latestRevNum === doc.revNum) {
-                    scheduleSend();
-                    latestContents = session.doc.getValue();
+                 outgoing = [];
+                if (pendingSave) {
+                    emit("saved", {err: "Couldn't save: document rejoined - please try again now"});
+                    pendingSave = null;
                 }
+
+                delete doc.selections[workspace.myOldClientId]; // in case of being away
+
+                var currentVal = session.getValue();
+                var otherMembersNums = Object.keys(doc.selections).length;
+                var latestContents = doc.contents;
+
+                // * re-joining the document - sync my edits if not edited by any other collaborator
+                // * previously loaded doc through filesystem: (only me)
+                // -----> prioritize current document state
+                if (latestRevNum === doc.revNum || (!otherMembersNums && currentVal)) {
+                    packedCs = operations.operation(doc.contents, currentVal);
+                    scheduleSend();
+
+                    if (!latestRevNum) {
+                        var authorI = workspace.authorPool[workspace.myUserId];
+                        applyAuthorAttributes(doc.authAttribs, packedCs, authorI);
+                    }
+                    latestContents = currentVal;
+                }
+                // * first-joined doc (collab-only)
+                // -----> load latest collab doc state
+                else if (!latestRevNum) {
+                    setValue(doc.contents);
+                }
+                // * previously loaded doc through filesystem: (other members joined)
+                // * newer revision on the server
+                // -----> Override local edits: prioritize collab doc state (for OT consistency)
+                // -----> TODO: nicely merge local and remote edits
                 else {
-                    latestContents = syncFileSystemState();
+                    patchToContents(doc.contents);
                 }
 
                 cursorLayer = new CursorLayer(session, workspace);
                 cursorTimer = setTimeout(changedSelection, 500);
 
                 latestRevNum = doc.revNum;
-
-                delete doc.selections[workspace.myOldClientId]; // in case of away
 
                 cursorLayer.updateSelections(doc.selections);
                 authorLayer && authorLayer.dispose();
@@ -350,56 +376,12 @@ define(function(require, module, exports) {
                 isInited = true;
             }
 
-            function syncFileSystemState() {
-                var finalContents;
-
-                var currentVal = session.getValue();
-                if (typeof fsContents === "string" &&
-                    typeof currentVal === "string" &&
-                    currentVal !== fsContents) {
-                    // an edit was done while the document isn't yet connected
-                    var offlineOps = operations.operation(fsContents, currentVal);
-                    // if fsContents === doc.contents
-                    // collab doc state is synced with the latest filesystem state
-
-                    // Somebody was editing the document when I joined (or I reloaded without saving)
-                    // try to apply my edits
-                    if (fsContents !== doc.contents) {
-                        var collabOps = operations.operation(fsContents, doc.contents);
-                        xform(collabOps, offlineOps, function (aPrime, bPrime) {
-                            collabOps = aPrime;
-                            offlineOps = bPrime;
-                        });
-                        // console.log("[OT] offlineOps:", offlineOps, "collabOps:", collabOps);
-                        finalContents = applyContents(offlineOps, doc.contents);
-                    } else {
-                        finalContents = currentVal;
-                    }
-
-                    if (DEBUG)
-                        console.log("[OT] Syncing offline document edits", offlineOps);
-
-                    packedCs = offlineOps;
-                    var authorI = workspace.authorPool[workspace.myUserId];
-                    applyAuthorAttributes(doc.authAttribs, offlineOps, authorI);
-
-                    scheduleSend();
-                }
-                else {
-                    finalContents = doc.contents;
-                }
-
-                setValue(finalContents);
-
-                return finalContents;
-            }
-
             function isPreparedUnity() {
                 // Empty doc - or all retain - no user edits
                 return !packedCs.length || (packedCs.length === 1 && packedCs[0][0] === "r");
             }
 
-            var lastVal = "";
+            // var lastVal = "";
             function clearCs(len) {
                 // if (DEBUG > 1)
                 //     lastVal = session.getValue();
