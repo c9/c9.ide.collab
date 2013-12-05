@@ -1,42 +1,47 @@
 define(function(require, module, exports) {
-    main.consumes = ["Plugin", "util", "commands", "menus", "ui", "layout", "dialog.alert",
-        "api", "info"];
+    main.consumes = [
+        "Plugin", "commands", "menus", "ui", "layout", "dialog.alert",
+        "MembersPanel", "api", "info"
+    ];
     main.provides = ["dialog.share"];
     return main;
     
     function main(options, imports, register) {
-        var Plugin   = imports.Plugin;
-        var util     = imports.util;
-        var commands = imports.commands;
-        var menus    = imports.menus;
-        var ui       = imports.ui;
-        var alert    = imports["dialog.alert"].show;
-        var layout   = imports.layout;
-        var api      = imports.api;
-        var info     = imports.info;
+        var Plugin       = imports.Plugin;
+        var MembersPanel = imports.MembersPanel;
+        var commands     = imports.commands;
+        var menus        = imports.menus;
+        var ui           = imports.ui;
+        var alert        = imports["dialog.alert"].show;
+        var layout       = imports.layout;
+        var api          = imports.api;
+        var info         = imports.info;
 
         var markup   = require("text!./share.xml");
+        var css      = require("text!./share.css");
 
         var plugin   = new Plugin("Ajax.org", main.consumes);
         var emit     = plugin.getEmitter();
         var pid      = info.getWorkspace().pid;
 
-
-        var dialog, btnInvite, btnCancel, txtUsername, ddAccess;
+        var dialog, btnInvite, btnDone, txtUsername, shareLink, membersParent;
 
         var drawn = false;
         function draw(){
             if (drawn) return;
             drawn = true;
 
+            ui.insertCss(css, plugin);
             ui.insertMarkup(null, markup, plugin);
 
             dialog          = plugin.getElement("window");
             btnInvite       = plugin.getElement("btnInvite");
-            btnCancel       = plugin.getElement("btnCancel");
-            ddAccess        = plugin.getElement("ddAccess");
+            btnDone         = plugin.getElement("btnDone");
             txtUsername     = plugin.getElement("txtUsername");
+            shareLink       = plugin.getElement("link");
+            membersParent   = plugin.getElement("members");
 
+            btnDone.addEventListener("click", hide);
             btnInvite.addEventListener("click", function(){
                 var username = txtUsername.value;
                 var access = ddAccess.value;
@@ -49,10 +54,18 @@ define(function(require, module, exports) {
                         alert("Success", "Workspace Member Added", "`" + username + "` granted `" + access.toUpperCase() + "` to the workspace !");
                     });
             });
-
-            btnCancel.addEventListener("click", function() {
-                hide();
+            
+            txtUsername.on("keydown", function(e){
+                if (e.keyCode == 13) {
+                    console.log("Invite user:", txtUsername.value);
+                    e.returnValue = false;
+                    return false;
+                }
             });
+
+            var membersPanel = new MembersPanel("Ajax.org", main.consumes, {});
+            membersPanel.draw({ aml: membersParent });
+            membersPanel.show();
 
             emit("draw", null, true);
         }
@@ -77,7 +90,7 @@ define(function(require, module, exports) {
                 command: "sharedialog"
             }), 20100, plugin);
 
-            var btn = new ui.button({
+            var btn =  new ui.button({
                 "skin"    : "c9-menu-btn",
                 "class"   : "share",
                 "tooltip" : "Share Workspace",
@@ -87,7 +100,7 @@ define(function(require, module, exports) {
 
             ui.insertByIndex(layout.findParent({
                 name: "preferences"
-            }), btn, 900, plugin);
+            }), btn, 800, plugin);
         }
         
         /***** Methods *****/

@@ -34,10 +34,10 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
             index        : 25,
             width        : 250,
             caption      : "Collaboration",
+            className    : "collab",
             elementName  : "winCollab",
             minWidth     : 130,
-            where        : "right",
-            autohide     : true
+            where        : "right"
         });
         
         var emit         = plugin.getEmitter();

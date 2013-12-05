@@ -30,6 +30,7 @@
     padding: 0 0 0 2px;
     .flex(1);
     background: #292929;
+    box-shadow: 1px 0 rgba(255, 255, 255, 0.06) inset;
 }
 .chatText p {
     padding: 7px 7px 7px 10px;
@@ -76,6 +77,7 @@
     background: #292929;
     height:30px;
     padding:5px;
+    box-shadow: 1px 0 rgba(255, 255, 255, 0.06) inset;
 }
 .chatContainer .ace_searchbox .sbtb_middle{
     min-height : 37px;

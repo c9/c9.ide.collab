@@ -1,0 +1,39 @@
+<a:application xmlns:a="http://ajax.org/2005/aml">
+    <a:window
+      id        = "window"
+      center    = "true"
+      width     = "480"
+      height    = "500"
+      icon      = ""
+      skin      = "bk-window2"
+      resizable = "true"
+      title     = "Share Workspace"
+      buttons   = "close"
+      class     = "share"
+      draggable = "true">
+        <label>Link to share</label>
+        <div id="link" class="link" textselect="true">http://localhost:8181/static/index.html</div>
+
+        <label style="margin-top:10px">Who has access</label>
+        <a:bar id="members" class="members"></a:bar>
+        
+        <blockquote class="invite">
+            <label>Invite People</label>
+            <a:textbox
+              id              = "txtUsername"
+              skin            = "searchbox"
+              initial-message = "C9 username or email"
+              width           = "335"
+              focusselect     = "true" />
+              
+            <div class="standalone access_control rw">
+                <div class="readbutton">R</div><div class="writebutton">RW</div>
+            </div>
+            
+            <a:button id="btnInvite" skin="btn-default-css3" class="btn-green" width="80" right="15" bottom="43">Invite</a:button>
+            <a:checkbox skin="checkbox_black" style='margin-top:6px' checked="true">Notify people via email</a:checkbox>
+        </blockquote>
+        
+        <a:button id="btnDone" skin="btn-default-css3" width="80" right="30" bottom="10">Done</a:button>
+    </a:window>
+</a:application>

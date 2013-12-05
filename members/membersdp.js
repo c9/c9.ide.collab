@@ -5,8 +5,8 @@ define(function(require, exports, module) {
     function DataProvider(root) {
         BaseClass.call(this, root || {});
 
-        this.rowHeight      = 40;
-        this.rowHeightInner = 38;
+        this.rowHeight      = 37;
+        this.rowHeightInner = 35;
 
         Object.defineProperty(this, "loaded", {
             get : function(){ return this.visibleItems.length; }
@@ -33,32 +33,30 @@ define(function(require, exports, module) {
             this._signal("change");
         };
 
-        this.getCaptionHtml = function (datarow) {
-            if (datarow.uid)
-                return datarow.name;
-            else
-                return "<span class='member_name'>" + datarow.name + "</span>";
-        };
-
-        this.getIconHTML = function (datarow) {
+        this.getContentHTML = function (datarow) {
             if (!datarow.uid)
-                return "";
+                return "<span class='caption'>" + datarow.name + "</span>";
             var access = datarow.acl || "r";
+            var canAccessControl = this.iAmAdmin && !datarow.isAdmin;
+            var disabledLabel = access == "r" ? "<div class='readbutton'>R</div>" : "<div class='writebutton'>RW</div>";
             var status = datarow.status || "offline";
             var color = datarow.color || "transparent";
 
-            var defaultImgUrl = encodeURIComponent("/static/plugins/c9.ide.collab/members/images/room_collaborator_default-white.png");
+            var defaultImgUrl = encodeURIComponent("http://www.aiga.org/uploadedImages/AIGA/Content/About_AIGA/Become_a_member/generic_avatar_300.gif");
             var avatarImg = '<img class="gravatar-image" src="https://secure.gravatar.com/avatar/' +
                 datarow.md5Email + '?s=38&d='  + defaultImgUrl + '" />';
 
             var html = [
+                "<span class='caption'>" + datarow.name + "</span>\n",
                 "<span class='avatar'>" + avatarImg + "</span>\n",
                 "<span class='status ", status, "'></span>\n",
                 "<span class='collaborator_color' style='background-color: ", color, ";'></span>\n",
-                "<span class='access_menu'>",
-                "<span class='access ", access, "'>", access.toUpperCase(), "</span>\n",
-                (!this.iAmAdmin || datarow.isAdmin) ? "" : "<span class='access_control'></span>\n",
-                "</span>",
+                 canAccessControl ?
+                    ("<div class='access_control "  + access  + "'>" +
+                        "<div class='readbutton'>R</div>" +
+                        "<div class='writebutton'>RW</div></div>" +
+                    "<div class='kickout'></div>\n") :
+                    ("<div class='access_control disabled'>" + disabledLabel + "</div>\n"),
             ];
 
             return html.join("");

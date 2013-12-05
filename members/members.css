@@ -1,5 +1,22 @@
+.panelsbuttonDown.collab, .panelsbuttonDown.collab:hover{
+    box-shadow: 1px -1px @border-highlight inset, 1px 0 @border-highlight;
+    padding-bottom: 7px;
+}
+
 .memberstree .tree-row {
-  padding: 2px 0 0 18px;
+    padding: 2px 0 0 18px;
+    position: relative;
+
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.33);
+
+    pointer-events: auto;
+    margin-left : 17px;
+    padding-left : 42px;
+}
+
+.memberstree .tree-row:first-child{
+    border-top: 0;
 }
 
 .memberstree .tree-row .toggler {
@@ -8,101 +25,149 @@
     margin-left: -9px;
 }
 
-.memberstree .tree-row .access_menu {
-  cursor: pointer;
-  pointer-events: auto;
-  width: 40px;
-  float: right;
-  margin-right: 12px;
+.memberstree .tree-row .caption {
+    position: absolute;
+    left: 62px;
+    top: 11px;
+    color: #f1f1f1;
+    right: 93px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.memberstree .tree-row .access_control {
-  background: url(/static/plugins/c9.ide.collab/members/images/tree_option_arrows.png) no-repeat -13px 0;
-  float: left;
-  height: 18px;
-  width: 15px;
-  pointer-events: none;
+.memberstree .tree-row .name {
+    margin-left: -23px;
+    color: #f1f1f1;
+    display: inline-block;
 }
 
-.memberstree .tree-row .access {
-    margin-top: 2px;
-    width: 20px;
-    height: 14px;
-    margin-right: 2px;
-    float: left;
-    pointer-events: none;
-    background-color: rgb(68, 68, 68);
-    background: url(/static/plugins/c9.ide.collab/members/images/collaborator_permissions_sprite.png) no-repeat 1 -14px;
-    z-index: 10;
-    -webkit-animation: none;
-    -moz-animation: none;
-    animation: none;
+.memberstree .avatar {
+    position: absolute;
+    left: 3px;
+    width: 38px;
+    top : -1px;
+    border-left: 1px solid black;
+    border-right: 1px solid black;
+    box-shadow: 1px 0 rgba(255, 255, 255, 0.07);
 }
 
-.memberstree .tree-row{
+.memberstree .avatar img {
+    width: 38px;
+    height: 38px;
+    border: 0;
+}
+
+.memberstree .kickout {
+    width: 12px;
+    height : 16px;
+    background-image: url(/static/plugins/c9.ide.collab/members/images/trash-icon.png);
+    cursor: pointer;
+    pointer-events: auto;
+    position: absolute;
+    right: 18px;
+    top: 10px;
+    z-index:100000;
+}
+
+.access_control{
+    width: 50px;
+    height : 18px;
+    padding : 1px;
     border-radius: 4px;
+    font-family : Arial;
+    font-size : 10px;
+    box-sizing: border-box;
+    background: rgba(0,0,0,0.26);
+    box-shadow: 0 1px 7px 0px rgba(0, 0, 0, 0.61) inset;
+    cursor : pointer;
+    pointer-events: auto;
+    position: absolute;
+    right: 35px;
+    top: 10px;
+}
+.memberstree .selected .access_control {
+    background: rgba(0,0,0,0.41);
+    box-shadow: 0 1px 7px 0px rgba(0, 0, 0, 0.93) inset;
+}
+
+.memberstree .access_control.disabled{
+    width: 26px;
+}
+
+.access_control.r .readbutton, .access_control.rw .writebutton {
+    width: 24px;
+    height : 16px;
+    border-radius: 3px;
+    box-shadow: 0 1px rgba(255,255,255,0.3) inset, 0 0 2px rgba(0, 0, 0, 1);
+    .gradient(~"linear-gradient(top, #5F5F5F 0%, #333333 100%)");
+
+    text-shadow: 0 1px rgba(0,0,0,0.5);
+    color : #f1f1f1;
+    display : inline-block;
+    text-align: center;
+    box-sizing: border-box;
+    padding-top : 2px;
+    vertical-align : top;
+}
+.memberstree.ace_tree_focus .selected .access_control.r .readbutton,
+.memberstree.ace_tree_focus .selected .access_control.rw .writebutton{
+    .gradient(~"linear-gradient(top, #80883e 0%, #677018 100%)");
+}
+
+.access_control.r .writebutton,
+.access_control.rw .readbutton,
+.access_control.disabled .readbutton,
+.access_control.disabled .writebutton {
+    width: 24px;
+    height : 16px;
+    display : inline-block;
+    text-align: center;
+    box-sizing: border-box;
+    padding-top : 2px;
+    vertical-align : top;
+    color : #B3B3B3;
+}
+.memberstree.ace_tree_focus .selected .access_control.r .writebutton,
+.memberstree.ace_tree_focus .selected .access_control.rw .readbutton,
+.memberstree.ace_tree_focus .selected .access_control.disabled .readbutton,
+.memberstree.ace_tree_focus .selected .access_control.disabled .writebutton {
+    color : #BDCE63;
+}
+
+.memberstree .tree-row:hover {
+    background: @selected-hover-background;
 }
 
 .memberstree .tree-row.selected {
-    background: rgb(33, 117, 217);
+    background: @selected-background;
 }
 
-.memberstree_focus .tree-row.selected {
-    background: rgb(33, 117, 217);
+.memberstree.ace_tree_focus .tree-row.selected {
+    background: @selected-focus-background;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.69);
 }
 
-.memberstree.focus .tree-row.selected {
-    background: rgb(33, 117, 217);
+.memberstree .status {
+    display: block;
+    width: 12px;
+    height: 12px;
+    position: absolute;
+    left: 47px;
+    top: 13px;
+    background: url(/static/plugins/c9.ide.collab/members/images/collab-led-states.png) 1px 0 no-repeat;
 }
 
-.memberstree .tree-row .access.r {
-    background-position: 0 1px;
+.memberstree .collaborator_color {
+    position: absolute;
+    left: 0;
+    top: -1px;
+    width: 3px;
+    height: 38px;
 }
 
-.memberstree .tree-row .access.rw {
-    background-position: -22px -12px;
-}
-
-.memberstree .tree-row .access.r:hover,
-.memberstree .tree-row .access.r:active {
-    background-position: 0 -51px;
-}
-
-.memberstree .tree-row .access.rw:hover,
-.memberstree .tree-row .access.rw:active {
-    background-position: -22px -38px;
-}
-
-.memberstree .tree-row .member_name {
-  display: block;
-  float: left;
-  color: white;
-  width: 38px;
-  height: 38px;
-  margin: 3px 6px 0 0;
-}
-
-.memberstree .tree-row .status {
-  display: block;
-  float: left;
-  width: 8px;
-  height: 10px;
-  margin: 3px 6px 0 0;
-  background: url(/static/plugins/c9.ide.collab/members/images/collab-led-states.png) 1px 0 no-repeat;
-}
-
-.memberstree .tree-row .collaborator_color {
-  display: block;
-  float: left;
-  width: 9px;
-  height: 9px;
-  margin: 3px 6px 0 0;
-  border: 1px solid #3b3b3b;
-}
-
-.memberstree .tree-row .status.online { background-position: -7px -24px; }
-.memberstree .tree-row .status.idle { background-position : -43px -25px }
-.memberstree .tree-row .status.offline { background-position : -25px -5px; }
+.memberstree .status.online { background-position: 0 -24px; }
+.memberstree .status.idle { background-position : 0 0; }
+.memberstree .status.offline { background-position : 0 -12px; }
 
 .memberstree {
     background : #303130;
