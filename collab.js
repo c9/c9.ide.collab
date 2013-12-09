@@ -39,7 +39,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
             minWidth     : 130,
             where        : "right"
         });
-        
+
         var emit         = plugin.getEmitter();
 
         var documents    = {};
@@ -379,7 +379,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
         }
 
         /***** Lifecycle *****/
-        
+
         plugin.on("load", function(){
             load();
         });
@@ -398,37 +398,37 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
 
         plugin.freezePublicAPI({
             /**
-             * 
+             *
              */
             get documents() { return util.cloneObject(documents); },
             /**
-             * 
+             *
              */
             get connected() { return connect.connected; },
             /**
-             * 
+             *
              */
             get DEBUG()     { return connect.DEBUG; },
 
             /**
-             * 
+             *
              */
             getDocument  : function (docId) { return documents[docId]; },
 
             /**
-             * 
+             *
              */
             send          : function() { return connect.send.apply(connect, arguments); },
             /**
-             * 
+             *
              */
             joinDocument  : joinDocument,
             /**
-             * 
+             *
              */
             leaveDocument : leaveDocument,
             /**
-             * 
+             *
              */
             leaveAll      : leaveAll
         });

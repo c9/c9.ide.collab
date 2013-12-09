@@ -5,7 +5,7 @@ define(function(require, module, exports) {
     ];
     main.provides = ["dialog.share"];
     return main;
-    
+
     function main(options, imports, register) {
         var Plugin       = imports.Plugin;
         var MembersPanel = imports.MembersPanel;
@@ -24,7 +24,7 @@ define(function(require, module, exports) {
         var emit     = plugin.getEmitter();
         var pid      = info.getWorkspace().pid;
 
-        var dialog, btnInvite, btnDone, txtUsername, shareLink, membersParent;
+        var dialog, btnInvite, btnDone, txtUsername, shareLink, membersParent, accessButton;
 
         var drawn = false;
         function draw(){
@@ -38,28 +38,28 @@ define(function(require, module, exports) {
             btnInvite       = plugin.getElement("btnInvite");
             btnDone         = plugin.getElement("btnDone");
             txtUsername     = plugin.getElement("txtUsername");
-            shareLink       = plugin.getElement("link");
+            shareLink       = plugin.getElement("shareLink").$int;
             membersParent   = plugin.getElement("members");
+            accessButton    = plugin.getElement("access").$int;
+
+            accessButton.addEventListener("click", function () {
+                var className = accessButton.classList;
+                var actionArr = className.contains("rw") ? ["rw", "r"] : ["r", "rw"];
+                className.remove(actionArr[0]);
+                className.add(actionArr[1]);
+            });
 
             btnDone.addEventListener("click", hide);
-            btnInvite.addEventListener("click", function(){
-                var username = txtUsername.value;
-                var access = ddAccess.value;
-                btnInvite.setAttribute("disabled", true);
-                    doInvite(username, access, function(err) {
-                        btnInvite.setAttribute("disabled", false);
-                        if (err)
-                            return alert("Error", "Error adding workspace member", err);
-                        hide();
-                        alert("Success", "Workspace Member Added", "`" + username + "` granted `" + access.toUpperCase() + "` to the workspace !");
-                    });
-            });
-            
+            btnInvite.addEventListener("click", inviteUser);
+
             txtUsername.on("keydown", function(e){
                 if (e.keyCode == 13) {
-                    console.log("Invite user:", txtUsername.value);
+                    inviteUser();
                     e.returnValue = false;
                     return false;
+                }
+                else if (e.keyCode === 27) {
+                    hide();
                 }
             });
 
@@ -91,10 +91,11 @@ define(function(require, module, exports) {
             }), 20100, plugin);
 
             var btn =  new ui.button({
-                "skin"    : "c9-menu-btn",
-                "class"   : "share",
+                "skin"    : "btn-default-css3",
+                "class"   : "btn-green",
+                "caption" : "Share",
                 "tooltip" : "Share Workspace",
-                "width"   : 32,
+                "width"   : 80,
                 "command" : "sharedialog"
             });
 
@@ -102,8 +103,22 @@ define(function(require, module, exports) {
                 name: "preferences"
             }), btn, 800, plugin);
         }
-        
+
         /***** Methods *****/
+
+        function inviteUser(){
+            var username = txtUsername.value;
+            var access = accessButton.classList.contains("rw") ? "rw" : "r";
+            btnInvite.setAttribute("disabled", true);
+            doInvite(username, access, function(err) {
+                btnInvite.setAttribute("disabled", false);
+                if (err)
+                    return alert("Error", "Error adding workspace member", String(err));
+                hide();
+                txtUsername.setValue("");
+                alert("Success", "Workspace Member Added", "`" + username + "` granted `" + access.toUpperCase() + "` to the workspace !");
+            });
+        }
 
         function doInvite(username, access, callback) {
             api.collab.post("members/add", {
@@ -120,6 +135,10 @@ define(function(require, module, exports) {
         function show(){
             draw();
             dialog.show();
+            txtUsername.setValue("");
+            txtUsername.blur();
+            shareLink.focus();
+            shareLink.select();
         }
 
         function hide() {
@@ -129,7 +148,7 @@ define(function(require, module, exports) {
         plugin.on("load", function(){
             load();
         });
-        
+
         /***** Register *****/
         register("", {
             "dialog.share": plugin

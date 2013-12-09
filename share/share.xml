@@ -12,11 +12,11 @@
       class     = "share"
       draggable = "true">
         <label>Link to share</label>
-        <div id="link" class="link" textselect="true">http://localhost:8181/static/index.html</div>
+        <input id="shareLink" type="text" readonly="true" class="link" value="http://localhost:8181/static/index.html"></input>
 
         <label style="margin-top:10px">Who has access</label>
         <a:bar id="members" class="members"></a:bar>
-        
+
         <blockquote class="invite">
             <label>Invite People</label>
             <a:textbox
@@ -25,15 +25,15 @@
               initial-message = "C9 username or email"
               width           = "335"
               focusselect     = "true" />
-              
-            <div class="standalone access_control rw">
+
+            <a:bar id="access" class="standalone access_control rw">
                 <div class="readbutton">R</div><div class="writebutton">RW</div>
-            </div>
-            
+            </a:bar>
+
             <a:button id="btnInvite" skin="btn-default-css3" class="btn-green" width="80" right="15" bottom="43">Invite</a:button>
-            <a:checkbox skin="checkbox_black" style='margin-top:6px' checked="true">Notify people via email</a:checkbox>
+            <a:checkbox skin="checkbox_black" style='margin-top:6px; width: 200px;' checked="true">Notify people via email</a:checkbox>
         </blockquote>
-        
+
         <a:button id="btnDone" skin="btn-default-css3" width="80" right="30" bottom="10">Done</a:button>
     </a:window>
 </a:application>

@@ -21,8 +21,9 @@
 
 .memberstree .tree-row .toggler {
     background-image: url("@{image-path}/tree_close_arrow_small.png");
-    margin-right: 6px;
-    margin-left: -9px;
+    position: absolute;
+    left: 1px;
+    top: 8px
 }
 
 .memberstree .tree-row .caption {
@@ -33,6 +34,12 @@
     right: 93px;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.memberstree .tree-row .root.caption {
+    left: 15px;
+    top: 5px;
+    font-weight: bold;
 }
 
 .memberstree .tree-row .name {
@@ -85,6 +92,12 @@
     right: 35px;
     top: 10px;
 }
+
+.access_control.disabled {
+    pointer-events: none;
+    cursor: default;
+}
+
 .memberstree .selected .access_control {
     background: rgba(0,0,0,0.41);
     box-shadow: 0 1px 7px 0px rgba(0, 0, 0, 0.93) inset;
@@ -92,6 +105,10 @@
 
 .memberstree .access_control.disabled{
     width: 26px;
+}
+
+.access_control .readbutton, .access_control .writebutton {
+    pointer-events: none;
 }
 
 .access_control.r .readbutton, .access_control.rw .writebutton {

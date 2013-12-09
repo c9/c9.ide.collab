@@ -54,7 +54,7 @@ define(function(require, exports, module) {
 
             var parent = options.html;
             parent.className += " chatContainer";
-            
+
             chatText = parent.appendChild(document.createElement("div"));
             chatText.setAttribute("class", "chatText");
 
@@ -133,7 +133,7 @@ define(function(require, exports, module) {
         function getAuthorName(userId) {
             if (userId == workspace.myUserId)
                 return "You";
-            
+
             var user = workspace.users[userId];
             return util.escapeHTML(user.fullname);
         }
@@ -222,12 +222,12 @@ define(function(require, exports, module) {
                 }
             }
             else {
-                
+
                 var borderEl = document.createElement("span");
                 html.appendChild(borderEl);
                 borderEl.className = "chatBorder";
                 borderEl.style.borderLeftColor = authorColor;
-                
+
                 html.appendChild(authorNameEl);
                 var textEl = document.createElement("span");
                 textEl.className = "chatmessage";
