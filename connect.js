@@ -5,7 +5,7 @@
  * @license GPLv3 <http://www.gnu.org/licenses/gpl.txt>
  */
 define(function(require, exports, module) {
-    main.consumes = ["c9", "Plugin", "ext", "info", "ui", "proc", "vfs"];
+    main.consumes = ["c9", "Plugin", "ext", "ui", "proc", "vfs"];
     main.provides = ["collab.connect"];
     return main;
 
@@ -13,7 +13,6 @@ define(function(require, exports, module) {
         var Plugin   = imports.Plugin;
         var c9       = imports.c9;
         var ext      = imports.ext;
-        var info     = imports.info;
         var ui       = imports.ui;
         var proc     = imports.proc;
         var vfs      = imports.vfs;
@@ -22,6 +21,8 @@ define(function(require, exports, module) {
 
         var plugin = new Plugin("Ajax.org", main.consumes);
         var emit   = plugin.getEmitter();
+
+        var clientId;
 
         // 0 - production
         // 1 - development
@@ -33,16 +34,6 @@ define(function(require, exports, module) {
             DEBUG = Number((/debug=(\d)/.exec(window.location.search) || [null, DEBUG])[1]);
         else
             DEBUG = 0;
-
-        var uid      = info.getUser().id;
-        var pid      = info.getWorkspace().id;
-        var userIds  = {
-            // clientId : set when a connection trial is triggered
-            userId   : uid,
-            email    : "email@something.com",
-            fullname : "Mostafa",
-            fs       : "rw"
-        };
 
         var CODE   = require("text!./server/collab-server.js");
         var markup = require("text!./connect.xml");
@@ -169,9 +160,8 @@ define(function(require, exports, module) {
 
         function doConnect() {
             // socket.id
-            userIds.clientId  = vfs.connection.id;
-
-            collab.connect(pid, options.basePath, userIds, function (err, meta) {
+            clientId = vfs.connection.id;
+            collab.connect(options.basePath, clientId, function (err, meta) {
                 if (err)
                     return console.error("COLLAB connect failed", err);
                 console.log("COLLAB connected -", meta.isMaster ? "MASTER" : "SLAVE");
@@ -225,7 +215,7 @@ define(function(require, exports, module) {
                 return console.log("[OT] Collab not connected - SKIPPING ", msg);
             if (DEBUG)
                 console.log("[OT] SENDING TO SERVER", msg);
-            collab.send(userIds.clientId, msg);
+            collab.send(clientId, msg);
         }
 
         function sshCheckInstall() {
@@ -285,8 +275,8 @@ define(function(require, exports, module) {
 
         function showCollabInstall(title, body) {
             winCollabInstall.show();
-            collabInstallTitle.$ext.innerHTML = msg.title;
-            collabInstallMsg.$ext.innerHTML = msg.body;
+            collabInstallTitle.$ext.innerHTML = title;
+            collabInstallMsg.$ext.innerHTML = body;
         }
 
         /***** Lifecycle *****/

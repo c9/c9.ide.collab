@@ -2073,18 +2073,27 @@ function initSocket(userIds, callback) {
     }
 }
 
-exports = module.exports = function (vfs, register) {
+exports = module.exports = function (vfs, options, register) {
 
     var vfsClientMap = {};
     var isMaster;
 
     register(null, {
-        connect: function (pid, basePathL, userIds, callback) {
-            PID = pid;
+        connect: function (basePathL, clientId, callback) {
+            // old code compatability
+            var user = options.user;
+            var userIds = {
+                userId: user.uid,
+                email: user.email,
+                fullname: user.fullname,
+                clientId: clientId,
+                fs: options.readonly ? "r" : "rw"
+            };
+
+            PID = options.project.pid;
             basePath = Path.normalize(basePathL);
 
             var _self = this;
-            var clientId = userIds.clientId;
 
             function cleanOldClient() {
                 if (!vfsClientMap[clientId])
