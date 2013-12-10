@@ -35,7 +35,6 @@ define(function(require, exports, module) {
         else
             DEBUG = 0;
 
-        var CODE   = require("text!./server/collab-server.js");
         var markup = require("text!./connect.xml");
 
         // UI Elements
@@ -91,7 +90,7 @@ define(function(require, exports, module) {
                 return plugin.once("available", callback);
             extended = true;
             ext.loadRemotePlugin("collab", {
-                code     : CODE,
+                file     : "collab-server.js",
                 redefine : true
             }, function(err, api){
                 if (err) {
