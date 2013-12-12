@@ -126,7 +126,7 @@ define(function(require, exports, module) {
             var cachedMembers;
             function loadMembers() {
                 api.collab.get("members/list?pending=0", function (err, members) {
-                    if (err) return alert(err);
+                    if (err) return alert("Error", err);
 
                     cachedMembers = members;
                     onMembersLoaded();

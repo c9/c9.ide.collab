@@ -206,40 +206,22 @@ define(function(require, exports, module) {
 
             var html = document.createElement("p");
 
-            var notif = msg.notification;
-            if (notif) {
-                html.appendChild(authorNameEl);
-                html.appendChild(document.createTextNode(" " + text));
+            var borderEl = document.createElement("span");
+            html.appendChild(borderEl);
+            borderEl.className = "chatBorder";
+            borderEl.style.borderLeftColor = authorColor;
 
-                if (notif.linkText) {
-                    var link = document.createElement("a");
-                    link.href = "javascript:void(0)";
-                    link.innerText = notif.linkText;
-                    link.addEventListener("click", function() {
-                        notif.linkHandler();
-                    });
-                    html.appendChild(link);
-                }
-            }
-            else {
-
-                var borderEl = document.createElement("span");
-                html.appendChild(borderEl);
-                borderEl.className = "chatBorder";
-                borderEl.style.borderLeftColor = authorColor;
-
-                html.appendChild(authorNameEl);
-                var textEl = document.createElement("span");
-                textEl.className = "chatmessage";
-                textEl.innerHTML = text + "<br/>";
-                html.appendChild(textEl);
-                var timeEl = document.createElement("span");
-                timeEl.className = "chattime";
-                timeEl.title = msgDate.toISOString();
-                timeEl.innerHTML = msgDate;
-                timeago(timeEl);
-                html.appendChild(timeEl);
-            }
+            html.appendChild(authorNameEl);
+            var textEl = document.createElement("span");
+            textEl.className = "chatmessage";
+            textEl.innerHTML = text + "<br/>";
+            html.appendChild(textEl);
+            var timeEl = document.createElement("span");
+            timeEl.className = "chattime";
+            timeEl.title = msgDate.toISOString();
+            timeEl.innerHTML = msgDate;
+            timeago(timeEl);
+            html.appendChild(timeEl);
 
             chatText.appendChild(html);
             scrollDown();

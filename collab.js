@@ -158,22 +158,18 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
                     user = workspace.getUser(data.userId);
                     emit("usersUpdate");
                     throbNotification(user, "came online");
-                    chatNotification(user, "came online");
                     break;
                 case "USER_LEAVE":
                     emit("usersUpdate");
                     throbNotification(user, "went offline");
-                    chatNotification(user, "went offline");
                     break;
                 case "LEAVE_DOC":
                     doc && doc.leave(data.clientId);
-                    // throbNotification(user, "closed file: " + data.docId);
-                    chatNotification(user, "closed file: ", data.docId);
+                    throbNotification(user, "closed file: " + data.docId);
                     break;
                 case "JOIN_DOC":
                     if (workspace.myClientId !== data.clientId) {
-                        // throbNotification(user, "opened file: " + data.docId);
-                        chatNotification(user, "opened file: ", data.docId);
+                        throbNotification(user, "opened file: " + data.docId);
                         break;
                     }
                     doc.joinData(data);
@@ -356,26 +352,6 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
             tabs.open({
                 path: path
             });
-        }
-
-        function chatNotification(user, msg, path) {
-            var notif = {
-                id: Date.now(),
-                timestamp: Date.now(),
-                userId: user.uid,
-                text: msg,
-                notification: {}
-            };
-            var increment = false;
-            if (path) {
-                notif.notification = {
-                    linkText: path,
-                    linkHandler: openLinkedFile.bind(null, path)
-                };
-                increment = true;
-            }
-            notif.increment = increment;
-            emit("chatMessage", notif);
         }
 
         /***** Lifecycle *****/
