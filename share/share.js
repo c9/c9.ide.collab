@@ -1,6 +1,6 @@
 define(function(require, module, exports) {
     main.consumes = [
-        "Plugin", "commands", "menus", "ui", "layout", "dialog.alert",
+        "Plugin", "c9", "commands", "menus", "ui", "layout", "dialog.alert",
         "MembersPanel", "api", "info"
     ];
     main.provides = ["dialog.share"];
@@ -8,6 +8,7 @@ define(function(require, module, exports) {
 
     function main(options, imports, register) {
         var Plugin       = imports.Plugin;
+        var c9           = imports.c9;
         var MembersPanel = imports.MembersPanel;
         var commands     = imports.commands;
         var menus        = imports.menus;
@@ -15,16 +16,47 @@ define(function(require, module, exports) {
         var alert        = imports["dialog.alert"].show;
         var layout       = imports.layout;
         var api          = imports.api;
-        var info         = imports.info;
 
         var markup   = require("text!./share.xml");
         var css      = require("text!./share.css");
 
         var plugin   = new Plugin("Ajax.org", main.consumes);
         var emit     = plugin.getEmitter();
-        var pid      = info.getWorkspace().pid;
 
         var dialog, btnInvite, btnDone, txtUsername, shareLink, membersParent, accessButton;
+
+        var loaded = false;
+        function load() {
+            if (loaded) return;
+            loaded = true;
+
+            if (!c9.isAdmin)
+                return;
+
+            commands.addCommand({
+                name    : "sharedialog",
+                hint    : "Share the workspace",
+                group   : "General",
+                exec    : show
+            }, plugin);
+
+            menus.addItemByPath("Window/Share Workspace", new ui.item({
+                command: "sharedialog"
+            }), 20100, plugin);
+
+            var btn =  new ui.button({
+                "skin"    : "btn-default-css3",
+                "class"   : "btn-green",
+                "caption" : "Share",
+                "tooltip" : "Share Workspace",
+                "width"   : 80,
+                "command" : "sharedialog"
+            });
+
+            ui.insertByIndex(layout.findParent({
+                name: "preferences"
+            }), btn, 800, plugin);
+        }
 
         var drawn = false;
         function draw(){
@@ -70,40 +102,6 @@ define(function(require, module, exports) {
             emit("draw", null, true);
         }
 
-        var loaded = false;
-        function load() {
-            if (loaded) return;
-            loaded = true;
-
-            var isWorkspaceAdmin = true; // TODO
-            if (!isWorkspaceAdmin)
-                return;
-
-            commands.addCommand({
-                name    : "sharedialog",
-                hint    : "Share the workspace",
-                group   : "General",
-                exec    : show
-            }, plugin);
-
-            menus.addItemByPath("Window/Share Workspace", new ui.item({
-                command: "sharedialog"
-            }), 20100, plugin);
-
-            var btn =  new ui.button({
-                "skin"    : "btn-default-css3",
-                "class"   : "btn-green",
-                "caption" : "Share",
-                "tooltip" : "Share Workspace",
-                "width"   : 80,
-                "command" : "sharedialog"
-            });
-
-            ui.insertByIndex(layout.findParent({
-                name: "preferences"
-            }), btn, 800, plugin);
-        }
-
         /***** Methods *****/
 
         function inviteUser(){
@@ -128,6 +126,7 @@ define(function(require, module, exports) {
                 }
             }, function (err, data, res) {
                 console.log(arguments);
+                console.error("TODO: send email to the invited member");
                 callback(err);
             });
         }

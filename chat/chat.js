@@ -26,10 +26,11 @@ define(function(require, exports, module) {
 
         var plugin = new CollabPanel("Ajax.org", main.consumes, {
             index        : 200,
-            caption      : "Group Chat"
+            caption      : "Group Chat",
+            textselect   : true
         });
 
-        var emit  = plugin.getEmitter();
+        // var emit  = plugin.getEmitter();
         var emoji = require("./my_emoji");
 
         // panel-relared UI elements
@@ -146,7 +147,7 @@ define(function(require, exports, module) {
         function formatMessageText(text) {
             text = util.escapeHtmlWithClickableLinks(text.trim(), "_blank");
             text = text.replace(/\n/g, "<br/>");
-            text = emoji.emoji(text);
+            text = emoji.emoji(text, staticPrefix);
             return text;
         }
 

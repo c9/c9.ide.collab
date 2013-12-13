@@ -8,7 +8,7 @@ exports.emoji = function(text, staticPrefix) {
     return text.replace(/([\ue001-\ue999])/g, function(str, p1) {
         return p1.charCodeAt(0).toString(16).toUpperCase().replace(
             /^([\da-f]+)$/i,
-            "<img class='emoji' src=\"" + staticPrefix + "/ext/ot/emoji/emoji-$1.png\" alt=\"emoji\" />"
+            "<img class='emoji' src=\"" + staticPrefix + "/emoji/emoji-$1.png\" alt=\"emoji\" />"
         );
     });
 };

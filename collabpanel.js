@@ -29,6 +29,7 @@ define(function(require, module, exports) {
                     buttons     : "min",
                     activetitle : "min",
                     "class"     : "absframe",
+                    textselect  : options.textselect,
                     height      : height,
                     caption     : caption
                 });

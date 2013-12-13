@@ -547,7 +547,8 @@ define(function(require, exports, module) {
         });
 
         function getTabCollabDocument(tab) {
-            return tab.path && tab.document.getSession().session.collabDoc;
+            var aceSession = tab.path && tab.document.getSession().session;
+            return aceSession && aceSession.collabDoc;
         }
 
         function toggleTimeslider() {
