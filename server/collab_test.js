@@ -1,5 +1,6 @@
 /*global require module __dirname console process*/
 "use strict";
+"use server";
 
 var assert = require("assert");
 var async = require("async");

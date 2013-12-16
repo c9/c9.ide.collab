@@ -1,5 +1,6 @@
 /*global require define module global console*/
 "use strict";
+"use server";
 
 if (typeof process !== "undefined") {
     require("amd-loader");

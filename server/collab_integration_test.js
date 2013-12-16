@@ -1,5 +1,6 @@
 /*global require define module global __dirname console setTimeout process*/
 "use strict";
+"use server";
 
 var assert = require("assert");
 var async = require("async");
