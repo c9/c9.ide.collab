@@ -101,7 +101,7 @@ define(function(require, exports, module) {
     function refresh(elem) {
         var datetime = prepareDateTime(elem);
         if (!isNaN(datetime))
-            elem.innerText = inWords(datetime);
+            elem.textContent = inWords(datetime);
     }
 
     function prepareDateTime(elem) {
@@ -110,7 +110,7 @@ define(function(require, exports, module) {
             return new Date(timeagoAttr);
         var data = datetime(elem);
         elem.setAttribute("timeago", data);
-        var text = elem.innerText.trim();
+        var text = elem.textContent.trim();
         if (text.length > 0 && !(isTime(elem) && elem.title))
             elem.title = text;
         return data;
