@@ -5,7 +5,7 @@ define(function(require, exports, module) {
 main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
         "ace", "timeslider", "collab.util", "collab.connect",
         "collab.workspace",  "OTDocument", "AuthorLayer", "CursorLayer",
-        "ui", "layout"];
+        "ui", "layout", "util"];
     main.provides = ["collab"];
     return main;
 
@@ -17,7 +17,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
         var ui           = imports.ui;
         var apf          = imports.apf;
         var ace          = imports.ace;
-        var util         = imports["collab.util"];
+        var c9util       = imports.util;
         var connect      = imports["collab.connect"];
         var workspace    = imports["collab.workspace"];
         var timeslider   = imports.timeslider;
@@ -376,7 +376,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
             /**
              *
              */
-            get documents() { return util.cloneObject(documents); },
+            get documents() { return c9util.cloneObject(documents); },
             /**
              *
              */

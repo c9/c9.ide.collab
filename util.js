@@ -107,17 +107,6 @@ define(function(require, exports, module) {
             return reversed;
         }
 
-        function cloneObject(obj) {
-            if (obj === null || typeof obj !== "object")
-                return obj;
-            var copy, k;
-            copy = obj instanceof Array ? [] : {};
-            for (k in obj)
-                if (obj.hasOwnProperty(k))
-                    copy[k] = cloneObject(obj[k]);
-            return copy;
-        }
-
         function isRealCollab(workspace) {
             var users = workspace.users;
             var numUsers = Object.keys(users).length;
@@ -131,7 +120,6 @@ define(function(require, exports, module) {
             escapeHTML                   : escapeHTML,
             formatColor                  : formatColor,
             reverseObject                : reverseObject,
-            cloneObject                  : cloneObject,
             isRealCollab                 : isRealCollab
         });
         

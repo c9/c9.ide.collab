@@ -1,15 +1,14 @@
 /*global define console document apf */
 define(function(require, module, exports) {
     main.consumes = ["Plugin", "ace", "collab.connect", "collab.util", "collab.workspace", "timeslider",
-        "CursorLayer", "AuthorLayer"];
+        "CursorLayer", "AuthorLayer", "util"];
     main.provides = ["OTDocument"];
     return main;
 
     function main(options, imports, register) {
         var Plugin                = imports.Plugin;
-        var ace                   = imports.ace;
         var connect               = imports["collab.connect"];
-        var util                  = imports["collab.util"];
+        var c9util                = imports.util;
         var workspace             = imports["collab.workspace"];
         var timeslider            = imports.timeslider;
         var CursorLayer           = imports.CursorLayer;
@@ -32,7 +31,7 @@ define(function(require, module, exports) {
 
             var plugin      = new Plugin("Ajax.org", main.consumes);
             var emit        = plugin.getEmitter();
-            var cloneObject = util.cloneObject;
+            var cloneObject = c9util.cloneObject;
             var DEBUG       = connect.DEBUG;
 
             // Set if the file was loaded using an http request
