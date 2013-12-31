@@ -63,8 +63,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
                 var tab = tabs.focussedTab;
                 if (!tab.path || documents[tab.path])
                     return;
-                var doc = joinDocument(tab.path, tab.document);
-                doc.fsContents = normalizeTextLT(tab.document.value);
+                joinDocument(tab.path, tab.document);
             });
 
             window.addEventListener("unload", function() {
@@ -80,8 +79,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
                 var path = tab.path;
                 if (!path || documents[path])
                     return;
-                var doc = joinDocument(tab.path, tab.document);
-                doc.fsContents = normalizeTextLT(tab.document.value);
+                joinDocument(tab.path, tab.document);
             }, plugin);
 
             AuthorLayer.initAuthorLayer(plugin);
@@ -280,7 +278,6 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
             var normHttpValue = normalizeTextLT(httpLoadedValue);
             if (httpLoadedValue !== normHttpValue)
                 tab.document.value = normHttpValue;
-            doc.fsContents = normHttpValue;
         }
 
         function beforeWriteFile(e) {

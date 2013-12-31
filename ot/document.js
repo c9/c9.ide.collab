@@ -34,9 +34,6 @@ define(function(require, module, exports) {
             var cloneObject = c9util.cloneObject;
             var DEBUG       = connect.DEBUG;
 
-            // Set if the file was loaded using an http request
-            var fsContents;
-
             var docStream;
             var revStream;
             var doc;
@@ -784,7 +781,6 @@ define(function(require, module, exports) {
                 set isInited(inited) { isInited = inited; },
                 get fsHash() { return doc && doc.fsHash; },
                 get docHash() { return doc && doc.docHash; },
-                set fsContents(contents) { fsContents = contents; },
                 get authAttribs() { return doc ? doc.authAttribs : []; },
                 get revisions() { return doc ? doc.revisions : []; },
                 get cursorLayer() { return cursorLayer; },

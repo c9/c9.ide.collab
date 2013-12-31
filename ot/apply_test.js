@@ -1,10 +1,10 @@
-/*global require module console define*/
 "use strict";
 "use server";
 
+/*global require module console define*/
 if (typeof process !== "undefined") {
     require("amd-loader");
-    require("../../test/setup_paths");
+    require("../../../test/setup_paths");
 }
 
 define(function(require, exports, module) {

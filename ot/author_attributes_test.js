@@ -1,11 +1,10 @@
-/*global require module console define*/
-
 "use strict";
 "use server";
 
+/*global require module console define*/
 if (typeof process !== "undefined") {
     require("amd-loader");
-    require("../../test/setup_paths");
+    require("../../../test/setup_paths");
 }
 
 define(function(require, exports, module) {
@@ -74,7 +73,7 @@ module.exports = {
     },
 
     "test traverse": function () {
-        auth = [ 7, [ 2, 'u1', 3, 'u3', 2, 'u1' ], 9, [ 3, 'u2', 1, 'u1', 5, null ] ];
+        var auth = [ 7, [ 2, 'u1', 3, 'u3', 2, 'u1' ], 9, [ 3, 'u2', 1, 'u1', 5, null ] ];
         var checkI = 0;
         var records = [
             [0, 2, "u1"],

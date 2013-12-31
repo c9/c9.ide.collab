@@ -2073,7 +2073,7 @@ function initSocket(userIds, callback) {
     }
 }
 
-exports = module.exports = function (vfs, options, register) {
+var exports = module.exports = function (vfs, options, register) {
 
     var vfsClientMap = {};
     var isMaster;

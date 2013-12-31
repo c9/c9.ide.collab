@@ -98,9 +98,9 @@ oop.implement(server, EventEmitter);
 
 Client.onConnect({ connected: true, send: function(msg) {server.send(msg.type, msg.data); }});
 
-ed1 = join("ed1");
-ed2 = join("ed2");
-ed3 = join("ed3");
+var ed1 = join("ed1");
+var ed2 = join("ed2");
+var ed3 = join("ed3");
 
 function clip(val, min, max) {return Math.max(min, Math.min(val, max));}
 
@@ -180,7 +180,7 @@ window.applyOp = applyOp;
 window.randomOp = randomOp;
 window.editors = editors;
 
-window.editRandomly = function() {
+var editRandomly = window.editRandomly = function() {
     editRandomly.editCount = document.getElementById("editCb").checked ? 300 : 0;
     var interv = setInterval(function step() {
         if (editRandomly.editCount --< 0) {
