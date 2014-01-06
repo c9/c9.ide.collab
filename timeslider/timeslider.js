@@ -124,7 +124,7 @@ define(function(require, exports, module) {
                 activeDocument = doc;
                 if (!isVisible)
                     return;
-                if (!doc || !doc.isInited)
+                if (!doc || !doc.loaded)
                     forceHideSlider();
                 else
                     doc.loadRevisions();
@@ -563,7 +563,7 @@ define(function(require, exports, module) {
             var aceEditor = tab.editor.ace;
             if (isVisible) {
                 hide();
-                if (doc && doc.isInited) {
+                if (doc && doc.loaded) {
                     doc.updateToRevNum();
                     if (doc.changed)
                         tab.className.add("changed");

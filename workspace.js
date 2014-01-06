@@ -19,7 +19,7 @@ define(function(require, exports, module) {
         var emit   = plugin.getEmitter();
 
         var workspace = { authorPool: {}, colorPool: {}, users: {}, onlineUserIds: [] };
-        var isInited  = false;
+        var loaded    = false;
         /***** Register and define API *****/
 
         function syncWorkspace(data, mine) {
@@ -41,7 +41,7 @@ define(function(require, exports, module) {
                 workspace.myUserId    = data.myUserId;
                 workspace.fs          = data.fs;
                 workspace.chatHistory = data.chatHistory;
-                isInited              = true;
+                loaded                = true;
                 emit("connect");
             }
             emit("sync");
@@ -49,8 +49,8 @@ define(function(require, exports, module) {
 
 
         plugin.on("newListener", function(event, listener){
-            if ((event == "connect" || event == "sync") && isInited)
-                listener();
+            if ((event == "connect" || event == "sync") && loaded)
+                 listener();
         });
 
         /**
@@ -63,7 +63,7 @@ define(function(require, exports, module) {
             get myClientId()    { return workspace.myClientId; },
             get myOldClientId() { return workspace.myOldClientId; },
             get myUserId()      { return workspace.myUserId; },
-            get isInited()      { return isInited; },
+            get loaded()        { return loaded;  },
             get fs()            { return workspace.fs; },
             get chatHistory()   { return workspace.chatHistory; },
 

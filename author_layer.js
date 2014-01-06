@@ -334,8 +334,8 @@ define(function(require, module, exports) {
             tabs.getPanes().forEach(function (pane) {
                 var tab = pane.activeTab;
                 var collabDoc = tab && collab.getDocument(tab.path);
-                if (collabDoc && collabDoc.isInited)
-                    collabDoc.authorLayer.refresh();
+                var authorLayer = collabDoc && collabDoc.authorLayer;
+                authorLayer && authorLayer.refresh();
             });
         }
 

@@ -1232,6 +1232,8 @@ function initWatcher(docId) {
 
 function handleJoinDocument(userIds, client, data) {
     var docId = data.docId;
+    var clientId = userIds.clientId;
+    var userId = userIds.userId;
 
     function callback (err) {
         if (err) {
@@ -1239,6 +1241,7 @@ function handleJoinDocument(userIds, client, data) {
             client.send({
                 type: "JOIN_DOC",
                 data: {
+                    clientId: clientId,
                     docId: docId,
                     err: err
                 }
@@ -1248,7 +1251,7 @@ function handleJoinDocument(userIds, client, data) {
     }
 
     if (!collabReadAccess(userIds.fs))
-        return callback("User " + userIds.userId + " don't have read access to join document " + docId + " - fs: " + userIds.fs);
+        return callback("User " + userId + " don't have read access to join document " + docId + " - fs: " + userIds.fs);
 
     lock(docId, function () {
         Store.getDocument(docId, function (err, doc) {
@@ -1265,16 +1268,16 @@ function handleJoinDocument(userIds, client, data) {
                 joinDocument(doc2);
             });
         });
-    })
+    });
 
     function joinDocument(doc) {
         if (!documents[docId]) {
             documents[docId] = {};
             initWatcher(docId);
-             console.error("[vfs-collab] User", userIds.userId, "is joining document", docId);
+             console.error("[vfs-collab] User", userId, "is joining document", docId);
         }
         else {
-            console.error("[vfs-collab] User", userIds.userId, "is joining a document", docId, "with",
+            console.error("[vfs-collab] User", userId, "is joining a document", docId, "with",
                 Object.keys(documents[docId]).length, "other document members");
         }
 
@@ -1291,7 +1294,7 @@ function handleJoinDocument(userIds, client, data) {
             updated_at: doc.updated_at
         });
 
-        documents[docId][userIds.clientId] = userIds;
+        documents[docId][clientId] = userIds;
         client.openDocIds[docId] = true;
 
         var chunkSize = 10*1024; // 10 KB
@@ -1302,9 +1305,9 @@ function handleJoinDocument(userIds, client, data) {
             client.send({
                 type: "JOIN_DOC",
                 data: {
-                    userId: userIds.userId,
-                    clientId: userIds.clientId,
-                    docId: data.docId,
+                    userId: userId,
+                    clientId: clientId,
+                    docId: docId,
                     chunkNum: (i / chunkSize) + 1,
                     chunksLength: chunksLen,
                     chunk: chunk
@@ -1315,9 +1318,9 @@ function handleJoinDocument(userIds, client, data) {
         broadcast({
             type: "JOIN_DOC",
             data: {
-                docId: data.docId,
-                userId: userIds.userId,
-                clientId: userIds.clientId
+                docId: docId,
+                userId: userId,
+                clientId: clientId
             }
         }, client);
 

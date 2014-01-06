@@ -29,12 +29,12 @@ define(function(require, module, exports) {
         function CursorLayer(session) {
 
             var plugin   = new Plugin("Ajax.org", main.consumes);
-            var emit     = plugin.getEmitter();
+            // var emit     = plugin.getEmitter();
 
             var tsRevNum;
             var tooltipIsOpen   = false;
             var selections      = {};
-            var timeslideMarker = session.addDynamicMarker({ update: drawTimeSliderOperation }, false);
+            session.addDynamicMarker({ update: drawTimeSliderOperation }, false);
 
             function updateSelections(selecs) {
                 dispose();
@@ -117,12 +117,12 @@ define(function(require, module, exports) {
                 if(!bgColor)
                     return console.error("[OT] timeslider can't find user's bg color");
 
-                var scrolled = false;
                 var ops = revision.operation;
                 var index = 0;
                 for (var i = 0; i < ops.length; i++) {
                     var len = operations.length(ops[i]);
-                    switch (operations.type(ops[i])) {
+                    var type = operations.type(ops[i]);
+                    switch (type) {
                     case "retain":
                         index += len;
                         break;
@@ -135,7 +135,7 @@ define(function(require, module, exports) {
                         // don't render anything - those aren't visible in the current document state
                         break;
                     default:
-                        throw new TypeError("Unknown operation: " + operations.type(op[i]));
+                        throw new TypeError("Unknown operation: " + type);
                     }
                 }
 
@@ -344,7 +344,7 @@ define(function(require, module, exports) {
                 showTooltip: showTooltip,
                 dispose: dispose
             });
-            
+
             return plugin;
         }
         
@@ -373,14 +373,15 @@ define(function(require, module, exports) {
                 clearTimeout(cursorTooltipTimeout);
                 cursorTooltipTimeout = null;
                 var collabDoc = editor.session.collabDoc;
-                if (collabDoc && collabDoc.isInited && collabDoc.cursorLayer.tooltipIsOpen)
-                    collabDoc.cursorLayer.hideAllTooltips();
+                var cursorLayer = collabDoc && collabDoc.cursorLayer;
+                if (cursorLayer && cursorLayer.tooltipIsOpen)
+                    cursorLayer.hideAllTooltips();
             });
 
             function updateTooltips() {
                 cursorTooltipTimeout = null;
                 var collabDoc = editor.session.collabDoc;
-                if (!collabDoc || !collabDoc.isInited || timeslider.visible)
+                if (!collabDoc || !collabDoc.loaded || timeslider.visible)
                     return;
                 var cursorLayer = collabDoc.cursorLayer;
                 var renderer = editor.renderer;

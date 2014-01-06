@@ -27,43 +27,66 @@ define(function(require, module, exports) {
         var MIN_DELAY = options.minDelay;
         var MAX_DELAY = options.maxDelay;
 
-        function OTDocument(docId, session, c9Document) {
+        function OTDocument(docId, c9Document) {
 
             var plugin      = new Plugin("Ajax.org", main.consumes);
             var emit        = plugin.getEmitter();
             var cloneObject = c9util.cloneObject;
             var DEBUG       = connect.DEBUG;
 
-            var docStream;
-            var revStream;
-            var doc;
-            var cursorLayer;
-            var authorLayer;
+            var doc, session;
+            var docStream, revStream;
+            var cursorLayer, authorLayer;
+            var revCache, rev0Cache;
 
-            var rev0Cache;
-            var revCache;
+            var latestRevNum, lastSel;
+            var sendTimer, cursorTimer;
 
-            var latestRevNum;
-            var lastSel;
-            var sendTimer;
-            var cursorTimer;
-
+            var incoming      = [];
             var outgoing      = [];
-            var isInited      = false;
             var ignoreChanges = false;
             var packedCs      = [];
+            var loaded        = false;
+            var loading       = false;
+            var inited        = false;
+            var state         = "IDLE";
 
-            IndexCache(session.doc);
+            function setSession(aceSession) {
+                session = aceSession;
+                session.collabDoc = plugin;
 
-            session.doc.oldSetValue = session.doc.oldSetValue || session.doc.setValue;
-            session.doc.setValue = function (text) {
+                var aceDoc = session.doc;
+
+                IndexCache(aceDoc);
+
+                aceDoc.oldSetValue = aceDoc.oldSetValue || aceDoc.setValue;
+                aceDoc.setValue = patchedSetValue.bind(aceDoc);
+                aceDoc.applyDeltas = patchedApplyDeltas.bind(aceDoc);
+                aceDoc.revertDeltas = patchedRevertDeltas.bind(aceDoc);
+
+                if (loaded)
+                    joinWithSession();
+
+                incoming.map(handleMessage);
+                incoming = [];
+
+                session.on("change", handleUserChanges);
+                session.selection.addEventListener("changeCursor", onCursorChange);
+                session.selection.addEventListener("changeSelection", onCursorChange);
+                session.selection.addEventListener("addRange", onCursorChange);
+
+                // needed to provide immediate feedback for remote selection changes caused by local edits
+                session.on("change", function(e) { session._emit("changeBackMarker"); });
+            }
+
+            function patchedSetValue (text) {
                 var prev = this.getValue();
                 if (!prev)
-                    return session.doc.oldSetValue(text);
-                applyAce(operations.operation(prev, text), session.doc);
-            };
+                    return this.oldSetValue(text);
+                applyAce(operations.operation(prev, text), this);
+            }
 
-            session.doc.applyDeltas = function(deltas) {
+            function patchedApplyDeltas(deltas) {
                 for (var i=0; i<deltas.length; i++) {
                     var delta = deltas[i];
                     this.fromDelta = delta;
@@ -79,9 +102,9 @@ define(function(require, module, exports) {
                         this.remove(range);
                 }
                 this.fromDelta = null;
-            };
+            }
 
-            session.doc.revertDeltas = function(deltas) {
+            function patchedRevertDeltas(deltas) {
                 for (var i=deltas.length-1; i>=0; i--) {
                     var delta = deltas[i];
                     this.fromDelta = delta;
@@ -97,23 +120,14 @@ define(function(require, module, exports) {
                         this.insert(range.start, delta.text);
                 }
                 this.fromDelta = null;
-            };
-            
-            session.on("change", handleUserChanges);
-            session.selection.addEventListener("changeCursor", onCursorChange);
-            session.selection.addEventListener("changeSelection", onCursorChange);
-            session.selection.addEventListener("addRange", onCursorChange);
-            // needed to provide immediate feedback for remote selection changes caused by local edits
-            session.on("change", function(e) { session._emit("changeBackMarker"); });
-
-            var state = "IDLE";
+            }
 
             function isReadOnly() {
                 return c9Document.editor.ace.getReadOnly();
             }
 
             function handleUserChanges (e) {
-                if (!isInited || ignoreChanges || isReadOnly())
+                if (!loaded || ignoreChanges || isReadOnly())
                     return;
                 try {
                     var aceDoc = session.doc;
@@ -288,11 +302,10 @@ define(function(require, module, exports) {
 
             function joinData(data) {
                 var st = new Date();
-
-                isInited = false;
+                loaded = false;
 
                 if (data.err)
-                    return emit("joined", {err: data.err});
+                    return emit("joined", {err: data.err}, true);
 
                 if (data.chunkNum === 1)
                     docStream = "";
@@ -313,11 +326,11 @@ define(function(require, module, exports) {
                     revNum: doc.revNum,
                     contents: doc.contents,
                     authAttribs: cloneObject(doc.authAttribs)
-                 };
+                };
 
-                 state = "IDLE";
-
-                 outgoing = [];
+                state = "IDLE";
+                outgoing = [];
+                incoming = [];
                 if (pendingSave) {
                     emit("saved", {err: "Couldn't save: document rejoined - please try again now"});
                     pendingSave = null;
@@ -325,6 +338,18 @@ define(function(require, module, exports) {
 
                 delete doc.selections[workspace.myOldClientId]; // in case of being away
 
+                if (session)
+                    joinWithSession();
+
+                if (DEBUG)
+                    console.log("[OT] init took", new Date() - st, "ms");
+
+                loaded = true;
+                loading = false;
+                emit("joined", {contents: doc.contents}, true);
+            }
+
+            function joinWithSession() {
                 var currentVal = session.getValue();
                 var otherMembersNums = Object.keys(doc.selections).length;
                 var latestContents = doc.contents;
@@ -364,12 +389,7 @@ define(function(require, module, exports) {
                 authorLayer && authorLayer.dispose();
                 authorLayer = new AuthorLayer(session, workspace);
 
-                if (DEBUG)
-                    console.log("[OT] init took", new Date() - st, "ms");
-
-                emit("joined", {contents: latestContents});
-
-                isInited = true;
+                inited = true;
             }
 
             function isPreparedUnity() {
@@ -398,8 +418,6 @@ define(function(require, module, exports) {
 
                 for (var i = 0, len = outgoing.length; i < len; i++) {
                     msg = outgoing[i];
-                    var oldOps = ops;
-                    var oldMsgOp = msg.op;
                     xform(msg.op, ops, k);
                 }
                 inMsg.op = ops;
@@ -418,8 +436,6 @@ define(function(require, module, exports) {
                 if (msg.revNum !== latestRevNum + 1) {
                     console.error("[OT] Incoming edit revNum mismatch !",
                         msg.revNum, latestRevNum + 1);
-                    // if (DEBUG > 1)
-                    //     debugger;
                     return;
                 }
                 var st = new Date();
@@ -437,39 +453,8 @@ define(function(require, module, exports) {
                     scheduleSend();
                 } else {
                     addRevision(msg);
-
-                    // if (DEBUG > 1) {
-                    //     msg.oldOp = msg.op;
-                    //     var oldOutgoing = outgoing.map(function(out){ return out.op; });
-                    //     var oldPackedCs = packedCs;
-                    // }
-
                     outgoing.push({op: packedCs});
                     xformEach(outgoing, msg);
-
-                    // if (DEBUG > 1 && !timeslider.isVisible()) {
-                    //     // console.log(JSON.stringify({oldOutgoing: oldOutgoing, lastVal:lastVal, oldPackedCs: oldPackedCs, msg:msg},null,4))
-                    //     var startVal = lastVal;
-                    //     oldOutgoing.slice().reverse().forEach(function(out){
-                    //         var inverseOutgoing = operations.inverse(out);
-                    //         startVal = applyContents(inverseOutgoing, lastVal);
-                    //     });
-
-                    //     if (lastVal !== oldOutgoing.reduce(function(val, op){ return applyContents(op, val); }, startVal))
-                    //         debugger;
-
-                    //     var p0 = applyContents(oldPackedCs, lastVal);
-                    //     var p0_1 = applyContents(msg.op, p0);
-
-                    //     var p1 = applyContents(msg.oldOp, startVal);
-                    //     var p1_0 = outgoing.reduce(function(p1, msg){
-                    //         return applyContents(msg.op, p1);
-                    //     }, p1);
-
-                    //     if (p0_1 !== p1_0)
-                    //         debugger;
-                    // }
-
                     packedCs = outgoing.pop().op;
                     var sel = session.selection;
                     cursorLayer.setInsertRight(msg.clientId, false);
@@ -493,14 +478,6 @@ define(function(require, module, exports) {
                 applyAuthorAttributes(doc.authAttribs, msg.op, workspace.authorPool[msg.userId]);
                 authorLayer.refresh();
                 doc.revNum = msg.revNum;
-                // if (DEBUG > 1) {
-                //     var val = editorDoc.getValue();
-                //     var inverseCs = operations.inverse(packedCs);
-                //     lastVal = applyContents(inverseCs, val);
-                    
-                //     if (val !== applyContents(packedCs, lastVal))
-                //         debugger;
-                // }
                 ignoreChanges = false;
             }
 
@@ -519,9 +496,8 @@ define(function(require, module, exports) {
             }
 
             function onCursorChange() {
-                if (!isInited || ignoreChanges)
+                if (!loaded || ignoreChanges)
                     return;
-                var sel = session.selection;
                 if (cursorTimer)
                     return;
                 // Don't send too many cursor change messages
@@ -537,10 +513,6 @@ define(function(require, module, exports) {
                     author: msg.userId,
                     updated_at: msg.updated_at || Date.now()
                 };
-
-                // will throw some error if it's a bad revision
-                // if (DEBUG > 1)
-                //     getRevWithContent(msg.revNum);
          
                 if (isActiveTimesliderDocument())
                     timeslider.sliderLength = msg.revNum;
@@ -632,6 +604,9 @@ define(function(require, module, exports) {
             }
 
             function handleMessage(event) {
+                if (!inited)
+                    return incoming.push(event);
+
                 var data = event.data;
                 switch (event.type) {
                 case "EDIT_UPDATE":
@@ -641,13 +616,7 @@ define(function(require, module, exports) {
                     state = "IDLE";
                     // updating it here means the commited operation could sometimes not be
                     // transformed against the previous operation
-                    // if (DEBUG > 1) {
-                    //     if (latestRevNum != data.revNum)
-                    //         debugger;
-                    // }
                     if (data.reason.indexOf("OT Error") !== -1) {
-                        // if (DEBUG > 1)
-                        //     debugger;
                         console.error("[OT] SYNC_COMMIT server OT error");
                     }
                     scheduleSend();
@@ -687,8 +656,10 @@ define(function(require, module, exports) {
 
                 var revisionsObj = JSON.parse(revStream);
                 revStream = null;
-                doc.revisions = revisionsObj.revisions;
+                var revisions = revisionsObj.revisions;
+                doc.revisions = revisions;
                 doc.starRevNums = revisionsObj.starRevNums;
+                emit("revisions", revisions);
 
                 if (isActiveTimesliderDocument())
                     loadRevisions();
@@ -752,13 +723,28 @@ define(function(require, module, exports) {
                 session.selection.removeEventListener("addRange", onCursorChange);
                 clearTimeout(sendTimer);
                 clearTimeout(cursorTimer);
-                if (isInited) {
+                if (loaded) {
                     cursorLayer.dispose();
                     authorLayer.dispose();
                 }
             }
 
-            function leave(clientId) {
+            function load() {
+                loaded = false;
+                loading = true;
+                connect.send("JOIN_DOC", { docId: docId });
+            }
+
+            function leave() {
+                loaded = loading = false;
+                connect.send("LEAVE_DOC", { docId: docId });
+            }
+
+            function disconnect() {
+                loaded = loading = false;
+            }
+
+            function clientLeave(clientId) {
                 cursorLayer && cursorLayer.clearSelection(clientId);
             }
 
@@ -774,29 +760,34 @@ define(function(require, module, exports) {
             }
 
             plugin.freezePublicAPI({
-                get id() { return docId; },
-                get session() { return session; },
-                get original() { return c9Document; },
-                get isInited() { return isInited; },
-                set isInited(inited) { isInited = inited; },
-                get fsHash() { return doc && doc.fsHash; },
-                get docHash() { return doc && doc.docHash; },
-                get authAttribs() { return doc ? doc.authAttribs : []; },
-                get revisions() { return doc ? doc.revisions : []; },
-                get cursorLayer() { return cursorLayer; },
-                get authorLayer() { return authorLayer; },
+                get id()           { return docId; },
+                get session()      { return session; },
+                get original()     { return c9Document; },
+                get loading()      { return loading; },
+                get loaded()       { return loaded; },
+                get inited()       { return inited; },
+                get fsHash()       { return doc && doc.fsHash; },
+                get docHash()      { return doc && doc.docHash; },
+                get authAttribs()  { return doc ? doc.authAttribs : []; },
+                get revisions()    { return doc ? doc.revisions : []; },
+                get cursorLayer()  { return cursorLayer; },
+                get authorLayer()  { return authorLayer; },
                 get latestRevNum() { return latestRevNum; },
-                get changed() { return isChanged(); },
+                get changed()      { return isChanged(); },
 
-                leave: leave,
-                loadRevisions: loadRevisions,
-                updateToRevNum:  updateToRevNum,
-                save: save,
-                historicalSearch: historicalSearch,
-                joinData: joinData,
-                handleMessage: handleMessage,
-                patchToContents: patchToContents,
-                dispose: dispose
+                load             : load,
+                setSession       : setSession,
+                leave            : leave,
+                dispose          : dispose,
+                disconnect       : disconnect,
+                clientLeave      : clientLeave,
+                loadRevisions    : loadRevisions,
+                updateToRevNum   : updateToRevNum,
+                save             : save,
+                historicalSearch : historicalSearch,
+                joinData         : joinData,
+                handleMessage    : handleMessage,
+                patchToContents  : patchToContents
             });
 
             return plugin;

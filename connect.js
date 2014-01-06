@@ -35,34 +35,7 @@ define(function(require, exports, module) {
         else
             DEBUG = 0;
 
-        var markup = require("text!./connect.xml");
-
-        // UI Elements
-        var winCollabInstall, collabInstallTitle, collabInstallMsg, btnCollabInstall, btnCollabDisable;
-
-        var SSH_CHECKS = [
-            'echo "`command -v sqlite3`"',
-            'NODE_PATH=' + options.nodePath + ' ' + options.nodeBin +' -e ' +
-             '"try { require(\'sqlite3\'); require(\'sequelize\'); console.log(true); } catch(e) { console.log(false); }"',
-            '',
-            'BIN_DIR=$(dirname `which '  + options.nodeBin + '`)',
-            'export PATH=$BIN_DIR:$PATH', // hack on nvm installed node versions
-            'NPM_BIN=$(which npm)',
-            'echo "mkdir -p ' + options.nodePath + '"', // result[2]
-            'echo "$NPM_BIN --prefix ' + options.nodePath + ' install sequelize@2.0.0-beta.0"', // result[3]
-            'echo "$NPM_BIN --prefix ' + options.nodePath + ' install sqlite3@2.1.18"', // result[4]
-            // result[5]
-            'case `uname` in',
-            '  Linux )',
-            '     command -v apt-get >/dev/null && { echo "sudo apt-get -y install sqlite3"; exit; }',
-            '     command -v yum >/dev/null && { echo "sudo yum install sqlite3"; exit; }',
-            '     command -v zypper >/dev/null && { echo "sudo zypper in sqlite3"; exit; }',
-            '     ;;',
-            '  Darwin )',
-            '     echo "sudo port install sqlite3"',
-            '     ;;',
-            'esac'
-        ].join("\n");
+        // var markup = require("text!./connect.xml");
 
         var collab;
         var collabInstalled = !options.isSSH;
@@ -119,8 +92,7 @@ define(function(require, exports, module) {
             if (drawn) return;
             drawn = true;
 
-            ui.insertMarkup(markup);
-
+            // ui.insertMarkup(markup);
             // btnCollabDisable.on("click". function(){
             //    destroy();
             //    winCollabInstall.hide();
@@ -153,7 +125,7 @@ define(function(require, exports, module) {
                 if (collabInstalled)
                     return doConnect();
 
-                sshCheckInstall();
+                // sshCheckInstall();
             });
         }
 
@@ -217,6 +189,34 @@ define(function(require, exports, module) {
             collab.send(clientId, msg);
         }
 
+        /*
+        // SSH UI Elements
+        var winCollabInstall, collabInstallTitle, collabInstallMsg, btnCollabInstall, btnCollabDisable;
+
+        var SSH_CHECKS = [
+            'echo "`command -v sqlite3`"',
+            'NODE_PATH=' + options.nodePath + ' ' + options.nodeBin +' -e ' +
+             '"try { require(\'sqlite3\'); require(\'sequelize\'); console.log(true); } catch(e) { console.log(false); }"',
+            '',
+            'BIN_DIR=$(dirname `which '  + options.nodeBin + '`)',
+            'export PATH=$BIN_DIR:$PATH', // hack on nvm installed node versions
+            'NPM_BIN=$(which npm) || npm',
+            'echo "mkdir -p ' + options.nodePath + '"', // result[2]
+            'echo "$NPM_BIN --prefix ' + options.nodePath + ' install sequelize@2.0.0-beta.0"', // result[3]
+            'echo "$NPM_BIN --prefix ' + options.nodePath + ' install sqlite3@2.1.18"', // result[4]
+            // result[5]
+            'case `uname` in',
+            '  Linux )',
+            '     command -v apt-get >/dev/null && { echo "sudo apt-get -y install sqlite3"; exit; }',
+            '     command -v yum >/dev/null && { echo "sudo yum install sqlite3"; exit; }',
+            '     command -v zypper >/dev/null && { echo "sudo zypper in sqlite3"; exit; }',
+            '     ;;',
+            '  Darwin )',
+            '     echo "sudo port install sqlite3"',
+            '     ;;',
+            'esac'
+        ].join("\n");
+
         function sshCheckInstall() {
             console.log("COLLAB CHECKS", SSH_CHECKS);
             proc.execFile("bash", {args: ["-c",
@@ -243,7 +243,6 @@ define(function(require, exports, module) {
                         "<b>Please note that your files won't be accessible during that 1-minute installation</b>";
                     var cmds = installationSteps.join(";\n") + "\n";
                     // TODO popup
-
                     c9console.showConsoleTerminal();
                     showCollabInstall(title, body);
 
@@ -277,6 +276,7 @@ define(function(require, exports, module) {
             collabInstallTitle.$ext.innerHTML = title;
             collabInstallMsg.$ext.innerHTML = body;
         }
+        */
 
         /***** Lifecycle *****/
         plugin.on("load", function(){

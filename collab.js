@@ -2,10 +2,9 @@
 "use strict";
 define(function(require, exports, module) {
 
-main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
-        "ace", "timeslider", "collab.util", "collab.connect",
-        "collab.workspace",  "OTDocument", "AuthorLayer", "CursorLayer",
-        "ui", "layout", "util"];
+main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf",
+        "ace", "util", "collab.connect", "collab.workspace",
+        "timeslider", "OTDocument", "AuthorLayer", "CursorLayer"];
     main.provides = ["collab"];
     return main;
 
@@ -59,27 +58,12 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
             fs.on("beforeWriteFile", beforeWriteFile, plugin);
             fs.on("beforeRename", beforeRename, plugin);
 
-            ace.on("create", function () {
-                var tab = tabs.focussedTab;
-                if (!tab.path || documents[tab.path])
-                    return;
-                joinDocument(tab.path, tab.document);
-            });
-
             window.addEventListener("unload", function() {
                 leaveAll();
             }, false);
 
             tabs.on("tabDestroy", function(e) {
                 leaveDocument(e.tab.path);
-            }, plugin);
-
-            tabs.on("focusSync", function(e) {
-                var tab = e.tab;
-                var path = tab.path;
-                if (!path || documents[path])
-                    return;
-                joinDocument(tab.path, tab.document);
             }, plugin);
 
             AuthorLayer.initAuthorLayer(plugin);
@@ -113,7 +97,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
         function onDisconnect() {
             for(var docId in documents) {
                 var doc = documents[docId];
-                doc.isInited = false;
+                doc.disconnect();
             }
             throbNotification(null, "Collab disconnected");
             emit("disconnect");
@@ -162,12 +146,12 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
                     throbNotification(user, "went offline");
                     break;
                 case "LEAVE_DOC":
-                    doc && doc.leave(data.clientId);
-                    throbNotification(user, "closed file: " + data.docId);
+                    doc && doc.clientLeave(data.clientId);
+                    throbNotification(user, "closed file: " + docId);
                     break;
                 case "JOIN_DOC":
                     if (workspace.myClientId !== data.clientId) {
-                        throbNotification(user, "opened file: " + data.docId);
+                        throbNotification(user, "opened file: " + docId);
                         break;
                     }
                     doc.joinData(data);
@@ -175,7 +159,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
                 default:
                     if (!doc)
                         return console.error("[OT] Received msg for unknown docId", docId, msg);
-                    if (doc.isInited)
+                    if (doc.loaded)
                         doc.handleMessage(msg);
                     else
                         console.warn("[OT] Doc ", docId, " not yet inited - MSG:", msg);
@@ -183,11 +167,36 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
         }
 
         function joinDocument(docId, document, progress, callback) {
-            if (documents[docId] && documents[docId].isInited)
-                return console.warn("[OT] Doc already inited...");
+            var docSession = document.getSession();
+            var aceSession = docSession && docSession.session;
+            if (!aceSession)
+                console.warn("[OT] Ace session not ready - will setSession when ready !!");
 
-            var session = document.getSession().session;
-            var doc = session.collabDoc = documents[docId] = new OTDocument(docId, session, document);
+            var doc = documents[docId] || new OTDocument(docId, document);
+
+            if (aceSession)
+                doc.setSession(aceSession);
+            else {
+                ace.on("initAceSession", function(e) {
+                    if (e.doc == document)
+                        doc.setSession(document.getSession().session);
+                });
+            }
+
+            if (callback) {
+                progress = progress || function(){};
+                doc.on("joinProgress", progress);
+                doc.once("joined", function(e){
+                    callback(e.err, e.contents);
+                    doc.off("joinProgress", progress);
+                });
+            }
+
+            if (documents[docId])
+                return console.warn("[OT] Document previously joined -", docId,
+                "STATE: loading:", doc.loading, "loaded:", doc.loaded, "inited:", doc.inited);
+
+            documents[docId] = doc;
 
             doc.on("saved", function (e) {
                 onDocumentSaved(e.err, doc, e);
@@ -197,17 +206,9 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
                 onDocumentLoaded(e.err, doc);
             });
 
-            if (progress) {
-                doc.on("joinProgress", progress);
-                doc.once("joined", function(e){
-                    callback(e.err, e.contents);
-                    doc.off("joinProgress", progress);
-                });
-            }
-
             // test late join - document syncing - best effort
             if (connect.connected)
-                connect.send("JOIN_DOC", { docId: docId });
+                doc.load();
 
             return doc;
         }
@@ -216,8 +217,8 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
             if (!docId || !documents[docId] || !connect.connected)
                 return;
             console.log("[OT] Leave", docId);
-            connect.send("LEAVE_DOC", { docId: docId });
             var doc = documents[docId];
+            doc.leave();
             doc.dispose();
             delete documents[docId];
         }
@@ -258,7 +259,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
             var tab = tabs.findTab(path);
             if (!tab)
                 return;
-            var args = e.args;
+            var args = e.args.slice();
             var progress = args.pop();
             var callback = args.pop();
             joinDocument(path, tab.document, progress, callback);
@@ -272,7 +273,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
             var path = e.path;
             var tab = tabs.findTab(path);
             var doc = documents[path];
-            if (!tab || !doc || doc.isInited)
+            if (!tab || !doc || doc.loaded)
                 return;
             var httpLoadedValue = tab.document.value;
             var normHttpValue = normalizeTextLT(httpLoadedValue);
@@ -284,9 +285,9 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
             var path = e.path;
             var tab = tabs.findTab(path);
             var doc = documents[path];
-            if (!tab || timeslider.visible || !connect.connected || !doc || !doc.isInited)
+            if (!tab || timeslider.visible || !connect.connected || !doc || !doc.loaded)
                 return;
-            var args = e.args;
+            var args = e.args.slice();
             var progress = args.pop();
             var callback = args.pop();
             saveDocument(path, callback);
@@ -359,14 +360,9 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
         plugin.on("draw", function(e){
             draw(e);
         });
-        plugin.on("enable", function(){
-
-        });
-        plugin.on("disable", function(){
-
-        });
         plugin.on("unload", function(){
             loaded = false;
+            drawn = true;
         });
 
         plugin.freezePublicAPI({
@@ -382,12 +378,10 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "apf", "ui",
              *
              */
             get DEBUG()     { return connect.DEBUG; },
-
             /**
              *
              */
             getDocument  : function (docId) { return documents[docId]; },
-
             /**
              *
              */
