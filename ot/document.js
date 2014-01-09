@@ -38,6 +38,7 @@ define(function(require, module, exports) {
             var docStream, revStream;
             var cursorLayer, authorLayer;
             var revCache, rev0Cache;
+            var revisions = [], starRevNums = [];
 
             var latestRevNum, lastSel;
             var sendTimer, cursorTimer;
@@ -52,6 +53,9 @@ define(function(require, module, exports) {
             var state         = "IDLE";
 
             function setSession(aceSession) {
+                if (session)
+                    return console.warn("[OT] Ace's session previously set !");
+
                 session = aceSession;
                 session.collabDoc = plugin;
 
@@ -292,12 +296,17 @@ define(function(require, module, exports) {
                     console.log("[OT] send took", new Date() - st, "ms");
             }
 
-            function setValue(contents) {
+            function setValue(contents, isDirty) {
                 var state = c9Document.getState();
                 state.value = contents;
                 c9Document.setState(state);
-                c9Document.tab.className.remove("changed");
                 clearCs(contents.length);
+                if (!isDirty) {
+                    lang.delayedCall(function() {
+                        c9Document.undoManager.reset();
+                        c9Document.undoManager.bookmark();
+                    }).schedule();
+                }
             }
 
             function joinData(data) {
@@ -320,8 +329,8 @@ define(function(require, module, exports) {
                 if (docId !== data.docId)
                     console.error("docId mismatch", docId, data.docId);
 
-                doc.revisions = [];
-                doc.starRevNums = [];
+                revisions = [];
+                starRevNums = [];
                 revCache = {
                     revNum: doc.revNum,
                     contents: doc.contents,
@@ -350,6 +359,10 @@ define(function(require, module, exports) {
             }
 
             function joinWithSession() {
+                var isDirty = doc.fsHash !== doc.docHash;
+                if (isDirty)
+                    console.log("[OT] doc latest state fs diff", docId);
+
                 var currentVal = session.getValue();
                 var otherMembersNums = Object.keys(doc.selections).length;
                 var latestContents = doc.contents;
@@ -370,14 +383,15 @@ define(function(require, module, exports) {
                 // * first-joined doc (collab-only)
                 // -----> load latest collab doc state
                 else if (!latestRevNum) {
-                    setValue(doc.contents);
+                    setValue(doc.contents, isDirty);
                 }
                 // * previously loaded doc through filesystem: (other members joined)
                 // * newer revision on the server
                 // -----> Override local edits: prioritize collab doc state (for OT consistency)
                 // -----> TODO: nicely merge local and remote edits
                 else {
-                    patchToContents(doc.contents);
+                    // Will auto-aptimize to use 'patchedSetValue'
+                    setValue(doc.contents, isDirty);
                 }
 
                 cursorLayer = new CursorLayer(session, workspace);
@@ -507,7 +521,7 @@ define(function(require, module, exports) {
             function addRevision(msg) {
                 if (!msg.op.length)
                     console.error("[OT] Empty rev operation should never happen !");
-                doc.revisions[msg.revNum] = {
+                revisions[msg.revNum] = {
                     operation: msg.op,
                     revNum: msg.revNum,
                     author: msg.userId,
@@ -523,14 +537,13 @@ define(function(require, module, exports) {
             }
 
             function getRevWithContent(revNum) {
-                var revs = doc.revisions;
                 var i;
                 // authAttribs can only be edited in the forward way because
                 // The user who deleed some text isn't necessarily the one who inserted it
                 if (!rev0Cache) {
                     var rev0Contents = revCache.contents;
                     for (i = revCache.revNum; i > 0; i--) {
-                        var op = operations.inverse(revs[i].operation);
+                        var op = operations.inverse(revisions[i].operation);
                         rev0Contents = applyContents(op, rev0Contents);
                     }
                     rev0Cache = {
@@ -547,10 +560,10 @@ define(function(require, module, exports) {
                 var authAttribs = cloneObject(revCache.authAttribs);
 
                 for (i = revCache.revNum+1; i <= revNum; i++) {
-                    contents = applyContents(revs[i].operation, contents);
-                    applyAuthorAttributes(authAttribs, revs[i].operation, workspace.authorPool[revs[i].author]);
+                    contents = applyContents(revisions[i].operation, contents);
+                    applyAuthorAttributes(authAttribs, revisions[i].operation, workspace.authorPool[revisions[i].author]);
                 }
-                var rev = cloneObject(revs[revNum]);
+                var rev = cloneObject(revisions[revNum]);
                 rev.contents = contents;
                 rev.authAttribs = authAttribs;
 
@@ -563,7 +576,7 @@ define(function(require, module, exports) {
 
             function historicalSearch(query) {
                 var searchString = lang.escapeRegExp(query);
-                var revNums = doc.revisions.length;
+                var revNums = revisions.length;
                 var result = {
                     revNums: revNums
                 };
@@ -579,7 +592,6 @@ define(function(require, module, exports) {
             }
 
             function updateToRevNum(revNum) {
-                var revisions = (doc || {}).revisions || [];
                 if (!revisions[0])
                     return console.warn("[OT] revisions may haven't yet been loaded !");
                 if (!isReadOnly())
@@ -593,7 +605,9 @@ define(function(require, module, exports) {
                 var rev = getRevWithContent(revNum);
                 timeslider.timer = rev.updated_at;
                 ignoreChanges = true;
-                setValue(rev.contents);
+                // TODO beter manage the undo manager stack: getState() & setState()
+                var isDirty = starRevNums.indexOf(revNum) === -1;
+                setValue(rev.contents, isDirty);
                 // FIXME not a good practice to have mutable data
                 // affecting the behaviour of the app
                 doc.authAttribs = rev.authAttribs;
@@ -630,11 +644,16 @@ define(function(require, module, exports) {
                         break;
                     }
 
-                    data.star && doc.starRevNums.push(data.revNum);
+                    data.star && starRevNums.push(data.revNum);
+                    var isDirty = outgoing.length || latestRevNum !== data.revNum;
+                    if (!isDirty)
+                        lang.delayedCall(function() {
+                            c9Document.undoManager.bookmark();
+                        }).schedule();
                     emit("saved", {
                         star: data.star,
-                        revision: doc.revisions[data.revNum],
-                        clean: !outgoing.length && latestRevNum === data.revNum
+                        revision: revisions[data.revNum],
+                        dirty: !!isDirty
                     });
                     break;
                 case "GET_REVISIONS":
@@ -656,9 +675,11 @@ define(function(require, module, exports) {
 
                 var revisionsObj = JSON.parse(revStream);
                 revStream = null;
-                var revisions = revisionsObj.revisions;
-                doc.revisions = revisions;
-                doc.starRevNums = revisionsObj.starRevNums;
+                revisions = revisionsObj.revisions;
+                starRevNums = revisionsObj.starRevNums;
+                starRevNums.forEach(function(num) {
+                    revisions[num].star = true;
+                });
                 emit("revisions", revisions);
 
                 if (isActiveTimesliderDocument())
@@ -666,7 +687,6 @@ define(function(require, module, exports) {
             }
 
             function loadRevisions() {
-                var revisions = (doc || {}).revisions || [];
                 if (!revisions[0]) {
                     console.log("[OT] Loading revisions ...");
                     timeslider.loading = true;
@@ -677,8 +697,8 @@ define(function(require, module, exports) {
                     return;
                 var numRevs = revisions.length - 1;
                 var lastRev = revisions[numRevs];
-                var starRevisions = doc.starRevNums.map(function (revNum) {
-                    return revisions[revNum];
+                var starRevisions = revisions.filter(function (rev) {
+                    return rev.star;
                 });
                 timeslider.loading = false;
                 timeslider.sliderLength = numRevs;
@@ -749,14 +769,9 @@ define(function(require, module, exports) {
             }
 
             function isChanged () {
-                var revisions = doc.revisions;
                 var lastRev = revisions[revisions.length - 1];
                 return !isPreparedUnity() ||
-                    (revisions.length > 1 && doc.starRevNums.indexOf(lastRev.revNum) === -1);
-            }
-
-            function patchToContents(contents) {
-                applyAce(operations.operation(session.getValue(), contents), session.doc);
+                    (revisions.length > 1 && starRevNums.indexOf(lastRev.revNum) === -1);
             }
 
             plugin.freezePublicAPI({
@@ -769,7 +784,7 @@ define(function(require, module, exports) {
                 get fsHash()       { return doc && doc.fsHash; },
                 get docHash()      { return doc && doc.docHash; },
                 get authAttribs()  { return doc ? doc.authAttribs : []; },
-                get revisions()    { return doc ? doc.revisions : []; },
+                get revisions()    { return revisions; },
                 get cursorLayer()  { return cursorLayer; },
                 get authorLayer()  { return authorLayer; },
                 get latestRevNum() { return latestRevNum; },
@@ -786,8 +801,7 @@ define(function(require, module, exports) {
                 save             : save,
                 historicalSearch : historicalSearch,
                 joinData         : joinData,
-                handleMessage    : handleMessage,
-                patchToContents  : patchToContents
+                handleMessage    : handleMessage
             });
 
             return plugin;

@@ -44,6 +44,7 @@ define(function(require, exports, module) {
         var CONNECT_TIMEOUT = 30000;
         var connectMsg;
         var connectTimeout;
+        var stream;
 
         var loaded = false;
         function load(){
@@ -59,6 +60,8 @@ define(function(require, exports, module) {
 
         var extended = false;
         function extendCollab(callback) {
+            if (collab)
+                return callback();
             if (extended)
                 return plugin.once("available", callback);
             extended = true;
@@ -72,7 +75,7 @@ define(function(require, exports, module) {
                 }
                 collab = api;
 
-                emit("available");
+                emit("available", true);
                 callback();
             });
         }
@@ -84,6 +87,10 @@ define(function(require, exports, module) {
                 console.error("[OT] Already disconnected !!");
             connecting = connected = extended = false;
             collab = null;
+            if (stream) {
+                stream.$close();
+                stream = null;
+            }
             clearTimeout(connectTimeout);
         }
 
@@ -112,6 +119,10 @@ define(function(require, exports, module) {
             console.log("Collab connecting");
             emit("connecting");
             connectTimeout = setTimeout(function(){
+                if (stream) {
+                    stream.$close();
+                    stream = null;
+                }
                 connecting = false;
                 if (!connected) {
                     console.warn("[OT] Collab connect timed out ! - retrying ...");
@@ -136,10 +147,21 @@ define(function(require, exports, module) {
                 if (err)
                     return console.error("COLLAB connect failed", err);
                 console.log("COLLAB connected -", meta.isMaster ? "MASTER" : "SLAVE");
-                clearTimeout(connectTimeout);
 
-                var stream = meta.stream;
+                stream = meta.stream;
                 var isClosed = false;
+
+                stream.once("data", onConnect);
+                stream.once("end", function (){
+                    console.log("COLLAB STREAM END");
+                    onClose();
+                });
+                stream.once("close", function(){
+                    console.log("COLLAB STREAM CLOSE");
+                    onClose();
+                });
+                stream.$close = onClose;
+
                 function onData(data) {
                     data = JSON.parse(data);
                     if (DEBUG)
@@ -158,9 +180,9 @@ define(function(require, exports, module) {
                     console.log("Collab connected");
                     emit("connect", data);
                     stream.on("data", onData);
+                    clearTimeout(connectTimeout);
                 }
-                stream.once("data", onConnect);
-                function onClose () {
+                function onClose() {
                     if (isClosed)
                         return;
                     stream.off("data", onData);
@@ -168,14 +190,6 @@ define(function(require, exports, module) {
                     isClosed = true;
                     // onDisconnect();
                 }
-                stream.once("end", function (){
-                    console.log("COLLAB STREAM END");
-                    onClose();
-                });
-                stream.once("close", function(){
-                    console.log("COLLAB STREAM CLOSE");
-                    onClose();
-                });
             });
         }
 
@@ -304,8 +318,9 @@ define(function(require, exports, module) {
          * Finder implementation using collab
          **/
         plugin.freezePublicAPI({
-            get DEBUG()     { return DEBUG; },
-            get connected() { return connected; },
+            get DEBUG()      { return DEBUG; },
+            get connected()  { return connected; },
+            get connecting() { return connecting; },
 
             send: send
         });

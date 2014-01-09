@@ -563,13 +563,8 @@ define(function(require, exports, module) {
             var aceEditor = tab.editor.ace;
             if (isVisible) {
                 hide();
-                if (doc && doc.loaded) {
+                if (doc && doc.loaded)
                     doc.updateToRevNum();
-                    if (doc.changed)
-                        tab.className.add("changed");
-                    else
-                        tab.className.remove("changed");
-                }
                 aceEditor.keyBinding.removeKeyboardHandler(timesliderKeyboardHandler);
                 aceEditor.setReadOnly(!!c9.readonly);
             }

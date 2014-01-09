@@ -262,7 +262,8 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf",
             var args = e.args.slice();
             var progress = args.pop();
             var callback = args.pop();
-            joinDocument(path, tab.document, progress, callback);
+            if (!documents[path])
+                joinDocument(path, tab.document, progress, callback);
             if (connect.connected)
                 return false;
             else
@@ -313,22 +314,11 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf",
 
             if (tab.pane.activeTab === tab)
                 doc.authorLayer.refresh();
-
-            var path = doc.docId;
-
-            if (doc.fsHash !== doc.docHash) {
-                console.log("[OT] doc latest state fs diff", path);
-                tab.className.add("changed");
-            }
         }
 
         function onDocumentSaved(err, doc, data) {
             if (err)
                 return console.error("[OT] Failed saving file !", err, doc.id);
-            var tab = doc.original.tab;
-            if (data.clean)
-                //tab.document.undoManager.reset();
-                tab.className.remove("changed");
             if (data.star && timeslider.visible && timeslider.activeDocument === doc)
                 timeslider.addSavedRevision(data.revision);
         }

@@ -98,8 +98,8 @@ require(["lib/architect/architect", "lib/chai/chai", "events", "/vfs-root"],
             provides : [
                 "commands", "commands", "layout", "watcher", "Panel", "info", "save", "dialog.filesave",
                 // "menus", "Menu", "MenuItem", "Divider", - "plugins/c9.ide.ui/menus",
-                "panels", "preferences", "clipboard", "dialog.alert", "dialog.confirm", "auth.bootstrap",
-                "dialog.question", "debugger", "run.gui", "anims", "dialog.fileoverwrite"
+                "dialog.alert", "dialog.confirm", "dialog.error", "dialog.question", "dialog.fileoverwrite",
+                "panels", "preferences", "clipboard", "auth.bootstrap", "anims", "debugger", "run.gui"
             ],
             setup    : expect.html.mocked
         },
@@ -124,9 +124,9 @@ require(["lib/architect/architect", "lib/chai/chai", "events", "/vfs-root"],
         var members      = imports.members;
         var chat         = imports.chat;
         var timeslider   = imports.timeslider;
-        
+
         describe('collab', function() {
-            this.timeout(10000);
+            this.timeout(5000);
 
             var filePath = "/collab1.txt";
             
@@ -137,7 +137,7 @@ require(["lib/architect/architect", "lib/chai/chai", "events", "/vfs-root"],
                             done();
                         });
                     });
-                }, 1000);
+                }, 100);
             });
 
             after(function(done){
@@ -179,7 +179,7 @@ require(["lib/architect/architect", "lib/chai/chai", "events", "/vfs-root"],
                     doc.on("saved", function(e){
                         expect(e.err).to.be.an('undefined');
                         expect(e.star).to.be.true;
-                        expect(e.clean).to.be.true;
+                        expect(e.dirty).to.be.false;
                         expect(e.revision.author).to.equal(1);
                         expect(e.revision.operation).to.deep.equal(["r2", "i-abc-", "r10"]);
                     });
@@ -215,7 +215,6 @@ require(["lib/architect/architect", "lib/chai/chai", "events", "/vfs-root"],
             });
 
             describe('test members panel', function() {
-
                 it('should show members panel', function(done) {
                     collab.show();
                     done();
