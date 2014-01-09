@@ -2,7 +2,7 @@
 define(function(require, exports, module) {
 "use strict";
 
-main.consumes = ["CollabPanel", "ui", "MembersPanel", "collab"];
+main.consumes = ["CollabPanel", "ui", "MembersPanel", "collab", "panels"];
     main.provides = ["members"];
     return main;
 
@@ -11,6 +11,7 @@ main.consumes = ["CollabPanel", "ui", "MembersPanel", "collab"];
         var collab       = imports.collab;
         var MembersPanel = imports.MembersPanel;
         var ui           = imports.ui;
+        var panels       = imports.panels;
 
         var css          = require("text!./members.css");
         var staticPrefix = options.staticPrefix;
@@ -33,7 +34,7 @@ main.consumes = ["CollabPanel", "ui", "MembersPanel", "collab"];
             
             membersPanel = new MembersPanel("Ajax.org", main.consumes, {});
             plugin.on("resize", membersPanel.resize.bind(membersPanel));
-            
+
             collab.on("show", membersPanel.show.bind(membersPanel));
             collab.on("hide", membersPanel.hide.bind(membersPanel));
         }
@@ -44,6 +45,8 @@ main.consumes = ["CollabPanel", "ui", "MembersPanel", "collab"];
             drawn = true;
             
             membersPanel.draw(e);
+            if (panels.isActive("collab"))
+                membersPanel.show();
         }
     
         /***** Lifecycle *****/
