@@ -96,9 +96,17 @@ define(function(require, exports, module) {
                 }
             ]);
 
+            function listenWorkspaceSync() {
+                workspace.off("sync", onWorkspaceSync);
+                workspace.on("sync", onWorkspaceSync);
+            }
+
+            if (panels.isActive("collab"))
+                listenWorkspaceSync();
+
             collab.on("show", function(){
                 chatInput.focus();
-                workspace.on("sync", onWorkspaceSync);
+                listenWorkspaceSync();
             });
 
             collab.on("hide", function(){

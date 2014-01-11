@@ -179,7 +179,7 @@ require(["lib/architect/architect", "lib/chai/chai", "events", "/vfs-root"],
                     doc.on("saved", function(e){
                         expect(e.err).to.be.an('undefined');
                         expect(e.star).to.be.true;
-                        expect(e.dirty).to.be.false;
+                        expect(e.clean).to.be.true;
                         expect(e.revision.author).to.equal(1);
                         expect(e.revision.operation).to.deep.equal(["r2", "i-abc-", "r10"]);
                     });

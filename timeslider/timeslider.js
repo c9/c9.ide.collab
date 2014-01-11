@@ -1,7 +1,7 @@
 /*global document window setTimeout */
 define(function(require, exports, module) {
     "use strict";
-    
+
     main.consumes = ["Plugin", "c9", "ui", "ace", "tabManager", "settings", "menus", "commands", "save"];
     main.provides = ["timeslider"];
     return main;
@@ -37,7 +37,8 @@ define(function(require, exports, module) {
 
         // UI elements
         var container, timeslider, editorContainer, timesliderClose, slider, sliderBar, handle,
-            playButton, playButtonIcon, revisionInfo, revisionDate, revisionLabel, leftStep, rightStep;
+            playButton, playButtonIcon, revisionInfo, revisionDate, revisionLabel,
+            leftStep, rightStep, revertButton;
 
         var activeDocument;
 
@@ -126,7 +127,7 @@ define(function(require, exports, module) {
                     return;
                 if (!doc || !doc.loaded)
                     forceHideSlider();
-                else
+                else if (!doc.revisions[0])
                     doc.loadRevisions();
             }, plugin);
 
@@ -136,11 +137,10 @@ define(function(require, exports, module) {
             }, plugin);
 
             plugin.on("slider", function (revNum) {
-                var doc = activeDocument;
-                if (!doc || !isVisible)
+                if (!activeDocument || !isVisible)
                     return;
 
-                doc.updateToRevNum(revNum);
+                activeDocument.updateToRevision(revNum);
             });
         }
 
@@ -158,7 +158,7 @@ define(function(require, exports, module) {
 
             container       = $("timeslider-top");
             timeslider      = $("timeslider");
-            timesliderClose = $("timesliderClose");
+            timesliderClose = $("timeslider_close");
             slider          = $("timeslider-slider");
             sliderBar       = $("ui-slider-bar");
             handle          = $("ui-slider-handle");
@@ -169,6 +169,7 @@ define(function(require, exports, module) {
             revisionLabel   = $("revision_label");
             leftStep        = $("leftstep");
             rightStep       = $("rightstep");
+            revertButton    = $("revert_to_rev");
 
             // HACKY WAY to get the correct div without jQuery selector: $(".basic.codeditorHolder")
             var editorHolders = document.getElementsByClassName("codeditorHolder");
@@ -212,6 +213,14 @@ define(function(require, exports, module) {
                     playButton.style["background-image"] = "url(" + staticPrefix + "/images/play_undepressed.png)";
                     document.removeEventListener("mouseup", onMouseUp);
                 });
+            });
+
+            revertButton.addEventListener("click", function(){
+                if (!isRevertAvailable())
+                    return console.log("Revert not available");
+                console.log("Revert", activeDocument.id, "to rev", sliderPos);
+                hide();
+                activeDocument.revertToRevision(sliderPos);
             });
 
             // next/prev revisions and changeset
@@ -348,6 +357,12 @@ define(function(require, exports, module) {
             document.addEventListener("mouseup", onMouseUp);
         }
 
+        function isRevertAvailable() {
+            return !sliderPlaying && !sliderActive &&
+                !isLoading && activeDocument &&
+                sliderLength && sliderPos !== sliderLength;
+        }
+
         var starWidth = 15;
         function updateSliderElements() {
             var prevX, prevStar, firstHidden;
@@ -460,7 +475,16 @@ define(function(require, exports, module) {
                 rightStep.style.opacity = 1;
 
             sliderPos = newpos;
+            updateRevertVisibility();
+
             emit("slider", newpos);
+        }
+
+        function updateRevertVisibility() {
+            if (isRevertAvailable())
+                revertButton.style.opacity = 1;
+            else
+                revertButton.style.opacity = 0.5;
         }
 
         function getSliderLength() {
@@ -495,6 +519,7 @@ define(function(require, exports, module) {
             }
             else {
                 sliderPlaying = false;
+                updateRevertVisibility();
             }
         }
 
@@ -519,6 +544,15 @@ define(function(require, exports, module) {
                 }
             }, 100);
             isVisible = true;
+
+            if (activeDocument) {
+                var tab = activeDocument.original.tab;
+                var aceEditor = tab.editor.ace;
+                aceEditor.setReadOnly(true);
+                aceEditor.keyBinding.addKeyboardHandler(timesliderKeyboardHandler);
+                aceEditor.renderer.onResize(true);
+            }
+
             emit("visible", isVisible);
         }
 
@@ -528,23 +562,17 @@ define(function(require, exports, module) {
             // getCodeEditorTab().height(editorContainer.outerHeight());
             clearInterval(resizeInterval);
             isVisible = false;
+
+            if (activeDocument) {
+                var tab = activeDocument.original.tab;
+                var aceEditor = tab.editor.ace;
+                aceEditor.keyBinding.removeKeyboardHandler(timesliderKeyboardHandler);
+                aceEditor.setReadOnly(!!c9.readonly);
+                aceEditor.renderer.onResize(true);
+            }
+
             emit("visible", isVisible);
         }
-
-        /***** Lifecycle *****/
-        plugin.on("load", function(){
-            load();
-        });
-        plugin.on("enable", function(){
-
-        });
-        plugin.on("disable", function(){
-
-        });
-        plugin.on("unload", function(){
-            loaded = false;
-            drawn  = false;
-        });
 
         function getTabCollabDocument(tab) {
             var aceSession = tab.path && tab.document.getSession().session;
@@ -552,33 +580,15 @@ define(function(require, exports, module) {
         }
 
         function toggleTimeslider() {
-            // var tab = tabs.focussedTab;
-            // if (!tab || !tab.path)
-            //     return;
-            // var doc = getTabCollabDocument(tab);
-            var doc = activeDocument;
-            if (!doc)
-                return;
-            var tab = doc.original.tab;
-            var aceEditor = tab.editor.ace;
             if (isVisible) {
+                activeDocument && activeDocument.loaded && activeDocument.updateToRevision();
                 hide();
-                if (doc && doc.loaded)
-                    doc.updateToRevNum();
-                aceEditor.keyBinding.removeKeyboardHandler(timesliderKeyboardHandler);
-                aceEditor.setReadOnly(!!c9.readonly);
             }
             else {
-                if (!doc)
-                    return;
                 // ide.dispatchEvent("track_action", {type: "timeslider"});
                 show();
-                aceEditor.setReadOnly(true);
-                activeDocument = doc;
-                aceEditor.keyBinding.addKeyboardHandler(timesliderKeyboardHandler);
-                doc.loadRevisions();
+                activeDocument && activeDocument.loadRevisions();
             }
-            aceEditor.renderer.onResize(true);
         }
 
         function timesliderAvailable(editor){
@@ -614,6 +624,21 @@ define(function(require, exports, module) {
                 playButtonIcon.style.display = revisionInfo.style.display = "block";
             }
         }
+
+        /***** Lifecycle *****/
+        plugin.on("load", function(){
+            load();
+        });
+        plugin.on("enable", function(){
+
+        });
+        plugin.on("disable", function(){
+
+        });
+        plugin.on("unload", function(){
+            loaded = false;
+            drawn  = false;
+        });
 
         /***** Register and define API *****/
 

@@ -63,7 +63,7 @@
     width: 30px;
 }
 
-#timesliderClose {
+#timeslider .close {
     cursor: pointer;
     position: absolute;
     width: 14px;
@@ -76,18 +76,31 @@
     background-repeat: no-repeat;
 }
 
-#timeslider-close:hover {
+#timeslider .close:hover {
     background-position: -14px 0;
+}
+
+#timeslider .revert {
+    position: absolute;
+    width: 45px;
+    top: 33px;
+    right: 10px;
+    background-color: rgb(242, 242, 242);
+    color: rgb(83,83,83);
+    font-size: 13px;
+    font-weight: bold;
+    text-align: center;
+    border-radius: 4px;
 }
 
 #leftstep {
     background-position: 0 -22px;
-    right: 50px;
+    right: 90px;
 }
 
 #rightstep {
     background-position: -29px -22px;
-    right: 21px;
+    right: 61px;
 }
 
 #timeslider .star {
@@ -157,7 +170,7 @@
     cursor: pointer;
     height: 35px;
     margin-left: 65px;
-    margin-right: 95px;
+    margin-right: 135px;
     position: relative;
     top: 2px;
 }

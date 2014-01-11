@@ -148,7 +148,7 @@ define(function(require, module, exports) {
                 var startOff = aceDoc.positionToIndex(data.range.start);
 
                 var offset = startOff, opOff = 0;
-                var op = packedCs[opOff];
+                var op = packedCs[0];
                 while (op) {
                     if (operations.type(op) === "delete")
                         ; // process next op
@@ -296,17 +296,18 @@ define(function(require, module, exports) {
                     console.log("[OT] send took", new Date() - st, "ms");
             }
 
-            function setValue(contents, isDirty) {
+            function setValue(contents, reset, bookmark, callback) {
                 var state = c9Document.getState();
                 state.value = contents;
                 c9Document.setState(state);
                 clearCs(contents.length);
-                if (!isDirty) {
-                    lang.delayedCall(function() {
+                lang.delayedCall(function() {
+                    if (reset)
                         c9Document.undoManager.reset();
+                    if (bookmark)
                         c9Document.undoManager.bookmark();
-                    }).schedule();
-                }
+                    callback && callback();
+                }).schedule();
             }
 
             function joinData(data) {
@@ -359,8 +360,8 @@ define(function(require, module, exports) {
             }
 
             function joinWithSession() {
-                var isDirty = doc.fsHash !== doc.docHash;
-                if (isDirty)
+                var clean = doc.fsHash === doc.docHash;
+                if (!clean)
                     console.log("[OT] doc latest state fs diff", docId);
 
                 var currentVal = session.getValue();
@@ -383,7 +384,7 @@ define(function(require, module, exports) {
                 // * first-joined doc (collab-only)
                 // -----> load latest collab doc state
                 else if (!latestRevNum) {
-                    setValue(doc.contents, isDirty);
+                    setValue(doc.contents, clean, clean); // reset and bookmark if clean
                 }
                 // * previously loaded doc through filesystem: (other members joined)
                 // * newer revision on the server
@@ -391,7 +392,7 @@ define(function(require, module, exports) {
                 // -----> TODO: nicely merge local and remote edits
                 else {
                     // Will auto-aptimize to use 'patchedSetValue'
-                    setValue(doc.contents, isDirty);
+                    setValue(doc.contents, clean, clean); // reset and bookmark
                 }
 
                 cursorLayer = new CursorLayer(session, workspace);
@@ -591,7 +592,7 @@ define(function(require, module, exports) {
                 return result;
             }
 
-            function updateToRevNum(revNum) {
+            function updateToRevision(revNum) {
                 if (!revisions[0])
                     return console.warn("[OT] revisions may haven't yet been loaded !");
                 if (!isReadOnly())
@@ -606,14 +607,35 @@ define(function(require, module, exports) {
                 timeslider.timer = rev.updated_at;
                 ignoreChanges = true;
                 // TODO beter manage the undo manager stack: getState() & setState()
-                var isDirty = starRevNums.indexOf(revNum) === -1;
-                setValue(rev.contents, isDirty);
+                var resetAndBookmark = starRevNums.indexOf(revNum) !== -1;
+                setValue(rev.contents, resetAndBookmark, resetAndBookmark);
                 // FIXME not a good practice to have mutable data
                 // affecting the behaviour of the app
                 doc.authAttribs = rev.authAttribs;
-                session._emit("changeBackMarker");
                 authorLayer.refresh();
                 doc.revNum = revNum;
+                ignoreChanges = false;
+            }
+
+            function revertToRevision(revNum) {
+                var latestRev = getRevWithContent(revisions.length - 1);
+                var revertToRev = getRevWithContent(revNum);
+
+                ignoreChanges = true;
+
+                // trick the undo manager that we were in a saved sate:
+                setValue(revertToRev.contents, false, false); // don't reset or bookmark to keep the doc changed
+
+                var op = operations.operation(latestRev.contents, revertToRev.contents);
+                var authAttribs = latestRev.authAttribs;
+                var authorI = workspace.authorPool[workspace.myUserId];
+                applyAuthorAttributes(authAttribs, op, authorI);
+                doc.authAttribs = authAttribs;
+                authorLayer.refresh();
+        
+                packedCs = op;
+                scheduleSend();
+
                 ignoreChanges = false;
             }
 
@@ -644,16 +666,17 @@ define(function(require, module, exports) {
                         break;
                     }
 
-                    data.star && starRevNums.push(data.revNum);
-                    var isDirty = outgoing.length || latestRevNum !== data.revNum;
-                    if (!isDirty)
+                    if (data.star)
+                        starRevNums.push(data.revNum);
+                    var clean = !outgoing.length || latestRevNum === data.revNum;
+                    if (clean)
                         lang.delayedCall(function() {
                             c9Document.undoManager.bookmark();
                         }).schedule();
                     emit("saved", {
                         star: data.star,
                         revision: revisions[data.revNum],
-                        dirty: !!isDirty
+                        clean: clean
                     });
                     break;
                 case "GET_REVISIONS":
@@ -677,9 +700,6 @@ define(function(require, module, exports) {
                 revStream = null;
                 revisions = revisionsObj.revisions;
                 starRevNums = revisionsObj.starRevNums;
-                starRevNums.forEach(function(num) {
-                    revisions[num].star = true;
-                });
                 emit("revisions", revisions);
 
                 if (isActiveTimesliderDocument())
@@ -697,8 +717,8 @@ define(function(require, module, exports) {
                     return;
                 var numRevs = revisions.length - 1;
                 var lastRev = revisions[numRevs];
-                var starRevisions = revisions.filter(function (rev) {
-                    return rev.star;
+                var starRevisions = starRevNums.map(function (revNum) {
+                    return revisions[revNum];
                 });
                 timeslider.loading = false;
                 timeslider.sliderLength = numRevs;
@@ -709,7 +729,7 @@ define(function(require, module, exports) {
                 timeslider.sliderLength = numRevs;
 
                 cursorLayer.hideAllTooltips();
-                session._emit("changeBackMarker");
+                authorLayer.refresh();
             }
 
             var pendingSave;
@@ -797,7 +817,8 @@ define(function(require, module, exports) {
                 disconnect       : disconnect,
                 clientLeave      : clientLeave,
                 loadRevisions    : loadRevisions,
-                updateToRevNum   : updateToRevNum,
+                updateToRevision : updateToRevision,
+                revertToRevision : revertToRevision,
                 save             : save,
                 historicalSearch : historicalSearch,
                 joinData         : joinData,

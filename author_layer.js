@@ -57,7 +57,7 @@ define(function(require, module, exports) {
 
         function AuthorLayer(session) {
             var plugin  = new Plugin("Ajax.org", main.consumes);
-            var emit    = plugin.getEmitter();
+            // var emit    = plugin.getEmitter();
             var marker  = session.addDynamicMarker({ update: drawAuthInfos }, false);
             refresh();
 
