@@ -141,6 +141,8 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf", "settings", "pr
             var user = data && data.userId && workspace.getUser(data.userId);
             var type = msg.type;
             var docId = data.docId;
+            if (docId && docId[0] !== "/")
+                docId = data.docId = "/" + docId;
             var doc = documents[docId];
 
             if (!connect.connected && type !== "CONNECT")

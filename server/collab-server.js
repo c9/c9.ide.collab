@@ -1697,27 +1697,31 @@ function onConnect(userIds, client) {
     handleConnect(userIds, client);
 
     function handleUserMsg(msg) {
+        var data = msg.data;
+        var docId = data.docId || "";
+        if (docId[0] === "/")
+            data.docId = docId.slice(1);
         switch (msg.type) {
         case "JOIN_DOC":
-            handleJoinDocument(userIds, client, msg.data);
+            handleJoinDocument(userIds, client, data);
             break;
         case "GET_REVISIONS":
-            handleGetRevisions(userIds, client, msg.data);
+            handleGetRevisions(userIds, client, data);
             break;
         case "LEAVE_DOC":
-            handleLeaveDocument(userIds, client, msg.data);
+            handleLeaveDocument(userIds, client, data);
             break;
         case "EDIT_UPDATE":
-            handleUpdate(userIds, client, msg.data);
+            handleUpdate(userIds, client, data);
             break;
         case "CURSOR_UPDATE":
-            handleCursorUpdate(userIds, client, msg.data);
+            handleCursorUpdate(userIds, client, data);
             break;
         case "SAVE_FILE":
-            handleSaveFile(userIds, client, msg.data);
+            handleSaveFile(userIds, client, data);
             break;
         case "CHAT_MESSAGE":
-            handleChatMessage(userIds, client, msg.data);
+            handleChatMessage(userIds, client, data);
             break;
         case "PING":
             client.send({type: "PING"});
