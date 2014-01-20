@@ -66,6 +66,8 @@ function initCollab(user, next) {
 
 module.exports = {
 
+    timeout: 10000,
+
     setUpSuite: function (next) {
         execFile("rm", ["-rf", path.join(process.env.HOME, "/.c9/" + TEST_PID)], function(code, stdout, stderr) {
             if (!code)
