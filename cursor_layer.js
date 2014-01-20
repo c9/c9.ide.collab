@@ -7,8 +7,8 @@ define(function(require, module, exports) {
 
     function main(options, imports, register) {
         var Plugin      = imports.Plugin;
-        var ace         = imports.ace;
         var settings    = imports.settings;
+        var ace         = imports.ace;
         var tabs        = imports.tabManager;
         var util        = imports["collab.util"];
         var workspace   = imports["collab.workspace"];
@@ -18,13 +18,9 @@ define(function(require, module, exports) {
         var Range      = require("ace/range").Range;
         var RangeList  = require("ace/range_list").RangeList;
 
-        // initialization
-        var tooltipsInited = false;
-        function initCursorLayer(collab) {
-            ace.on("create", function (e) {
-                initTooltipEvents(e.editor.ace);
-            }, collab);
-        }
+        ace.on("create", function(e) {
+            initTooltipEvents(e.editor.ace);
+        }, workspace);
 
         function CursorLayer(session) {
 
@@ -354,8 +350,8 @@ define(function(require, module, exports) {
         var cursorTooltipTimeout;
 
         function initTooltipEvents(editor) {
-            if (tooltipsInited) return;
-            tooltipsInited = true;
+            if (editor.$cursorTooltipsInited) return;
+            editor.$cursorTooltipsInited = true;
 
             var mousePos;
             editor.addEventListener("mousemove", function(e) {
@@ -485,7 +481,6 @@ define(function(require, module, exports) {
             return data;
         }
 
-        CursorLayer.initCursorLayer = initCursorLayer;
         CursorLayer.selectionToData = selectionToData;
 
         register(null, {

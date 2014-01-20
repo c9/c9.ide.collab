@@ -1,19 +1,14 @@
-/*global define console document apf */
 define(function(require, module, exports) {
-    main.consumes = ["Plugin", "ace", "settings", "preferences", "tabManager",
-        "collab.workspace", "collab.util", "timeslider"];
+    main.consumes = ["Plugin", "ace", "settings", "collab.workspace", "collab.util"];
     main.provides = ["AuthorLayer"];
     return main;
 
     function main(options, imports, register) {
         var Plugin      = imports.Plugin;
-        var ace         = imports.ace;
         var settings    = imports.settings;
-        var prefs       = imports.preferences;
-        var tabs        = imports.tabManager;
+        var ace         = imports.ace;
         var util        = imports["collab.util"];
         var workspace   = imports["collab.workspace"];
-        var timeslider  = imports.timeslider;
 
         var dom = require("ace/lib/dom");
         var event = require("ace/lib/event");
@@ -21,49 +16,29 @@ define(function(require, module, exports) {
 
         var AuthorAttributes = require("./ot/author_attributes")();
 
-        var gutterInited;
         var showAuthorInfo = true;
+        var showAuthorInfoKey = "user/collab/@show-author-info";
 
-        function initAuthorLayer(collab) {
-            gutterInited = false;
-            ace.on("create", function (e) {
-                initGutterLayer(e.editor.ace, collab);
-            }, collab);
+        settings.on("user/collab", function () {
+            showAuthorInfo = settings.getBool(showAuthorInfoKey);
+        }, workspace);
 
-            var showAuthorInfoKey = "user/collab/@show-author-info";
-            prefs.add({
-                "General" : {
-                    "Collaboration" : {
-                        "Show Authorship Info" : {
-                            type     : "checkbox",
-                            position : 8000,
-                            path     : showAuthorInfoKey
-                        }
-                    }
-                }
-            }, collab);
+        settings.on("read", function () {
+            showAuthorInfo = settings.getBool(showAuthorInfoKey);
+        }, workspace);
 
-            settings.on("read", function () {
-                settings.setDefaults("usr/collab", [["show-author-info", true]]);
-                showAuthorInfo = settings.getBool(showAuthorInfoKey);
-                refreshActiveDocuments(collab);
-            }, collab);
-
-            settings.on("user/collab", function () {
-                showAuthorInfo = settings.getBool(showAuthorInfoKey);
-                refreshActiveDocuments(collab);
-            }, collab);
-        }
+        ace.on("create", function(e) {
+            initGutterLayer(e.editor.ace);
+        }, workspace);
 
         function AuthorLayer(session) {
             var plugin  = new Plugin("Ajax.org", main.consumes);
             // var emit    = plugin.getEmitter();
             var marker  = session.addDynamicMarker({ update: drawAuthInfos }, false);
-            refresh();
 
             function refresh() {
-                var document = session.collabDoc.original;
-                var ace = document.editor.ace;
+                var doc = session.collabDoc.original;
+                var ace = doc.editor.ace;
                 var aceSession = ace.session;
                 if (aceSession !== session)
                     return;
@@ -143,8 +118,9 @@ define(function(require, module, exports) {
                 var editorDoc = _self.session.doc;
                 var doc = _self.session.collabDoc;
                 var range = new Range(i, 0, lastRow, editorDoc.getLine(lastRow).length);
+                var authorKeysCache;
                 if (doc)
-                    var authorKeysCache = createAuthorKeyCache(editorDoc, doc.authAttribs, range).authorKeys;
+                    authorKeysCache = createAuthorKeyCache(editorDoc, doc.authAttribs, range).authorKeys;
 
                 var colorPool = workspace.colorPool;
                 var reversedAuthorPool = workspace.reversedAuthorPool;
@@ -330,18 +306,9 @@ define(function(require, module, exports) {
             return parseInt(authorKey, 10);
         }
 
-        function refreshActiveDocuments(collab) {
-            tabs.getPanes().forEach(function (pane) {
-                var tab = pane.activeTab;
-                var collabDoc = tab && collab.getDocument(tab.path);
-                var authorLayer = collabDoc && collabDoc.authorLayer;
-                authorLayer && authorLayer.refresh();
-            });
-        }
-
-        function initGutterLayer(editor, collab) {
-            if (gutterInited) return;
-            gutterInited = true;
+        function initGutterLayer(editor) {
+            if (editor.$authorGutterInited) return;
+            editor.$authorGutterInited = true;
 
             var highlightedCell;
 
@@ -349,8 +316,6 @@ define(function(require, module, exports) {
             tooltip.className = "ace_gutter-tooltip";
             tooltip.style.display = "none";
             editor.container.appendChild(tooltip);
-
-            editor.on("changeSession", refreshActiveDocuments.bind(null, collab));
 
             function onGutterMouseout(e) {
                 tooltip.style.display = "none";
@@ -397,12 +362,12 @@ define(function(require, module, exports) {
             function updateTooltip() {
                 delete editor.authorTooltipTimeout;
                 var session = editor.session;
-                var doc = session.collabDoc;
-                if (!doc)
+                var otDoc = session.collabDoc;
+                if (!otDoc)
                     return;
 
                 var editorDoc = session.doc;
-                var authAttribs = doc.authAttribs;
+                var authAttribs = otDoc.authAttribs;
 
                 var screenPos = editor.renderer.pixelToScreenCoordinates(mousePos.x, mousePos.y);
                 var docPos = session.screenToDocumentPosition(screenPos.row, screenPos.column);
@@ -434,8 +399,6 @@ define(function(require, module, exports) {
                 tooltip.style.display = "none";
             });
         }
-
-        AuthorLayer.initAuthorLayer = initAuthorLayer;
 
         /***** Register and define API *****/
         register(null, {

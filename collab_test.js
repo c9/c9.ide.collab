@@ -2,11 +2,10 @@
 
 "use client";
 
-require(["lib/architect/architect", "lib/chai/chai", "events", "/vfs-root"],
-    function (architect, chai, events, baseProc) {
+require(["lib/architect/architect", "lib/chai/chai", "/vfs-root"],
+    function (architect, chai, baseProc) {
 
     var expect = chai.expect;
-    var EventEmitter = events.EventEmitter;
 
     // save
     document.body.appendChild(document.createElement("div"))
@@ -58,7 +57,7 @@ require(["lib/architect/architect", "lib/chai/chai", "events", "/vfs-root"],
         {
             packagePath: "plugins/c9.ide.collab/connect",
             enable: true,
-            DEBUG: 1,
+            debug: true,
             nodeBin: "node",
             nodePath: "",
             basePath: baseProc
@@ -205,8 +204,8 @@ require(["lib/architect/architect", "lib/chai/chai", "events", "/vfs-root"],
 
                 it('should load revisions', function(done) {
                     var doc = collab.getDocument(filePath);
-                    doc.on("revisions", function(revisions) {
-                        console.log(revisions);
+                    doc.on("revisions", function(e) {
+                        console.log(e.revisions);
                         timeslider.show();
                         done();
                     });

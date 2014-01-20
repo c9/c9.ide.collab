@@ -178,9 +178,7 @@ define(function(require, exports, module) {
                 return holder.classList.contains("basic");
             })[0];
 
-            timesliderClose.addEventListener("click", function() {
-                forceHideSlider();
-            });
+            timesliderClose.addEventListener("click", forceHideSlider);
 
             editorContainer.insertBefore(container, editorContainer.firstChild);
 
@@ -510,6 +508,8 @@ define(function(require, exports, module) {
         }
 
         function playpause() {
+            if (!isVisible)
+                return console.error("[Timeslider] Can't playpause while not visible");
             dom.toggleCssClass(playButtonIcon, "pause");
 
             if (!sliderPlaying) {
@@ -648,23 +648,74 @@ define(function(require, exports, module) {
          * @singleton
          **/
         plugin.freezePublicAPI({
+            /**
+             * Specifies wether the timeslider is visible or not
+             * @property {Boolean} visible
+             */
             get visible() { return isVisible; },
+            /**
+             * Specifies wether the timeslider is in a loading state
+             * If true, then: the collab document is fetching the revisions from the collab server
+             * @property {Boolean} loading
+             */
             get loading() { return isLoading; },
+            /**
+             * Sets the loading state of the timeslider to match its active document's revisions fetching
+             * @property {Boolean} loading
+             */
             set loading(loading) { setLoading(loading); },
-
+            /**
+             * Gets the timeslider's active document or null, if not any
+             * @property {Document} activeDocument
+             */
             get activeDocument() { return activeDocument; },
-
+            /**
+             * Gets the timeslider's slider length
+             * @property {Number} sliderLength
+             */
             get sliderLength() { return getSliderLength(); },
+            /**
+             * Sets the timeslider's slider length
+             * @property {Number} sliderLength
+             */
             set sliderLength(len) { setSliderLength(len); },
+            /**
+             * Gets the timeslider's slider position
+             * @property {Number} sliderPosition
+             */
             get sliderPosition() { return sliderPos; },
+            /**
+             * Sets the timeslider's slider position
+             * @property {Number} sliderPosition
+             */
             set sliderPosition(pos) { setSliderPosition(pos); },
-            set timer(time) { updateTimer(time); },
-            set savedRevisions(revs) { setSavedRevisions(revs); },
-
-            show: show,
-            hide: hide,
-            playpause: playpause,
-            addSavedRevision: addSavedRevision
+            /**
+             * Update the revision timer element on the slider
+             * @param {Date} time
+             */
+            updateTimer       : updateTimer,
+            /**
+             * Update the saved revisions to be displayed as stars on the slider
+             * @param [{Revision}] revisions
+             */
+            setSavedRevisions : setSavedRevisions,
+            /**
+             * Show the timeslider and load the current focussed tab's revisions into the UI
+             */
+            show              : show,
+            /**
+             * Hide the timeslider element and revert the activeDocument contents to the latest revision
+             */
+            hide              : hide,
+            /**
+             * Trigger the play or pause on the timeslider
+             */
+            playpause         : playpause,
+            /**
+             * Add a just-saved star revision to the timeslider
+             * @param {Revision} revision
+             */
+            addSavedRevision  : addSavedRevision
         });
 
         register(null, {

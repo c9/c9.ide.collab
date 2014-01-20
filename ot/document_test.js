@@ -12,8 +12,6 @@ define(function(require, exports, module) {
 var assert = require("ace/test/assertions");
 var operations = require("./operations");
 
-global.DEBUG = 0;
-
 function noop () {}
 
 var packedCs;

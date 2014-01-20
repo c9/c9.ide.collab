@@ -2,9 +2,8 @@
 "use strict";
 define(function(require, exports, module) {
 
-main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf",
-        "ace", "util", "collab.connect", "collab.workspace",
-        "timeslider", "OTDocument", "AuthorLayer", "CursorLayer"];
+main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf", "settings", "preferences",
+        "ace", "util", "collab.connect", "collab.workspace", "timeslider", "OTDocument"];
     main.provides = ["collab"];
     return main;
 
@@ -16,13 +15,13 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf",
         var ui           = imports.ui;
         var apf          = imports.apf;
         var ace          = imports.ace;
-        var c9util       = imports.util;
+        var util         = imports.util;
+        var settings     = imports.settings;
+        var prefs        = imports.preferences;
         var connect      = imports["collab.connect"];
         var workspace    = imports["collab.workspace"];
         var timeslider   = imports.timeslider;
         var OTDocument   = imports.OTDocument;
-        var AuthorLayer  = imports.AuthorLayer;
-        var CursorLayer  = imports.CursorLayer;
 
         var css          = require("text!./collab.css");
         var staticPrefix = options.staticPrefix;
@@ -41,6 +40,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf",
 
         var emit         = plugin.getEmitter();
 
+        // open collab documents
         var documents    = {};
 
         var loaded = false;
@@ -58,6 +58,8 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf",
             fs.on("beforeWriteFile", beforeWriteFile, plugin);
             fs.on("beforeRename", beforeRename, plugin);
 
+            ui.insertCss(css, staticPrefix, plugin);
+
             window.addEventListener("unload", function() {
                 leaveAll();
             }, false);
@@ -66,17 +68,34 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf",
                 leaveDocument(e.tab.path);
             }, plugin);
 
-            AuthorLayer.initAuthorLayer(plugin);
-            CursorLayer.initCursorLayer(plugin);
-        }
+            // Author layer settings
+            var showAuthorInfoKey = "user/collab/@show-author-info";
+            prefs.add({
+                "General" : {
+                    "Collaboration" : {
+                        "Show Authorship Info" : {
+                            type     : "checkbox",
+                            position : 8000,
+                            path     : showAuthorInfoKey
+                        }
+                    }
+                }
+            }, plugin);
 
+            settings.on("read", function () {
+                settings.setDefaults("usr/collab", [["show-author-info", true]]);
+                refreshActiveDocuments();
+            }, plugin);
+
+            settings.on("user/collab", function () {
+                refreshActiveDocuments();
+            }, plugin);
+        }
 
         var drawn = false;
         function draw(options) {
             if (drawn) return;
             drawn = true;
-
-            ui.insertCss(css, staticPrefix, plugin);
 
             var bar = options.aml.appendChild(new ui.bar({
                 "id"    : "winCollab",
@@ -99,22 +118,22 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf",
                 var doc = documents[docId];
                 doc.disconnect();
             }
-            throbNotification(null, "Collab disconnected");
+            throbNotification("Collab disconnected");
             emit("disconnect");
         }
 
         function onConnecting () {
-            throbNotification(null, "Collab connecting");
+            throbNotification("Collab connecting");
         }
 
         function onConnectMsg(msg) {
             workspace.sync(msg.data, true);
 
             for (var docId in documents)
-                connect.send("JOIN_DOC", { docId: docId });
+                documents[docId].load();
 
-            throbNotification(null, msg.err || "Collab connected");
-            emit("connect", null, true);
+            throbNotification(msg.err || "Collab connected");
+            emit("connect");
         }
 
         function onMessage(msg) {
@@ -138,20 +157,19 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf",
                 case "USER_JOIN":
                     workspace.sync(data);
                     user = workspace.getUser(data.userId);
-                    emit("usersUpdate");
-                    throbNotification(user, "came online");
+                    throbNotification("came online", user);
                     break;
                 case "USER_LEAVE":
-                    emit("usersUpdate");
-                    throbNotification(user, "went offline");
+                    // TODO: sync workspace & show user as offline in the members panel
+                    throbNotification("went offline", user);
                     break;
                 case "LEAVE_DOC":
                     doc && doc.clientLeave(data.clientId);
-                    throbNotification(user, "closed file: " + docId);
+                    throbNotification("closed file: " + docId, user);
                     break;
                 case "JOIN_DOC":
                     if (workspace.myClientId !== data.clientId) {
-                        throbNotification(user, "opened file: " + docId);
+                        throbNotification("opened file: " + docId, user);
                         break;
                     }
                     doc.joinData(data);
@@ -166,51 +184,50 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf",
             }
         }
 
-        function joinDocument(docId, document, progress, callback) {
-            var docSession = document.getSession();
+        /**
+         * Join a document and report progress and on-load contents
+         * @param {String} docId
+         * @param {Document} doc
+         * @param {Function} progress
+         * @param {Function} callback
+         */
+        function joinDocument(docId, doc, progress, callback) {
+            var docSession = doc.getSession();
             var aceSession = docSession && docSession.session;
             if (!aceSession)
                 console.warn("[OT] Ace session not ready - will setSession when ready !!");
 
-            var doc = documents[docId] || new OTDocument(docId, document);
+            var otDoc = documents[docId] || new OTDocument(docId, doc);
 
             if (aceSession)
-                doc.setSession(aceSession);
+                otDoc.setSession(aceSession);
             else {
                 ace.on("initAceSession", function(e) {
-                    if (e.doc == document)
-                        doc.setSession(document.getSession().session);
+                    if (e.doc == doc)
+                        otDoc.setSession(doc.getSession().session);
                 });
             }
 
             if (callback) {
                 progress = progress || function(){};
-                doc.on("joinProgress", progress);
-                doc.once("joined", function(e){
+                otDoc.on("joinProgress", progress);
+                otDoc.once("joined", function(e){
                     callback(e.err, e.contents);
-                    doc.off("joinProgress", progress);
+                    otDoc.off("joinProgress", progress);
                 });
             }
 
             if (documents[docId])
                 return console.warn("[OT] Document previously joined -", docId,
-                "STATE: loading:", doc.loading, "loaded:", doc.loaded, "inited:", doc.inited);
+                "STATE: loading:", otDoc.loading, "loaded:", otDoc.loaded, "inited:", otDoc.inited);
 
-            documents[docId] = doc;
-
-            doc.on("saved", function (e) {
-                onDocumentSaved(e.err, doc, e);
-            });
-
-            doc.on("joined", function(e){
-                onDocumentLoaded(e.err, doc);
-            });
+            documents[docId] = otDoc;
 
             // test late join - document syncing - best effort
             if (connect.connected)
-                doc.load();
+                otDoc.load();
 
-            return doc;
+            return otDoc;
         }
 
         function leaveDocument(docId) {
@@ -218,8 +235,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf",
                 return;
             console.log("[OT] Leave", docId);
             var doc = documents[docId];
-            doc.leave();
-            doc.dispose();
+            doc.leave(); // will also dispose
             delete documents[docId];
         }
 
@@ -235,6 +251,15 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf",
             Object.keys(documents).forEach(function(docId) {
                 leaveDocument(docId);
             });
+        }
+
+        function refreshActiveDocuments() {
+            for (var docId in documents) {
+                var doc = documents[docId];
+                var tab = doc.original.tab;
+                if (tab.pane.activeTab === tab && doc.inited)
+                    doc.authorLayer.refresh();
+            }
         }
 
         /*
@@ -306,24 +331,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf",
             return text.split(/\r\n|\r|\n/).join(nlCh);
         }
 
-        function onDocumentLoaded(err, doc) {
-            if (err)
-                return console.error("JOIN_DOC Error:", err);
-
-            var tab = doc.original.tab;
-
-            if (tab.pane.activeTab === tab)
-                doc.authorLayer.refresh();
-        }
-
-        function onDocumentSaved(err, doc, data) {
-            if (err)
-                return console.error("[OT] Failed saving file !", err, doc.id);
-            if (data.star && timeslider.visible && timeslider.activeDocument === doc)
-                timeslider.addSavedRevision(data.revision);
-        }
-
-        function throbNotification(user, msg) {
+        function throbNotification(msg, user) {
             if (!user)
                 return Notification.showNotification(msg);
 
@@ -344,6 +352,11 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf",
 
         /***** Lifecycle *****/
 
+        plugin.on("newListener", function(event, listener){
+            if (event == "connect" && connect.connected)
+                listener();
+        });
+
         plugin.on("load", function(){
             load();
         });
@@ -356,38 +369,57 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf",
         });
 
         plugin.freezePublicAPI({
+            _events : [
+                /**
+                 * Fires when the collab panel is first drawn to enable sub-collab-panels to listen and render correctly
+                 * @event drawPanels
+                 * @param {Object}   e
+                 * @param {HTMLElement}   e.html  the html element to build collan panels on top of
+                 * @param {AMLElement}    e.aml   the apf element to build collan panels on top of
+                 */
+                "drawPanels",
+                /**
+                 * Fires when the collab is connected and the collab workspace is synced
+                 * @event connect
+                 */
+                "connect",
+                /**
+                 * Fires when a chat message arrives (the chat plugin should listen to it to get chat messages)
+                 * @event chatMessage
+                 * @param {Object}   e
+                 * @param {String}   e.userId     the chat message author user id
+                 * @param {String}   e.text       the chat text to diaplay
+                 * @param {Boolean}  e.increment  should the chat counter be incremented (not yet implemented)
+                 */
+                "chatMessage",
+            ],
             /**
-             *
+             * Get a clone of open collab documents
+             * @property {Object} documents
              */
-            get documents() { return c9util.cloneObject(documents); },
+            get documents() { return util.cloneObject(documents); },
             /**
-             *
+             * Specifies whether the collab is connected or not
+             * @property {Boolean} connected
              */
             get connected() { return connect.connected; },
             /**
-             *
+             * Specifies whether the collab debug is enabled or not
+             * @property {Boolean} debug
              */
-            get DEBUG()     { return connect.DEBUG; },
+            get debug()     { return connect.debug; },
             /**
-             *
+             * Get the open collab document with path
+             * @param  {String}     path the file path of the document
+             * @return {OTDocument} the collab document open with this path
              */
-            getDocument  : function (docId) { return documents[docId]; },
+            getDocument  : function (path) { return documents[path]; },
             /**
-             *
+             * Send a message to the collab server
+             * @param  {String}     type    the type of the message
+             * @param  {Object}     message the message body to send
              */
-            send          : function() { return connect.send.apply(connect, arguments); },
-            /**
-             *
-             */
-            joinDocument  : joinDocument,
-            /**
-             *
-             */
-            leaveDocument : leaveDocument,
-            /**
-             *
-             */
-            leaveAll      : leaveAll
+            send          : function(type, message) { connect.send(type, message); }
         });
 
         register(null, {

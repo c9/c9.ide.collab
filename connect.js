@@ -27,13 +27,7 @@ define(function(require, exports, module) {
         // 0 - production
         // 1 - development
         // 2 - tracing
-        var DEBUG;
-        if (typeof options.DEBUG !== "undefined")
-            DEBUG = options.DEBUG;
-        else if (typeof window !== "undefined") // browser
-            DEBUG = Number((/debug=(\d)/.exec(window.location.search) || [null, DEBUG])[1]);
-        else
-            DEBUG = 0;
+        var debug = options.debug;
 
         // var markup = require("text!./connect.xml");
 
@@ -164,13 +158,13 @@ define(function(require, exports, module) {
 
                 function onData(data) {
                     data = JSON.parse(data);
-                    if (DEBUG)
+                    if (debug)
                         console.log("[OT] RECEIVED FROM SERVER", data);
                     emit("message", data);
                 }
                 function onConnect(data) {
                     data = JSON.parse(data);
-                    if (DEBUG)
+                    if (debug)
                         console.log("[OT] RECEIVED FROM SERVER", data);
                     if (data.type !== "CONNECT")
                         return console.error("[OT] Invalid connect data !", data);
@@ -198,7 +192,7 @@ define(function(require, exports, module) {
                 msg = {type: arguments[0], data: arguments[1]};
             if (!connected)
                 return console.log("[OT] Collab not connected - SKIPPING ", msg);
-            if (DEBUG)
+            if (debug)
                 console.log("[OT] SENDING TO SERVER", msg);
             collab.send(clientId, msg);
         }
@@ -318,13 +312,54 @@ define(function(require, exports, module) {
          * Finder implementation using collab
          **/
         plugin.freezePublicAPI({
-            get DEBUG()      { return DEBUG; },
+            _events : [
+                /**
+                 * Fires when the collab VFS API is extended and available to be used by collab to
+                 *  connect a user to the collab server.
+                 * @event available
+                 */
+                "available",
+                /**
+                 * Fires when the collab is connected, handshaked and a stream is inited
+                 *  and pushing messages from the collab server.
+                 * @event connect
+                 */
+                "connect",
+                /**
+                 * Fires when the collab is connecting to the collab server
+                 * @event connecting
+                 */
+                "connecting",
+                /**
+                 * Fires when the collab is disconnected
+                 * @event disconnect
+                 */
+                "disconnect"
+            ],
+            /**
+             * Specifies whether the collab debug is enabled or not
+             * @property {Boolean} debug
+             */
+            get debug()      { return debug; },
+            /**
+             * Specifies whether the collab is connected or not
+             * @property {Boolean} connected
+             */
             get connected()  { return connected; },
+            /**
+             * Specifies whether the collab is connecting or not
+             * @property {Boolean} connecting
+             */
             get connecting() { return connecting; },
 
+            /**
+             * Send a message to the collab server
+             * @param  {String}     type    the type of the message
+             * @param  {Object}     message the message body to send
+             */
             send: send
         });
-        
+
         register(null, {
             "collab.connect": plugin
         });

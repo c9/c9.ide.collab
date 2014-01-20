@@ -190,7 +190,7 @@ function AuthorAttributes(minKeySize, maxKeySize) {
         }
     }
 
-    function valueAtIndex (nodes, idx) {
+    function valueAtIndex(nodes, idx) {
         var val;
         traverseRec(nodes, idx, idx + 1, 0, function (index, length, value) {
             val = value;

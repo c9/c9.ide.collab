@@ -1,4 +1,3 @@
-/*global window console*/
 define(function(require, exports, module) {
 "use strict";
 
@@ -23,9 +22,6 @@ define(function(require, exports, module) {
         var Tree         = require("ace_tree/tree");
         var TreeData     = require("./membersdp");
 
-        var ROLE_NONE         = "n";
-        var ROLE_VISITOR      = "v";
-        var ROLE_COLLABORATOR = "c";
         var ROLE_ADMIN        = "a";
 
         function MembersPanel(developer, deps, options){
@@ -241,27 +237,40 @@ define(function(require, exports, module) {
             plugin.freezePublicAPI.baseclass();
 
             /**
-             * Collab panel base class for the {@link collab}.
+             * Members panel base class for the {@link members}.
              *
-             * A collab panel is a section of the collab that allows users to
-             * collaborate on a workspace
+             * A members panel is a section of the collab that shows the members of a workspace
+             * with thier access rights, collaborator colors
              *
-             * @class CollabPanel
+             * @class MembersPanel
              * @extends Plugin
              */
             /**
              * @constructor
-             * Creates a new CollabPanel instance.
+             * Creates a new MembersPanel instance.
              * @param {String}   developer   The name of the developer of the plugin
              * @param {String[]} deps        A list of dependencies for this
              *   plugin. In most cases it's a reference to `main.consumes`.
-             * @param {Object}   options     The options for the collab panel
-             * @param {String}   options.caption  The caption of the frame.
+             * @param {Object}   options     The options for the members panel
              */
             plugin.freezePublicAPI({
+                /**
+                 * Draw the members panel on a parent element
+                 * 
+                 * @param {AMLElement} options.aml
+                 */
                 draw  : draw,
+                /**
+                 * Trigger a resize of the members tree
+                 */
                 resize: resize,
+                /**
+                 * Load workspace members, render the tree and set update listeners
+                 */
                 show  : show,
+                /**
+                 * Hide the members tree and unset update listeners
+                 */
                 hide  : hide
             });
 

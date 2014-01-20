@@ -1,7 +1,7 @@
-/*global define console document apf */
 define(function(require, module, exports) {
-    main.consumes = ["Plugin", "ace", "collab.connect", "collab.util", "collab.workspace", "timeslider",
-        "CursorLayer", "AuthorLayer", "util"];
+    main.consumes = ["Plugin", "ace", "util",
+        "collab.connect", "collab.util", "collab.workspace",
+        "timeslider", "CursorLayer", "AuthorLayer"];
     main.provides = ["OTDocument"];
     return main;
 
@@ -15,7 +15,7 @@ define(function(require, module, exports) {
         var AuthorLayer           = imports.AuthorLayer;
 
         var lang                  = require("ace/lib/lang");
-        var Range                 = require("ace/range").Range;
+        // var Range                 = require("ace/range").Range;
         var xform                 = require("./xform");
         var operations            = require("./operations");
         var apply                 = require("./apply");
@@ -24,7 +24,11 @@ define(function(require, module, exports) {
         var IndexCache            = require("./index_cache");
         var applyAuthorAttributes = require("./author_attributes")().apply;
 
+        // The minimum delay that should be between a commited EDIT_UPDATE and the next
+        // Happens when I'm collaboratively editing and the collaborators cursors are nearby
         var MIN_DELAY = options.minDelay;
+        // The maximum delay that should be between a commited EDIT_UPDATE and the next
+        // happens when I'm editing alone
         var MAX_DELAY = options.maxDelay;
 
         function OTDocument(docId, c9Document) {
@@ -32,7 +36,7 @@ define(function(require, module, exports) {
             var plugin      = new Plugin("Ajax.org", main.consumes);
             var emit        = plugin.getEmitter();
             var cloneObject = c9util.cloneObject;
-            var DEBUG       = connect.DEBUG;
+            var debug       = connect.debug;
 
             var doc, session;
             var docStream, revStream;
@@ -52,6 +56,7 @@ define(function(require, module, exports) {
             var inited        = false;
             var state         = "IDLE";
 
+            // @see docs in the API section below
             function setSession(aceSession) {
                 if (session)
                     return console.warn("[OT] Ace's session previously set !");
@@ -60,13 +65,11 @@ define(function(require, module, exports) {
                 session.collabDoc = plugin;
 
                 var aceDoc = session.doc;
-
                 IndexCache(aceDoc);
-
                 aceDoc.oldSetValue = aceDoc.oldSetValue || aceDoc.setValue;
                 aceDoc.setValue = patchedSetValue.bind(aceDoc);
-                aceDoc.applyDeltas = patchedApplyDeltas.bind(aceDoc);
-                aceDoc.revertDeltas = patchedRevertDeltas.bind(aceDoc);
+                // aceDoc.applyDeltas = patchedApplyDeltas.bind(aceDoc);
+                // aceDoc.revertDeltas = patchedRevertDeltas.bind(aceDoc);
 
                 if (loaded)
                     joinWithSession();
@@ -83,6 +86,9 @@ define(function(require, module, exports) {
                 session.on("change", function(e) { session._emit("changeBackMarker"); });
             }
 
+            /**
+             * patch the original Ace document's setValue to only apply the edits
+             */
             function patchedSetValue (text) {
                 var prev = this.getValue();
                 if (!prev)
@@ -90,6 +96,8 @@ define(function(require, module, exports) {
                 applyAce(operations.operation(prev, text), this);
             }
 
+            /*
+            // Patch the Ace document's applyDeltas to record the deltas's author
             function patchedApplyDeltas(deltas) {
                 for (var i=0; i<deltas.length; i++) {
                     var delta = deltas[i];
@@ -108,6 +116,7 @@ define(function(require, module, exports) {
                 this.fromDelta = null;
             }
 
+            // Patch the Ace document's revertDeltas to make use of the deltas's author
             function patchedRevertDeltas(deltas) {
                 for (var i=deltas.length-1; i>=0; i--) {
                     var delta = deltas[i];
@@ -125,13 +134,14 @@ define(function(require, module, exports) {
                 }
                 this.fromDelta = null;
             }
+            */
 
-            function isReadOnly() {
-                return c9Document.editor.ace.getReadOnly();
-            }
-
+            /**
+             * Record and buffer the user changes to the document into packedCs for it to be sent
+             * to the collab server as EDIT_UPDATE
+             */
             function handleUserChanges (e) {
-                if (!loaded || ignoreChanges || isReadOnly())
+                if (!loaded || ignoreChanges)
                     return;
                 try {
                     var aceDoc = session.doc;
@@ -229,8 +239,10 @@ define(function(require, module, exports) {
                 return operations.pack(packedCs);
             }
 
-            // Calculate the edit update delays based on the number of clients
-            // joined to a document and thier latest updated cursor positions
+            /**
+             * Calculate the edit update delays based on the number of clients
+             * joined to a document and thier latest updated cursor positions
+             */
             function calculateDelay() {
                 var selections = cursorLayer ? cursorLayer.selections : {};
                 var aceEditor = c9Document.editor.ace;
@@ -259,7 +271,7 @@ define(function(require, module, exports) {
                     return;
                 var delay = pendingSave ? 0 : calculateDelay();
                 sendTimer = setTimeout(function () {
-                    send();
+                    doSend();
                     sendTimer = null;
                 }, delay);
             }
@@ -274,12 +286,13 @@ define(function(require, module, exports) {
                 outgoing.push(msg);
             }
 
-            function send() {
+            // send an "EDIT_UPDATE" message, and piggy-pack it with the current seletion
+            function doSend() {
                 if (state !== "IDLE")
                     return;
 
                 var st = new Date();
-                if (!isReadOnly() && !outgoing.length && !isPreparedUnity())
+                if (!outgoing.length && !isPackedUnity())
                     addOutgoingEdit();
 
                 if (outgoing.length) {
@@ -292,10 +305,11 @@ define(function(require, module, exports) {
                 else {
                     onCursorChange();
                 }
-                if (DEBUG)
+                if (debug)
                     console.log("[OT] send took", new Date() - st, "ms");
             }
 
+            // Set the Ace document's value and optionally reset and/or bookmark the undo manager
             function setValue(contents, reset, bookmark, callback) {
                 var state = c9Document.getState();
                 state.value = contents;
@@ -310,12 +324,16 @@ define(function(require, module, exports) {
                 }).schedule();
             }
 
+            // @see docs in the API section below
             function joinData(data) {
                 var st = new Date();
                 loaded = false;
 
-                if (data.err)
-                    return emit("joined", {err: data.err}, true);
+                var err = data.err;
+                if (err) {
+                    console.error("JOIN_DOC Error:", docId, err);
+                    return emit("joined", {err: err}, true);
+                }
 
                 if (data.chunkNum === 1)
                     docStream = "";
@@ -351,7 +369,7 @@ define(function(require, module, exports) {
                 if (session)
                     joinWithSession();
 
-                if (DEBUG)
+                if (debug)
                     console.log("[OT] init took", new Date() - st, "ms");
 
                 loaded = true;
@@ -359,6 +377,11 @@ define(function(require, module, exports) {
                 emit("joined", {contents: doc.contents}, true);
             }
 
+            /**
+             * Completes the initialization of the document after the document has completed loading
+             * and EditSession is in place to init authorLayer and cusorLayer
+             * inited = true
+             */
             function joinWithSession() {
                 var clean = doc.fsHash === doc.docHash;
                 if (!clean)
@@ -395,33 +418,35 @@ define(function(require, module, exports) {
                     setValue(doc.contents, clean, clean); // reset and bookmark
                 }
 
-                cursorLayer = new CursorLayer(session, workspace);
+                latestRevNum = doc.revNum;
                 cursorTimer = setTimeout(changedSelection, 500);
 
-                latestRevNum = doc.revNum;
-
+                cursorLayer && cursorLayer.dispose();
+                cursorLayer = new CursorLayer(session, workspace);
                 cursorLayer.updateSelections(doc.selections);
+
                 authorLayer && authorLayer.dispose();
-                authorLayer = new AuthorLayer(session, workspace);
+                authorLayer = new AuthorLayer(session, workspace); // will refresh on init
+                authorLayer.refresh();
 
                 inited = true;
             }
 
-            function isPreparedUnity() {
+            // Checks if the packesCs is empty & doesn't have real-edit changes
+            function isPackedUnity() {
                 // Empty doc - or all retain - no user edits
                 return !packedCs.length || (packedCs.length === 1 && packedCs[0][0] === "r");
             }
 
-            // var lastVal = "";
+            // Clears the packedCs from any edits
             function clearCs(len) {
-                // if (DEBUG > 1)
-                //     lastVal = session.getValue();
                 if (!len)
                     packedCs = [];
                 else
                     packedCs = ["r"+len];
             }
 
+            // OT-Transform the outgoing edits in regard to the inMsg edit operation and vice versa
             function xformEach(outgoing, inMsg) {
                 var ops = inMsg.op;
                 var msg;
@@ -438,8 +463,8 @@ define(function(require, module, exports) {
                 inMsg.op = ops;
             }
 
-            // Might need to start sending client id's back and forth. Don't really want
-            // to have to do a deep equality test on every check here.
+            // If the edit message doesn't have an 'op' attribute, then, it's my edit
+            // The collab server is being smart optimizing huge edits network consumption
             function isOurOutgoing(msg, top) {
                 return !msg.op &&
                     // msg.clientId === workspace.myClientId && ---> break tests
@@ -447,6 +472,8 @@ define(function(require, module, exports) {
                     msg.revNum === top.revNum;
             }
 
+            // Validate and handle incoming edits and OT xform and apply other authors' edits into the document
+            // An edit message can also have a piggy-packed selection update - optimization
             function handleIncomingEdit(msg) {
                 if (msg.revNum !== latestRevNum + 1) {
                     console.error("[OT] Incoming edit revNum mismatch !",
@@ -472,19 +499,23 @@ define(function(require, module, exports) {
                     xformEach(outgoing, msg);
                     packedCs = outgoing.pop().op;
                     var sel = session.selection;
+                    // insert edits on the right of the cursor/selection to not move the user's cursor unexpectedly (done by Google Docs)
                     cursorLayer.setInsertRight(msg.clientId, false);
                     sel.anchor.$insertRight = sel.lead.$insertRight = true;
                     applyEdit(msg, session.doc);
                     sel.anchor.$insertRight = sel.lead.$insertRight = false;
+                    // reset the right cursor/selection behaviour
                     cursorLayer.setInsertRight(msg.clientId, true);
                 }
                 latestRevNum = msg.revNum;
                 if (msg.selection)
                     cursorLayer.updateSelection(msg);
-                if (DEBUG)
+                if (debug)
                     console.log("[OT] handleIncomingEdit took", new Date() - st, "ms", latestRevNum);
             }
 
+            // If the document is at the latest state, apply a edit into the current document state
+            // Else if the timeslider is visible, do nothing - we can later get the contents from the revisions
             function applyEdit(msg, editorDoc) {
                 if (timeslider.visible)
                     return;
@@ -496,6 +527,7 @@ define(function(require, module, exports) {
                 ignoreChanges = false;
             }
 
+            // send a selection update to the collab server if not an exact match of the previous sent selection
             function changedSelection() {
                 cursorTimer = null;
                 var currentSel = CursorLayer.selectionToData(session.selection);
@@ -506,10 +538,11 @@ define(function(require, module, exports) {
                     docId: docId,
                     selection: lastSel
                 });
-                if (cursorLayer && cursorLayer.tooltipIsOpen)
+                if (cursorLayer.tooltipIsOpen)
                     cursorLayer.hideAllTooltips();
             }
 
+            // my cursor or selection changes, schedule an update message
             function onCursorChange() {
                 if (!loaded || ignoreChanges)
                     return;
@@ -519,6 +552,8 @@ define(function(require, module, exports) {
                 cursorTimer = setTimeout(changedSelection, 200);
             }
 
+            // Add an author's edit revision to the local revision history
+            // Update the timeslider if rendering this document
             function addRevision(msg) {
                 if (!msg.op.length)
                     console.error("[OT] Empty rev operation should never happen !");
@@ -533,11 +568,16 @@ define(function(require, module, exports) {
                     timeslider.sliderLength = msg.revNum;
             }
 
+            // determines whether the document is the current and visible timeslider's active document or not
             function isActiveTimesliderDocument() {
                 return timeslider.visible && timeslider.activeDocument === plugin;
             }
 
-            function getRevWithContent(revNum) {
+            /**
+             * Gets a revision with the contents and authorship attributes of the document at this revision
+             * Only works if revisions were previously loaded
+             */
+            function getDetailedRevision(revNum) {
                 var i;
                 // authAttribs can only be edited in the forward way because
                 // The user who deleed some text isn't necessarily the one who inserted it
@@ -575,6 +615,7 @@ define(function(require, module, exports) {
                 return rev;
             }
 
+            // @see docs in the API section below
             function historicalSearch(query) {
                 var searchString = lang.escapeRegExp(query);
                 var revNums = revisions.length;
@@ -582,7 +623,7 @@ define(function(require, module, exports) {
                     revNums: revNums
                 };
                 for (var revNo = 0; revNo < revNums; revNo++) {
-                    var rev = getRevWithContent(revNo);
+                    var rev = getDetailedRevision(revNo);
                     var count = 0;
                     if(rev.contents.match(new RegExp(searchString, 'i'))) {
                         count = rev.contents.match(new RegExp(searchString, 'gi')).length;
@@ -592,6 +633,11 @@ define(function(require, module, exports) {
                 return result;
             }
 
+            function isReadOnly() {
+                return c9Document.editor.ace.getReadOnly();
+            }
+
+            // @see docs in the API section below
             function updateToRevision(revNum) {
                 if (!revisions[0])
                     return console.warn("[OT] revisions may haven't yet been loaded !");
@@ -599,12 +645,12 @@ define(function(require, module, exports) {
                     return console.error("[OT] Can't updateToRevNum while editing !!");
                 if (typeof revNum === "undefined")
                     revNum = revisions.length - 1;
-                if (DEBUG)
+                if (debug)
                     console.log("[OT] REV:", revNum);
                 if (doc.revNum === revNum)
                     return;
-                var rev = getRevWithContent(revNum);
-                timeslider.timer = rev.updated_at;
+                var rev = getDetailedRevision(revNum);
+                timeslider.updateTimer(rev.updated_at);
                 ignoreChanges = true;
                 // TODO beter manage the undo manager stack: getState() & setState()
                 var resetAndBookmark = starRevNums.indexOf(revNum) !== -1;
@@ -617,9 +663,10 @@ define(function(require, module, exports) {
                 ignoreChanges = false;
             }
 
+            // @see docs in the API section below
             function revertToRevision(revNum) {
-                var latestRev = getRevWithContent(revisions.length - 1);
-                var revertToRev = getRevWithContent(revNum);
+                var latestRev = getDetailedRevision(revisions.length - 1);
+                var revertToRev = getDetailedRevision(revNum);
 
                 ignoreChanges = true;
 
@@ -639,6 +686,7 @@ define(function(require, module, exports) {
                 ignoreChanges = false;
             }
 
+            // @see docs in the API section below
             function handleMessage(event) {
                 if (!inited)
                     return incoming.push(event);
@@ -661,23 +709,31 @@ define(function(require, module, exports) {
                     cursorLayer && cursorLayer.updateSelection(data);
                     break;
                 case "FILE_SAVED":
-                    if (data.err) {
-                        emit("saved", {err: data.err});
+                    var err = data.err;
+                    if (err) {
+                        console.error("[OT] Failed saving file !", err, docId);
+                        emit("saved", {err: err});
                         break;
                     }
 
-                    if (data.star)
-                        starRevNums.push(data.revNum);
+                    var rev = revisions[data.revNum];
+                    var star = data.star;
                     var clean = !outgoing.length || latestRevNum === data.revNum;
-                    if (clean)
+                    emit("saved", {
+                        star: star,
+                        revision: rev,
+                        clean: clean
+                    });
+                    if (star) {
+                        starRevNums.push(data.revNum);
+                        if (isActiveTimesliderDocument())
+                            timeslider.addSavedRevision(rev);
+                    }
+                    if (clean) {
                         lang.delayedCall(function() {
                             c9Document.undoManager.bookmark();
                         }).schedule();
-                    emit("saved", {
-                        star: data.star,
-                        revision: revisions[data.revNum],
-                        clean: clean
-                    });
+                    }
                     break;
                 case "GET_REVISIONS":
                    receiveRevisions(data);
@@ -700,12 +756,13 @@ define(function(require, module, exports) {
                 revStream = null;
                 revisions = revisionsObj.revisions;
                 starRevNums = revisionsObj.starRevNums;
-                emit("revisions", revisions);
+                emit("revisions", {revisions: revisions, stars: starRevNums});
 
                 if (isActiveTimesliderDocument())
                     loadRevisions();
             }
 
+            // @see docs in the API section below
             function loadRevisions() {
                 if (!revisions[0]) {
                     console.log("[OT] Loading revisions ...");
@@ -722,9 +779,9 @@ define(function(require, module, exports) {
                 });
                 timeslider.loading = false;
                 timeslider.sliderLength = numRevs;
-                timeslider.savedRevisions = starRevisions;
+                timeslider.setSavedRevisions(starRevisions);
                 timeslider.sliderPosition = numRevs;
-                timeslider.timer = lastRev.updated_at;
+                timeslider.updateTimer(lastRev.updated_at);
                 // Call again to re-render all slider elements
                 timeslider.sliderLength = numRevs;
 
@@ -734,8 +791,9 @@ define(function(require, module, exports) {
 
             var pendingSave;
 
+            // @see docs in the API section below
             function save(silent) {
-                var isUnity = isPreparedUnity();
+                var isUnity = isPackedUnity();
                 if (state === "IDLE" && isUnity)
                     return doSave(silent);
                 if (!isUnity)
@@ -755,7 +813,10 @@ define(function(require, module, exports) {
                 });
             }
 
+            // @see docs in the API section below
             function dispose() {
+                if (!loaded)
+                    return;
                 state = "IDLE";
                 session.removeListener("change", handleUserChanges);
                 session.selection.removeEventListener("changeCursor", onCursorChange);
@@ -763,65 +824,225 @@ define(function(require, module, exports) {
                 session.selection.removeEventListener("addRange", onCursorChange);
                 clearTimeout(sendTimer);
                 clearTimeout(cursorTimer);
-                if (loaded) {
+                if (inited) {
                     cursorLayer.dispose();
                     authorLayer.dispose();
                 }
             }
 
+            // @see docs in the API section below
             function load() {
                 loaded = false;
                 loading = true;
                 connect.send("JOIN_DOC", { docId: docId });
             }
 
+            // @see docs in the API section below
             function leave() {
-                loaded = loading = false;
                 connect.send("LEAVE_DOC", { docId: docId });
+                dispose();
+                loaded = loading = false;
             }
 
+            // @see docs in the API section below
             function disconnect() {
                 loaded = loading = false;
             }
 
+            // @see docs in the API section below
             function clientLeave(clientId) {
                 cursorLayer && cursorLayer.clearSelection(clientId);
             }
 
+            // @see docs in the API section below
             function isChanged () {
                 var lastRev = revisions[revisions.length - 1];
-                return !isPreparedUnity() ||
+                return !isPackedUnity() ||
                     (revisions.length > 1 && starRevNums.indexOf(lastRev.revNum) === -1);
             }
 
             plugin.freezePublicAPI({
+                _events : [
+                    /**
+                     * Fires when the document has joined
+                     * @event joined
+                     * @param {Object}   e
+                     * @param {String}   e.err       the error encountered in joining the document, if any
+                     * @param {String}   e.contents  the contents of the joined document
+                     */
+                    "joined",
+                    /**
+                     * Fires when the document join progress changes
+                     * @event joinProgress
+                     * @param {Object}   e
+                     * @param {Number}   e.loaded    the error encountered in joining the document, if any
+                     * @param {Number}   e.total     the total number of chunks for this document to compeletely join
+                     */
+                    "joinProgress",
+                    /**
+                     * Fires when the document is saved
+                     * @event saved
+                     * @param {Object}   e
+                     * @param {Document} e.doc    the document for which the state is set
+                     * @param {Object}   e.state  the state object
+                     */
+                    "saved",
+                    /**
+                     * Fires when the revisions is loaded
+                     * @event revisions
+                     * @param {Object}   e
+                     * @param [{Revision}] e.revisions    the loaded revisions
+                     * @param [{Number}]   e.stars        the star/saved revision numbers
+                     */
+                    "revisions",
+                ],
+
+                /**
+                 * Get the collab document id
+                 * @property {String} id
+                 */
                 get id()           { return docId; },
+                /**
+                 * Get the collab document file path
+                 * @property {String} path
+                 */
+                get path()         { return docId; },
+                /**
+                 * Get the collab Ace session
+                 * @property {EditSession} session
+                 */
                 get session()      { return session; },
+                /**
+                 * Get the collab document's original Cloud9 document
+                 * @property {Document} c9Document
+                 */
                 get original()     { return c9Document; },
+                /**
+                 * Specifies wether the document is loading or not
+                 * @property {Boolean} loading
+                 */
                 get loading()      { return loading; },
+                /**
+                 * Specifies wether the document has finished loading or not
+                 * @property {Boolean} loaded
+                 */
                 get loaded()       { return loaded; },
+                /**
+                 * Specifies wether the document has inited with session or not
+                 * @property {Boolean} inited
+                 */
                 get inited()       { return inited; },
+                /**
+                 * Get the document's file system contents hash at the moment of joining
+                 * @property {String} fsHash
+                 */
                 get fsHash()       { return doc && doc.fsHash; },
+                /**
+                 * Get the document's contents hash at the moment of joining
+                 * @property {String} docHash
+                 */
                 get docHash()      { return doc && doc.docHash; },
+                /**
+                 * Get the document's authorship attributes
+                 * @property {AuthorAttributes} authAttribs
+                 */
                 get authAttribs()  { return doc ? doc.authAttribs : []; },
+                /**
+                 * Get the revisions, if loaded
+                 * @property [{Revision}] revisions
+                 */
                 get revisions()    { return revisions; },
+                /**
+                 * Get the document's cursor layer if the document was inited
+                 * @property {CursorLayer} cursorLayer
+                 */
                 get cursorLayer()  { return cursorLayer; },
+                /**
+                 * Get the document's authorship info layer if the document was inited
+                 * @property {AuthorLayer} authorLayer
+                 */
                 get authorLayer()  { return authorLayer; },
+                /**
+                 * Get the latest revision number
+                 * @property {Number} latestRevNum
+                 */
                 get latestRevNum() { return latestRevNum; },
+                /**
+                 * Specifies wether the collab document is in a dirty state with unsaved changes or not
+                 * @property {Boolean} latestRevNum
+                 */
                 get changed()      { return isChanged(); },
 
+                /**
+                 * Load/Join the document from the collab server
+                 * loaded = false
+                 * loading = true
+                 */
                 load             : load,
+                /**
+                 * Sets the document's Ace session when the tab is completely inited and its document's EditSession is created and initialized
+                 * This happens on tab/file open, or on first tab focus
+                 * @param {EditSession} session
+                 */
                 setSession       : setSession,
+                /**
+                 * Leave the document
+                 * Unload the document and tell the collab server that I'm leaving it
+                 */
                 leave            : leave,
+                /**
+                 * Dispose the resources used by the document like the cursorLayer and authorLayer and reset its state
+                 */
                 dispose          : dispose,
+                /**
+                 * Disconnect the document and it will need to reload when the client comes back online
+                 */
                 disconnect       : disconnect,
+                /**
+                 * A client leaving the document - should clear his selections or cursors
+                 */
                 clientLeave      : clientLeave,
+                /**
+                 * Load the document's revisions from the collab server
+                 */
                 loadRevisions    : loadRevisions,
+                /**
+                 * Update the document to its state on a certain revision number
+                 * Only works if the revisions were previously loaded
+                 * @param {Number} revNum {optional - defaults to the latest revision number}
+                 */
                 updateToRevision : updateToRevision,
+                /**
+                 * Revert the document to its contents at a previous revision
+                 * Only works if the revisions were previously loaded
+                 * The authorship attributes may differ because the edit operations applied to revert to that revision maybe different
+                 * @param {Number} revNum {optional - defaults to the latest revision number}
+                 */
                 revertToRevision : revertToRevision,
+                /**
+                 * Save the collab document to the filesystem through the collab server
+                 * @param {Boolean} silent - if true, save the file without adding a star revision number
+                 */
                 save             : save,
+                /**
+                 * Search accross the history of the document for existence of a certain text in any previous revision, with count
+                 * @param {String} query - the query string to search the history for
+                 */
                 historicalSearch : historicalSearch,
+                /**
+                 * Receive join data chunk messages until the document loads
+                 * When the document is loaded:
+                 * loaded = true
+                 * loading = false
+                 * 
+                 * @param {Object} data - a chunk of data received of the join data stream
+                 */
                 joinData         : joinData,
+                /**
+                 * Handles document-related messages of types:
+                 * "EDIT_UPDATE", "SYNC_COMMIT", "CURSOR_UPDATE", "FILE_SAVED", "GET_REVISIONS"
+                 * @param {Object} data - a chunk of data received of the join data stream
+                 */
                 handleMessage    : handleMessage
             });
 
