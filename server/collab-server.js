@@ -1697,7 +1697,7 @@ function onConnect(userIds, client) {
     handleConnect(userIds, client);
 
     function handleUserMsg(msg) {
-        var data = msg.data;
+        var data = msg.data || {};
         var docId = data.docId || "";
         if (docId[0] === "/")
             data.docId = docId.slice(1);
