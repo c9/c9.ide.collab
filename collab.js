@@ -1,6 +1,5 @@
-/*global define console setTimeout $ global window*/
-"use strict";
 define(function(require, exports, module) {
+"use strict";
 
 main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf", "settings", "preferences",
         "ace", "util", "collab.connect", "collab.workspace", "timeslider", "OTDocument"];

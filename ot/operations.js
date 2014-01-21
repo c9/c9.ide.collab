@@ -1,9 +1,6 @@
 // Operations are a stream of individual edits which span the whole document.
 // Edits have a type which is one of retain, insert, or delete
 // and have associated data based on their type.
-
-/*global define */
-
 define(function(require, exports, module) {
 "use strict";
 

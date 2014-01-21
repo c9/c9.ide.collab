@@ -1,4 +1,3 @@
-/*global require __dirname console process*/
 "use strict"
 
 var Sequelize = require("sequelize");

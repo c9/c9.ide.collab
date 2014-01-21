@@ -1,5 +1,4 @@
 "use strict";
-/*global require console module process __dirname*/
 var Fs = require("fs");
 var Path = require("path");
 var net = require("net");
