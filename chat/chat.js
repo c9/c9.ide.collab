@@ -1,4 +1,3 @@
-/*global window apf console*/
 define(function(require, exports, module) {
 "use strict";
 

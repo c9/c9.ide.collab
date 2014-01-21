@@ -1,4 +1,3 @@
-/*global require module __dirname console process*/
 "use strict";
 "use server";
 

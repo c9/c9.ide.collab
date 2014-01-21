@@ -1,4 +1,3 @@
-/*global document window setTimeout */
 define(function(require, exports, module) {
     "use strict";
 

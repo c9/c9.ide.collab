@@ -1,13 +1,12 @@
-"use strict";
 "use server";
 
-/*global require define module console*/
 if (typeof process !== "undefined") {
     require("amd-loader");
     require("../../../test/setup_paths");
 }
 
 define(function(require, exports, module) {
+"use strict";
 
 var assert = require("ace/test/assertions");
 var ops = require("./operations");

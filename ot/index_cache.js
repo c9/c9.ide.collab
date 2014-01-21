@@ -1,7 +1,6 @@
 /**
  * very simple and dumb cache to test impact on ot performance
  */
-
 define(function(require, exports, module) {
 "use strict";
 
