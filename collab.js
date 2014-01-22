@@ -1,7 +1,7 @@
 define(function(require, exports, module) {
 "use strict";
 
-main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf", "settings", "preferences",
+main.consumes = ["Panel", "c9", "tabManager", "fs", "metadata", "ui", "apf", "settings", "preferences",
         "ace", "util", "collab.connect", "collab.workspace", "timeslider", "OTDocument"];
     main.provides = ["collab"];
     return main;
@@ -11,6 +11,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf", "settings", "pr
         var c9           = imports.c9;
         var tabs         = imports.tabManager;
         var fs           = imports.fs;
+        var metadata     = imports.metadata;
         var ui           = imports.ui;
         var apf          = imports.apf;
         var ace          = imports.ace;
@@ -52,7 +53,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf", "settings", "pr
             connect.on("connect", onConnectMsg);
             connect.on("disconnect", onDisconnect);
 
-            fs.on("beforeReadFile", beforeReadFile, plugin);
+            metadata.on("beforeReadFile", beforeReadFile, plugin);
             fs.on("afterReadFile", afterReadFile, plugin);
             fs.on("beforeWriteFile", beforeWriteFile, plugin);
             fs.on("beforeRename", beforeRename, plugin);
@@ -209,14 +210,8 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf", "settings", "pr
                 });
             }
 
-            if (callback) {
-                progress = progress || function(){};
-                otDoc.on("joinProgress", progress);
-                otDoc.once("joined", function(e){
-                    callback(e.err, e.contents);
-                    otDoc.off("joinProgress", progress);
-                });
-            }
+            if (callback)
+                setupJoinAndProgressCallbacks(otDoc, progress, callback);
 
             if (documents[docId])
                 return console.warn("[OT] Document previously joined -", docId,
@@ -229,6 +224,15 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf", "settings", "pr
                 otDoc.load();
 
             return otDoc;
+        }
+
+        function setupJoinAndProgressCallbacks(otDoc, progress, callback) {
+            progress = progress || function(){};
+            otDoc.on("joinProgress", progress);
+            otDoc.once("joined", function(e){
+                otDoc.off("joinProgress", progress);
+                callback(e.err, e.contents, e.metadata);
+            });
         }
 
         function leaveDocument(docId) {
@@ -280,20 +284,26 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "ui", "apf", "settings", "pr
             return !!(c9.readonly || timeslider.visible);
         }
 
+        /**
+         * e.path
+         * e.tab
+         * e.callback
+         * e.progress
+         */
         function beforeReadFile(e) {
             var path = e.path;
-            var tab = tabs.findTab(path);
-            if (!tab)
-                return;
-            var args = e.args.slice();
-            var progress = args.pop();
-            var callback = args.pop();
-            if (!documents[path])
-                joinDocument(path, tab.document, progress, callback);
-            if (connect.connected)
-                return false;
+            var progress = e.progress;
+            var callback = e.callback;
+            var otDoc = documents[e.path];
+            if (!otDoc)
+                joinDocument(path, e.tab.document, progress, callback);
             else
-                return; // load through fs.xhr while collab not connected
+                setupJoinAndProgressCallbacks(otDoc, progress, callback);
+
+            if (connect.connected)
+                return { abort: function() {console.log("TODO: [OT] abort joining a document"); } };
+            else
+                return; // load through the metadata plugin (fs.xhr.js) while collab not connected
         }
 
         function afterReadFile(e) {

@@ -374,7 +374,7 @@ define(function(require, module, exports) {
 
                 loaded = true;
                 loading = false;
-                emit("joined", {contents: doc.contents}, true);
+                emit("joined", {contents: doc.contents, metadata: doc.metadata}, true);
             }
 
             /**
@@ -818,10 +818,12 @@ define(function(require, module, exports) {
                 if (!loaded)
                     return;
                 state = "IDLE";
-                session.removeListener("change", handleUserChanges);
-                session.selection.removeEventListener("changeCursor", onCursorChange);
-                session.selection.removeEventListener("changeSelection", onCursorChange);
-                session.selection.removeEventListener("addRange", onCursorChange);
+                if (session) {
+                    session.removeListener("change", handleUserChanges);
+                    session.selection.removeEventListener("changeCursor", onCursorChange);
+                    session.selection.removeEventListener("changeSelection", onCursorChange);
+                    session.selection.removeEventListener("addRange", onCursorChange);
+                }
                 clearTimeout(sendTimer);
                 clearTimeout(cursorTimer);
                 if (inited) {

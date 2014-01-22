@@ -6,6 +6,8 @@ var Stream = require("stream").Stream;
 var crypto = require('crypto');
 var exists = Fs.exists || Path.exists;
 
+var localfsAPI; // Set on VFS register
+
 /* diff_match_patch start */
 
 var DIFF_EQUAL = 0;
@@ -1234,7 +1236,7 @@ function handleJoinDocument(userIds, client, data) {
     var clientId = userIds.clientId;
     var userId = userIds.userId;
 
-    function callback (err) {
+    function callback(err) {
         if (err) {
             console.error("[vfs-collab] handleJoinDocument ERR:", docId, err);
             client.send({
@@ -1252,24 +1254,32 @@ function handleJoinDocument(userIds, client, data) {
     if (!collabReadAccess(userIds.fs))
         return callback("User " + userId + " don't have read access to join document " + docId + " - fs: " + userIds.fs);
 
-    lock(docId, function () {
-        Store.getDocument(docId, function (err, doc) {
+    lock(docId, function() {
+        Store.getDocument(docId, function(err, doc) {
             if (err)
                 return callback("getDocument " + err);
 
             if (doc && documents[docId])
-                return joinDocument(doc);
+                return fetchMetadataThenJoinDocument(doc);
 
             console.error("[vfs-collab] Joining a closed document", docId, " - Syncing");
-            syncDocument(docId, doc, function (err, doc2) {
+            syncDocument(docId, doc, function(err, doc2) {
                 if (err)
                     return callback(err);
-                joinDocument(doc2);
+                fetchMetadataThenJoinDocument(doc2);
             });
         });
     });
 
-    function joinDocument(doc) {
+    function fetchMetadataThenJoinDocument(doc) {
+        localfsAPI.getMetadata(docId, { sandbox: basePath }, function(err, metadata){
+            if (err)
+                console.error("[vfs-collab] Failed to fetch metadata !", docId, err);
+            joinDocument(doc, String(metadata || ""));
+        });
+    }
+
+    function joinDocument(doc, metadata) {
         if (!documents[docId]) {
             documents[docId] = {};
             initWatcher(docId);
@@ -1283,14 +1293,15 @@ function handleJoinDocument(userIds, client, data) {
         var docHash = hashString(doc.contents);
 
         var clientDoc = JSON.stringify({
-            selections: documents[docId],
-            authAttribs: doc.authAttribs,
-            contents: doc.contents,
-            fsHash: doc.fsHash,
-            docHash: docHash,
-            revNum: doc.revNum,
-            created_at: doc.created_at,
-            updated_at: doc.updated_at
+            selections  : documents[docId],
+            authAttribs : doc.authAttribs,
+            contents    : doc.contents,
+            metadata    : metadata,
+            fsHash      : doc.fsHash,
+            docHash     : docHash,
+            revNum      : doc.revNum,
+            created_at  : doc.created_at,
+            updated_at  : doc.updated_at
         });
 
         documents[docId][clientId] = userIds;
@@ -2083,6 +2094,8 @@ var exports = module.exports = function (vfs, options, register) {
 
     var vfsClientMap = {};
     var isMaster;
+
+    localfsAPI = vfs;
 
     register(null, {
         connect: function (basePathL, clientId, callback) {

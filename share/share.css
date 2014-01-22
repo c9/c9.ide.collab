@@ -1,4 +1,4 @@
-.share .bg-bk-content{
+.share.bk-window .bg-bk-content{
     background-color : #303130;
 
     background-image: -webkit-linear-gradient(top,rgba(0, 0, 0, 0.29) 0%, rgba(0, 0, 0, 0.11) 8px, rgba(0, 0, 0, 0.01) 13px, transparent 15px);
