@@ -339,8 +339,11 @@ define(function(require, module, exports) {
                     docStream = "";
                 docStream += data.chunk;
 
-                if (data.chunkNum !== data.chunksLength)
-                    return emit("joinProgress", {loaded: data.chunkNum, total: data.chunksLength});
+                if (data.chunkNum !== data.chunksLength) {
+                    if (!c9Document.hasValue())
+                        emit("joinProgress", {loaded: data.chunkNum, total: data.chunksLength});
+                    return;
+                }
 
                 doc = JSON.parse(docStream);
                 docStream = null;
