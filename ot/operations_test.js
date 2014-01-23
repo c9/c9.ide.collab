@@ -52,15 +52,6 @@ module.exports = {
             ["iabcdef", "r6", "dks"]);
     },
 
-    "test operations.unpack": function () {
-        assert.deepEqual(operations.unpack(["r2"]), ["r1", "r1"]);
-        assert.deepEqual(operations.unpack(["iab", "icd"]), ["ia", "ib", "ic", "id"]);
-        assert.deepEqual(operations.unpack(["dab", "dcd"]), ["da", "db", "dc", "dd"]);
-        // multiple edits
-        assert.deepEqual(operations.unpack(["iab", "r3", "dks"]),
-            ["ia", "ib", "r1", "r1", "r1", "dk", "ds"]);
-    },
-
     "test operations.inverse": function () {
         assert.deepEqual(operations.inverse(["iab"]), ["dab"]);
         assert.deepEqual(operations.inverse(["dab"]), ["iab"]);

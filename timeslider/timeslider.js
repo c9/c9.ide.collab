@@ -642,10 +642,9 @@ define(function(require, exports, module) {
         /***** Register and define API *****/
 
         /**
-         * Adds File->New File and File->New Folder menu items as well as the
-         * commands for opening a new file as well as an API.
+         * The timeslider allowing users to naigate through the file revision history, revert, step back and forth
          * @singleton
-         **/
+         */
         plugin.freezePublicAPI({
             /**
              * Specifies wether the timeslider is visible or not

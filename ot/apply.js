@@ -1,11 +1,17 @@
-// This module defines a function which applies a set of operations which span a
-// document, to that document. The resulting document is returned.
+// This module defines functions to apply an edit on a document representation
 define(function(require, exports, module) {
 "use strict";
 
 var operations = require("./operations");
 var Range = require("ace/range").Range;
 
+/**
+ * Apply an operation on a string document and return the resulting new document text.
+ *
+ * @param  {Opeartion} op - e.g. ["r2", "iabc", "r12"]
+ * @param  {String} doc
+ * @return {String} newDoc
+ */
 exports.applyContents = function(op, doc) {
     var i, len, newDoc = "";
     for (i = 0, len = op.length; i < len; i += 1) {
@@ -30,6 +36,12 @@ exports.applyContents = function(op, doc) {
     return newDoc;
 };
 
+/**
+ * Apply an operation on an Ace document
+ *
+ * @param  {Opeartion} op - e.g. ["r2", "iabc", "r12"]
+ * @param  {String} doc
+ */
 exports.applyAce = function(op, editorDoc) {
     var i, len, index = 0, text = "";
     for (i = 0, len = op.length; i < len; i += 1) {
@@ -58,44 +70,5 @@ exports.applyAce = function(op, editorDoc) {
         }
     }
 };
-
-exports.applyAuthorAttribs = function (op, authorAttribs, authPoolId) {
-    authPoolId = authPoolId || 0;
-
-    var i, len, index = 0, text = "";
-    for (i = 0, len = op.length; i < len; i += 1) {
-        switch (operations.type(op[i])) {
-        case "retain":
-            index += operations.val(op[i]);
-            break;
-        case "insert":
-            text = operations.val(op[i]);
-            var l = text.length;
-            while (l > 0xFFFF) {
-                insertAttribs(authorAttribs, index, 0xFFFF, authPoolId);
-                l -= 0xFFFF;
-            }
-            insertAttribs(authorAttribs, index, l, authPoolId);
-            index += l;
-            break;
-        case "delete":
-            text = operations.val(op[i]);
-            authorAttribs.splice(index, text.length);
-            break;
-        default:
-            throw new TypeError("Unknown operation: " + operations.type(op[i]));
-        }
-    }
-};
-
-function insertAttribs(arr, index, l, id) {
-    var args = new Array(l);
-    args[0] = index;
-    args[1] = 0;
-    l += 2;
-    for (var j = 2; j < l; j++)
-        args[j] = id;
-    arr.splice.apply(arr, args);
-}
 
 });

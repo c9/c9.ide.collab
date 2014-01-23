@@ -29,7 +29,6 @@ define(function(require, exports, module) {
             this.visibleItems = [];
             this.open(this.root, true);
 
-            // @TODO Deal with selection
             this._signal("change");
         };
 

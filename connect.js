@@ -250,7 +250,6 @@ define(function(require, exports, module) {
                         "<p style='font-familt: monospace;'>&nbsp;&nbsp;$ " + installationSteps.join("<br/>&nbsp;&nbsp;$ ") + "</p>" +
                         "<b>Please note that your files won't be accessible during that 1-minute installation</b>";
                     var cmds = installationSteps.join(";\n") + "\n";
-                    // TODO popup
                     c9console.showConsoleTerminal();
                     showCollabInstall(title, body);
 
@@ -334,7 +333,13 @@ define(function(require, exports, module) {
                  * Fires when the collab is disconnected
                  * @event disconnect
                  */
-                "disconnect"
+                "disconnect",
+                /**
+                 * Fires when a non-connect message is received on the collab stream
+                 * when the collab is connected to the collab server
+                 * @event message
+                 */
+                "message"
             ],
             /**
              * Specifies whether the collab debug is enabled or not

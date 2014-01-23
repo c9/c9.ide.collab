@@ -9,13 +9,13 @@ define(function(require, exports, module) {
 "use strict";
 
 var assert = require("ace/test/assertions");
-var ops = require("./operations");
+var operations = require("./operations");
 var xform = require("./xform");
 var apply = require("./apply").applyContents;
 
 function testXForm(original, a, b, expected) {
-    var operationsA = ops.operation(original, a);
-    var operationsB = ops.operation(original, b);
+    var operationsA = operations.operation(original, a);
+    var operationsB = operations.operation(original, b);
     xform(operationsA, operationsB, function (ap, bp) {
         console.log(original + " -< (" + a + ", " + b +") >- " + expected);
         console.log(original + " -< (" + operationsA + ", " + operationsB +") >- " + expected);

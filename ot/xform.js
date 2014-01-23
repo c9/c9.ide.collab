@@ -8,11 +8,11 @@ var ops = require("./operations");
 // the `xformTable`. Each function in the table should take arguments like
 // the following:
 //
-//     xformer(editA, editB, continuation)
+//     xformer(editA, editB, next)
 //
-// and should return the results by calling the continuation
+// and should return the results by calling the next
 //
-//     return continuation(editAPrime || null, editBPrime || null, newIndexA, newIndexB);
+//     return next(editAPrime || null, editBPrime || null, newIndexA, newIndexB);
 
 var xformTable = {};
 

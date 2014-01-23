@@ -125,8 +125,6 @@ define(function(require, module, exports) {
                     access   : access
                 }
             }, function (err, data, res) {
-                console.log(arguments);
-                console.error("TODO: send email to the invited member");
                 callback(err);
             });
         }
@@ -147,9 +145,17 @@ define(function(require, module, exports) {
         plugin.on("load", function(){
             load();
         });
+        
+        /***** Register and define API *****/
 
-        /***** Register *****/
-        register("", {
+        /**
+         * The Share dialog - allowing users to share the workspace with other cloud9 users
+         * @singleton
+         */
+        plugin.freezePublicAPI({
+        });
+
+        register(null, {
             "dialog.share": plugin
         });
     }

@@ -1,12 +1,3 @@
-/*global tabEditors:true, winQuestion:true, winAlert:true, winAlertHeader:true
-winAlertMsg:true, winConfirm:true */
-
-/**
- * Utilities for the Ajax.org Cloud IDE
- *
- * @copyright 2010, Ajax.org B.V.
- * @license GPLv3 <http://www.gnu.org/licenses/gpl.txt>
- */
 define(function(require, exports, module) {
     main.consumes = ["Plugin"];
     main.provides = ["collab.util"];
@@ -115,11 +106,36 @@ define(function(require, exports, module) {
             return numUsers > 1;
         }
 
+        /**
+         * Utilities for the collab plugins
+         */
         plugin.freezePublicAPI({
+            /**
+             * Escape text from HTML tags and format hyperlinks to HTML anchor elements
+             * @param {String} text - the text to escape HTML from
+             * @param {String} target - optional - the target of the added anchor element
+             */
             escapeHtmlWithClickableLinks : escapeHtmlWithClickableLinks,
+            /**
+             * Escape text from HTML tags
+             * @param {String} text - the text to escape HTML from
+             */
             escapeHTML                   : escapeHTML,
+            /**
+             * Format a color
+             * @param {Object} color descripted as an object with attributes for red, green and blue : {r: 111, g: 20, b: 255}
+             * @param {Number} alpha  - optional - the alpha transparency of the color
+             */
             formatColor                  : formatColor,
+            /**
+             * Reverse object keys to values with corresponding values as thier keys
+             * @param obj
+             */
             reverseObject                : reverseObject,
+            /**
+             * Check the collab workspace if collab is really enabled with more than one user active
+             * @param {Workspace} workspace
+             */
             isRealCollab                 : isRealCollab
         });
         

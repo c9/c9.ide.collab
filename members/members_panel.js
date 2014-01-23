@@ -46,7 +46,6 @@ define(function(require, exports, module) {
                 // Assign the dataprovider
                 membersTree.setDataProvider(membersDataProvider);
 
-                // APF + DOM HACK: popup menu
                 membersTree.on("mousedown", function(e){
                     var domTarget = e.domEvent.target;
 
@@ -57,14 +56,10 @@ define(function(require, exports, module) {
 
                     var className = domTarget.classList;
                     membersDataProvider.selection.selectNode(node);
-                    if (className.contains("access_control")) {
-                        // TODO toggle class r, rw
+                    if (className.contains("access_control"))
                         updateAccess(className.contains("rw") ? "r" : "rw");
-                        // membersDataProvider._signal("change");
-                    }
-                    else if (className == "kickout") {
+                    else if (className == "kickout")
                         removeMember();
-                    }
                 });
 
                 var mnuCtxTree = new Menu({
@@ -186,8 +181,6 @@ define(function(require, exports, module) {
                         { name: "Mostafa Eweda", uid: 1, acl: "rw", role: "a", email: "mostafa@c9.io" },
                         { name: "Lennart Kats", uid: 5, acl: "r", color: "yellow", status: "online", email: "lennart@c9.io" },
                         { name: "Ruben Daniels", uid: 2, acl: "rw", color: "blue", status: "idle", email: "ruben@ajax.org" },
-                        { name: "Fabian Jakobs", uid: 4, acl: "rw", color: "green", status: "online", email: "fabian@ajax.org" },
-                        { name: "Jos Uijterwaal", uid: 7, acl: "rw", color: "red", status: "idle", email: "jos@ajax.org" },
                         { name: "Bas de Wachter", uid: 8, acl: "rw", color: "purple", email: "bas@c9.io" }
                     ];
                 }

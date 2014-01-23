@@ -1,6 +1,3 @@
-// Operations are a stream of individual edits which span the whole document.
-// Edits have a type which is one of retain, insert, or delete
-// and have associated data based on their type.
 define(function(require, exports, module) {
 "use strict";
 
@@ -10,29 +7,36 @@ var DIFF_EQUAL = DMP.DIFF_EQUAL;
 var DIFF_INSERT = DMP.DIFF_INSERT;
 var DIFF_DELETE = DMP.DIFF_DELETE;
 
-function operation(s, t) {
+/**
+ * Get a diff operation to transform a text document from: `fromText` to `toText`
+ *
+ * @param {String} fromText
+ * @param {String} toText
+ * @return {Operation} op
+ */
+function operation(fromText, toText) {
     var dmp = new diff_match_patch();
-    var diffs = dmp.diff_main(s, t);
+    var diffs = dmp.diff_main(fromText, toText);
     dmp.diff_cleanupSemantic(diffs);
     var d, type, val;
-    var edits = [];
+    var op = [];
     for (var i = 0; i < diffs.length; i++) {
         d = diffs[i];
         type = d[0];
         val = d[1];
         switch(type) {
             case DIFF_EQUAL:
-                edits.push("r" + val.length);
+                op.push("r" + val.length);
             break;
             case DIFF_INSERT:
-                edits.push("i" + val);
+                op.push("i" + val);
             break;
             case DIFF_DELETE:
-                edits.push("d" + val);
+                op.push("d" + val);
             break;
         }
     }
-    return edits;
+    return op;
 }
 
 // Simple edit constructors.
@@ -49,8 +53,14 @@ function retain(n) {
     return "r" + String(n);
 }
 
+/**
+ * Return the type of a sub-edit
+ *
+ * @param  {String} edit
+ * @return {String} type of the operation
+ */
 function type(edit) {
-    switch (edit.charAt(0)) {
+    switch (edit[0]) {
     case "r":
         return "retain";
     case "d":
@@ -62,52 +72,60 @@ function type(edit) {
     }
 }
 
+/**
+ * Return the value of a sub-edit
+ *
+ * @param  {String} sub-edit
+ * @return the value of the operation
+ *   - Retain: the number of characters to retain
+ *   - Insert/Delete: the text to insert or delete
+ */
 function val(edit) {
     return type(edit) === "retain" ? ~~edit.slice(1) : edit.slice(1);
 }
 
+/**
+ * Return the length of a sub-edit
+ *
+ * @param  {String} edit
+ * @return {Number} the length of the operation
+ *   - Retain: the number of characters to retain
+ *   - Insert/Delete: the text length to insert or delete
+ */
 function length(edit) {
     return type(edit) === "retain" ? ~~edit.slice(1) : edit.length - 1;
 }
 
-function split(edit, num) {
+/**
+ * Split a sub-edit on a index: idx
+ *
+ * @param  {String} edit
+ * @return [{String}] an array of length 2 of the sub-operaion splitted to 2 operaions
+ */
+function split(edit, idx) {
     if (type(edit) === "retain") {
         var rCount = ~~edit.slice(1);
         return [
-            "r" + num,
-            "r" + (rCount - num)
+            "r" + idx,
+            "r" + (rCount - idx)
         ];
     }
     else {
         return [
-            edit[0] + edit.substring(1, num + 1),
-            edit[0] + edit.substring(num + 1)
+            edit[0] + edit.substring(1, idx + 1),
+            edit[0] + edit.substring(idx + 1)
         ];
     }
 }
 
-function unpack(edits) {
-    var edit, t, v, unpacked = [];
-    var j;
-    for (var i = 0, el = edits.length; i < el; i++) {
-        edit = edits[i];
-        t = type(edit);
-        v = val(edit);
-        if (t === "retain")
-            while(v--)
-                unpacked.push("r1");
-        else if (t === "insert")
-            for (j = 0; j < v.length; j++)
-                unpacked.push("i" + v[j]);
-        else if (t === "delete")
-            for (j = 0; j < v.length; j++)
-                unpacked.push("d" + v[j]);
-    }
-    return unpacked;
-}
-
-function pack(edits) {
-    var packed = edits.slice();
+/**
+ * Pack an operation to a minimal operation
+ *
+ * @param  {Operation} op
+ * @return {Operation} packed
+ */
+function pack(op) {
+    var packed = op.slice();
     var i = 0;
     while (i < packed.length - 1) {
         if (packed[i][0] === packed[i+1][0])
@@ -127,7 +145,6 @@ module.exports = {
     length: length,
     split: split,
     pack: pack,
-    unpack: unpack,
     operation: operation,
 
     isDelete: function (edit) {

@@ -67,10 +67,11 @@ main.consumes = ["CollabPanel", "ui", "MembersPanel", "collab", "panels"];
         /***** Register and define API *****/
 
         /**
-         * Adds File->New File and File->New Folder menu items as well as the
-         * commands for opening a new file as well as an API.
+         * The members panel inside the collab panel allowing workspace adminstrators
+         * to grant/revoke read+write access or kickout memmbers from the workspace
+         * and allow non-adminstrators to see other members of the workspace
          * @singleton
-         **/
+         */
         plugin.freezePublicAPI({
         });
 
