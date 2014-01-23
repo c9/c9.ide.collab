@@ -8,133 +8,29 @@ var exists = Fs.exists || Path.exists;
 
 var localfsAPI; // Set on VFS register
 
-/* diff_match_patch start */
-
-var DIFF_EQUAL = 0;
-var DIFF_INSERT = 1;
-var DIFF_DELETE = -1;
-function diff_match_patch(){this.Diff_Timeout=1;this.Diff_EditCost=4;this.Match_Threshold=0.5;this.Match_Distance=1E3;this.Patch_DeleteThreshold=0.5;this.Patch_Margin=4;this.Match_MaxBits=32}
-diff_match_patch.prototype.diff_main=function(a,b,c,d){"undefined"==typeof d&&(d=0>=this.Diff_Timeout?Number.MAX_VALUE:(new Date).getTime()+1E3*this.Diff_Timeout);if(null==a||null==b)throw Error("Null input. (diff_main)");if(a==b)return a?[[0,a]]:[];"undefined"==typeof c&&(c=!0);var e=c,f=this.diff_commonPrefix(a,b),c=a.substring(0,f),a=a.substring(f),b=b.substring(f),f=this.diff_commonSuffix(a,b),g=a.substring(a.length-f),a=a.substring(0,a.length-f),b=b.substring(0,b.length-f),a=this.diff_compute_(a,b,e,d);c&&a.unshift([0,c]);g&&a.push([0,g]);this.diff_cleanupMerge(a);return a};
-diff_match_patch.prototype.diff_compute_=function(a,b,c,d){if(!a)return[[1,b]];if(!b)return[[-1,a]];var e=a.length>b.length?a:b,f=a.length>b.length?b:a,g=e.indexOf(f);if(-1!=g)return c=[[1,e.substring(0,g)],[0,f],[1,e.substring(g+f.length)]],a.length>b.length&&(c[0][0]=c[2][0]=-1),c;if(1==f.length)return[[-1,a],[1,b]];return(e=this.diff_halfMatch_(a,b))?(f=e[0],a=e[1],g=e[2],b=e[3],e=e[4],f=this.diff_main(f,g,c,d),c=this.diff_main(a,b,c,d),f.concat([[0,e]],c)):c&&100<a.length&&100<b.length?this.diff_lineMode_(a,b,d):this.diff_bisect_(a,b,d)};
-diff_match_patch.prototype.diff_lineMode_=function(a,b,c){var d=this.diff_linesToChars_(a,b),a=d.chars1,b=d.chars2,d=d.lineArray,a=this.diff_main(a,b,!1,c);this.diff_charsToLines_(a,d);this.diff_cleanupSemantic(a);a.push([0,""]);for(var e=d=b=0,f="",g="";b<a.length;){switch(a[b][0]){case 1:e++;g+=a[b][1];break;case -1:d++;f+=a[b][1];break;case 0:if(1<=d&&1<=e){a.splice(b-d-e,d+e);b=b-d-e;d=this.diff_main(f,g,!1,c);for(e=d.length-1;0<=e;e--)a.splice(b,0,d[e]);b+=d.length}d=e=0;g=f=""}b++}a.pop();return a};
-diff_match_patch.prototype.diff_bisect_=function(a,b,c){for(var d=a.length,e=b.length,f=Math.ceil((d+e)/2),g=f,h=2*f,j=Array(h),i=Array(h),k=0;k<h;k++)j[k]=-1,i[k]=-1;j[g+1]=0;i[g+1]=0;for(var k=d-e,p=0!=k%2,q=0,s=0,o=0,v=0,u=0;u<f&&!((new Date).getTime()>c);u++){for(var n=-u+q;n<=u-s;n+=2){var l=g+n,m;m=n==-u||n!=u&&j[l-1]<j[l+1]?j[l+1]:j[l-1]+1;for(var r=m-n;m<d&&r<e&&a.charAt(m)==b.charAt(r);)m++,r++;j[l]=m;if(m>d)s+=2;else if(r>e)q+=2;else if(p&&(l=g+k-n,0<=l&&l<h&&-1!=i[l])){var t=d-i[l];if(m>=t)return this.diff_bisectSplit_(a,b,m,r,c)}}for(n=-u+o;n<=u-v;n+=2){l=g+n;t=n==-u||n!=u&&i[l-1]<i[l+1]?i[l+1]:i[l-1]+1;for(m=t-n;t<d&&m<e&&a.charAt(d-t-1)==b.charAt(e-m-1);)t++,m++;i[l]=t;if(t>d)v+=2;else if(m>e)o+=2;else if(!p&&(l=g+k-n,0<=l&&l<h&&-1!=j[l]&&(m=j[l],r=g+m-l,t=d-t,m>=t)))return this.diff_bisectSplit_(a,b,m,r,c)}}return[[-1,a],[1,b]]};
-diff_match_patch.prototype.diff_bisectSplit_=function(a,b,c,d,e){var f=a.substring(0,c),g=b.substring(0,d),a=a.substring(c),b=b.substring(d),f=this.diff_main(f,g,!1,e),e=this.diff_main(a,b,!1,e);return f.concat(e)};
-diff_match_patch.prototype.diff_linesToChars_=function(a,b){function c(a){for(var b="",c=0,f=-1,g=d.length;f<a.length-1;){f=a.indexOf("\n",c);-1==f&&(f=a.length-1);var q=a.substring(c,f+1),c=f+1;(e.hasOwnProperty?e.hasOwnProperty(q):void 0!==e[q])?b+=String.fromCharCode(e[q]):(b+=String.fromCharCode(g),e[q]=g,d[g++]=q)}return b}var d=[],e={};d[0]="";var f=c(a),g=c(b);return{chars1:f,chars2:g,lineArray:d}};
-diff_match_patch.prototype.diff_charsToLines_=function(a,b){for(var c=0;c<a.length;c++){for(var d=a[c][1],e=[],f=0;f<d.length;f++)e[f]=b[d.charCodeAt(f)];a[c][1]=e.join("")}};diff_match_patch.prototype.diff_commonPrefix=function(a,b){if(!a||!b||a.charAt(0)!=b.charAt(0))return 0;for(var c=0,d=Math.min(a.length,b.length),e=d,f=0;c<e;)a.substring(f,e)==b.substring(f,e)?f=c=e:d=e,e=Math.floor((d-c)/2+c);return e};
-diff_match_patch.prototype.diff_commonSuffix=function(a,b){if(!a||!b||a.charAt(a.length-1)!=b.charAt(b.length-1))return 0;for(var c=0,d=Math.min(a.length,b.length),e=d,f=0;c<e;)a.substring(a.length-e,a.length-f)==b.substring(b.length-e,b.length-f)?f=c=e:d=e,e=Math.floor((d-c)/2+c);return e};
-diff_match_patch.prototype.diff_commonOverlap_=function(a,b){var c=a.length,d=b.length;if(0==c||0==d)return 0;c>d?a=a.substring(c-d):c<d&&(b=b.substring(0,c));c=Math.min(c,d);if(a==b)return c;for(var d=0,e=1;;){var f=a.substring(c-e),f=b.indexOf(f);if(-1==f)return d;e+=f;if(0==f||a.substring(c-e)==b.substring(0,e))d=e,e++}};
-diff_match_patch.prototype.diff_halfMatch_=function(a,b){function c(a,b,c){for(var d=a.substring(c,c+Math.floor(a.length/4)),e=-1,g="",h,j,n,l;-1!=(e=b.indexOf(d,e+1));){var m=f.diff_commonPrefix(a.substring(c),b.substring(e)),r=f.diff_commonSuffix(a.substring(0,c),b.substring(0,e));g.length<r+m&&(g=b.substring(e-r,e)+b.substring(e,e+m),h=a.substring(0,c-r),j=a.substring(c+m),n=b.substring(0,e-r),l=b.substring(e+m))}return 2*g.length>=a.length?[h,j,n,l,g]:null}if(0>=this.Diff_Timeout)return null;var d=a.length>b.length?a:b,e=a.length>b.length?b:a;if(4>d.length||2*e.length<d.length)return null;var f=this,g=c(d,e,Math.ceil(d.length/4)),d=c(d,e,Math.ceil(d.length/2)),h;if(!g&&!d)return null;h=d?g?g[4].length>d[4].length?g:d:d:g;var j;a.length>b.length?(g=h[0],d=h[1],e=h[2],j=h[3]):(e=h[0],j=h[1],g=h[2],d=h[3]);h=h[4];return[g,d,e,j,h]};
-diff_match_patch.prototype.diff_cleanupSemantic=function(a){for(var b=!1,c=[],d=0,e=null,f=0,g=0,h=0,j=0,i=0;f<a.length;)0==a[f][0]?(c[d++]=f,g=j,h=i,i=j=0,e=a[f][1]):(1==a[f][0]?j+=a[f][1].length:i+=a[f][1].length,e&&e.length<=Math.max(g,h)&&e.length<=Math.max(j,i)&&(a.splice(c[d-1],0,[-1,e]),a[c[d-1]+1][0]=1,d--,d--,f=0<d?c[d-1]:-1,i=j=h=g=0,e=null,b=!0)),f++;b&&this.diff_cleanupMerge(a);this.diff_cleanupSemanticLossless(a);for(f=1;f<a.length;){if(-1==a[f-1][0]&&1==a[f][0]){b=a[f-1][1];c=a[f][1];d=this.diff_commonOverlap_(b,c);e=this.diff_commonOverlap_(c,b);if(d>=e){if(d>=b.length/2||d>=c.length/2)a.splice(f,0,[0,c.substring(0,d)]),a[f-1][1]=b.substring(0,b.length-d),a[f+1][1]=c.substring(d),f++}else if(e>=b.length/2||e>=c.length/2)a.splice(f,0,[0,b.substring(0,e)]),a[f-1][0]=1,a[f-1][1]=c.substring(0,c.length-e),a[f+1][0]=-1,a[f+1][1]=b.substring(e),f++;f++}f++}};
-diff_match_patch.prototype.diff_cleanupSemanticLossless=function(a){function b(a,b){if(!a||!b)return 6;var c=a.charAt(a.length-1),d=b.charAt(0),e=c.match(diff_match_patch.nonAlphaNumericRegex_),f=d.match(diff_match_patch.nonAlphaNumericRegex_),g=e&&c.match(diff_match_patch.whitespaceRegex_),h=f&&d.match(diff_match_patch.whitespaceRegex_),c=g&&c.match(diff_match_patch.linebreakRegex_),d=h&&d.match(diff_match_patch.linebreakRegex_),i=c&&a.match(diff_match_patch.blanklineEndRegex_),j=d&&b.match(diff_match_patch.blanklineStartRegex_);return i||j?5:c||d?4:e&&!g&&h?3:g||h?2:e||f?1:0}for(var c=1;c<a.length-1;){if(0==a[c-1][0]&&0==a[c+1][0]){var d=a[c-1][1],e=a[c][1],f=a[c+1][1],g=this.diff_commonSuffix(d,e);if(g)var h=e.substring(e.length-g),d=d.substring(0,d.length-g),e=h+e.substring(0,e.length-g),f=h+f;for(var g=d,h=e,j=f,i=b(d,e)+b(e,f);e.charAt(0)===f.charAt(0);){var d=d+e.charAt(0),e=e.substring(1)+f.charAt(0),f=f.substring(1),k=b(d,e)+b(e,f);k>=i&&(i=k,g=d,h=e,j=f)}a[c-1][1]!=g&&(g?a[c-1][1]=g:(a.splice(c-1,1),c--),a[c][1]=h,j?a[c+1][1]=j:(a.splice(c+1,1),c--))}c++}};diff_match_patch.nonAlphaNumericRegex_=/[^a-zA-Z0-9]/;diff_match_patch.whitespaceRegex_=/\s/;diff_match_patch.linebreakRegex_=/[\r\n]/;diff_match_patch.blanklineEndRegex_=/\n\r?\n$/;diff_match_patch.blanklineStartRegex_=/^\r?\n\r?\n/;
-diff_match_patch.prototype.diff_cleanupEfficiency=function(a){for(var b=!1,c=[],d=0,e=null,f=0,g=!1,h=!1,j=!1,i=!1;f<a.length;){if(0==a[f][0])a[f][1].length<this.Diff_EditCost&&(j||i)?(c[d++]=f,g=j,h=i,e=a[f][1]):(d=0,e=null),j=i=!1;else if(-1==a[f][0]?i=!0:j=!0,e&&(g&&h&&j&&i||e.length<this.Diff_EditCost/2&&3==g+h+j+i))a.splice(c[d-1],0,[-1,e]),a[c[d-1]+1][0]=1,d--,e=null,g&&h?(j=i=!0,d=0):(d--,f=0<d?c[d-1]:-1,j=i=!1),b=!0;f++}b&&this.diff_cleanupMerge(a)};
-diff_match_patch.prototype.diff_cleanupMerge=function(a){a.push([0,""]);for(var b=0,c=0,d=0,e="",f="",g;b<a.length;)switch(a[b][0]){case 1:d++;f+=a[b][1];b++;break;case -1:c++;e+=a[b][1];b++;break;case 0:1<c+d?(0!==c&&0!==d&&(g=this.diff_commonPrefix(f,e),0!==g&&(0<b-c-d&&0==a[b-c-d-1][0]?a[b-c-d-1][1]+=f.substring(0,g):(a.splice(0,0,[0,f.substring(0,g)]),b++),f=f.substring(g),e=e.substring(g)),g=this.diff_commonSuffix(f,e),0!==g&&(a[b][1]=f.substring(f.length-g)+a[b][1],f=f.substring(0,f.length-g),e=e.substring(0,e.length-g))),0===c?a.splice(b-d,c+d,[1,f]):0===d?a.splice(b-c,c+d,[-1,e]):a.splice(b-c-d,c+d,[-1,e],[1,f]),b=b-c-d+(c?1:0)+(d?1:0)+1):0!==b&&0==a[b-1][0]?(a[b-1][1]+=a[b][1],a.splice(b,1)):b++,c=d=0,f=e=""}""===a[a.length-1][1]&&a.pop();c=!1;for(b=1;b<a.length-1;)0==a[b-1][0]&&0==a[b+1][0]&&(a[b][1].substring(a[b][1].length-a[b-1][1].length)==a[b-1][1]?(a[b][1]=a[b-1][1]+a[b][1].substring(0,a[b][1].length-a[b-1][1].length),a[b+1][1]=a[b-1][1]+a[b+1][1],a.splice(b-1,1),c=!0):a[b][1].substring(0,a[b+1][1].length)==a[b+1][1]&&(a[b-1][1]+=a[b+1][1],a[b][1]=a[b][1].substring(a[b+1][1].length)+a[b+1][1],a.splice(b+1,1),c=!0)),b++;c&&this.diff_cleanupMerge(a)};
-diff_match_patch.prototype.diff_xIndex=function(a,b){var c=0,d=0,e=0,f=0,g;for(g=0;g<a.length;g++){1!==a[g][0]&&(c+=a[g][1].length);-1!==a[g][0]&&(d+=a[g][1].length);if(c>b)break;e=c;f=d}return a.length!=g&&-1===a[g][0]?f:f+(b-e)};
-diff_match_patch.prototype.diff_prettyHtml=function(a){for(var b=[],c=/&/g,d=/</g,e=/>/g,f=/\n/g,g=0;g<a.length;g++){var h=a[g][0],j=a[g][1],j=j.replace(c,"&amp;").replace(d,"&lt;").replace(e,"&gt;").replace(f,"&para;<br>");switch(h){case 1:b[g]='<ins style="background:#e6ffe6;">'+j+"</ins>";break;case -1:b[g]='<del style="background:#ffe6e6;">'+j+"</del>";break;case 0:b[g]="<span>"+j+"</span>"}}return b.join("")};
-diff_match_patch.prototype.diff_text1=function(a){for(var b=[],c=0;c<a.length;c++)1!==a[c][0]&&(b[c]=a[c][1]);return b.join("")};
-diff_match_patch.prototype.diff_text2=function(a){for(var b=[],c=0;c<a.length;c++)-1!==a[c][0]&&(b[c]=a[c][1]);return b.join("")};
-diff_match_patch.prototype.diff_levenshtein=function(a){for(var b=0,c=0,d=0,e=0;e<a.length;e++){var f=a[e][0],g=a[e][1];switch(f){case 1:c+=g.length;break;case -1:d+=g.length;break;case 0:b+=Math.max(c,d),d=c=0}}return b+=Math.max(c,d)};
-diff_match_patch.prototype.diff_toDelta=function(a){for(var b=[],c=0;c<a.length;c++)switch(a[c][0]){case 1:b[c]="+"+encodeURI(a[c][1]);break;case -1:b[c]="-"+a[c][1].length;break;case 0:b[c]="="+a[c][1].length}return b.join("\t").replace(/%20/g," ")};
-diff_match_patch.prototype.diff_fromDelta=function(a,b){for(var c=[],d=0,e=0,f=b.split(/\t/g),g=0;g<f.length;g++){var h=f[g].substring(1);switch(f[g].charAt(0)){case "+":try{c[d++]=[1,decodeURI(h)]}catch(j){throw Error("Illegal escape in diff_fromDelta: "+h);}break;case "-":case "=":var i=parseInt(h,10);if(isNaN(i)||0>i)throw Error("Invalid number in diff_fromDelta: "+h);h=a.substring(e,e+=i);"="==f[g].charAt(0)?c[d++]=[0,h]:c[d++]=[-1,h];break;default:if(f[g])throw Error("Invalid diff operation in diff_fromDelta: "+f[g]);}}if(e!=a.length)throw Error("Delta length ("+e+") does not equal source text length ("+a.length+").");return c};
-diff_match_patch.prototype.match_main=function(a,b,c){if(null==a||null==b||null==c)throw Error("Null input. (match_main)");c=Math.max(0,Math.min(c,a.length));return a==b?0:a.length?a.substring(c,c+b.length)==b?c:this.match_bitap_(a,b,c):-1};
-diff_match_patch.prototype.match_bitap_=function(a,b,c){function d(a,d){var e=a/b.length,g=Math.abs(c-d);return!f.Match_Distance?g?1:e:e+g/f.Match_Distance}if(b.length>this.Match_MaxBits)throw Error("Pattern too long for this browser.");var e=this.match_alphabet_(b),f=this,g=this.Match_Threshold,h=a.indexOf(b,c);-1!=h&&(g=Math.min(d(0,h),g),h=a.lastIndexOf(b,c+b.length),-1!=h&&(g=Math.min(d(0,h),g)));for(var j=1<<b.length-1,h=-1,i,k,p=b.length+a.length,q,s=0;s<b.length;s++){i=0;for(k=p;i<k;)d(s,c+k)<=g?i=k:p=k,k=Math.floor((p-i)/2+i);p=k;i=Math.max(1,c-k+1);var o=Math.min(c+k,a.length)+b.length;k=Array(o+2);for(k[o+1]=(1<<s)-1;o>=i;o--){var v=e[a.charAt(o-1)];k[o]=0===s?(k[o+1]<<1|1)&v:(k[o+1]<<1|1)&v|(q[o+1]|q[o])<<1|1|q[o+1];if(k[o]&j&&(v=d(s,o-1),v<=g))if(g=v,h=o-1,h>c)i=Math.max(1,2*c-h);else break}if(d(s+1,c)>g)break;q=k}return h};
-diff_match_patch.prototype.match_alphabet_=function(a){for(var b={},c=0;c<a.length;c++)b[a.charAt(c)]=0;for(c=0;c<a.length;c++)b[a.charAt(c)]|=1<<a.length-c-1;return b};
-diff_match_patch.prototype.patch_addContext_=function(a,b){if(0!=b.length){for(var c=b.substring(a.start2,a.start2+a.length1),d=0;b.indexOf(c)!=b.lastIndexOf(c)&&c.length<this.Match_MaxBits-this.Patch_Margin-this.Patch_Margin;)d+=this.Patch_Margin,c=b.substring(a.start2-d,a.start2+a.length1+d);d+=this.Patch_Margin;(c=b.substring(a.start2-d,a.start2))&&a.diffs.unshift([0,c]);(d=b.substring(a.start2+a.length1,a.start2+a.length1+d))&&a.diffs.push([0,d]);a.start1-=c.length;a.start2-=c.length;a.length1+=c.length+d.length;a.length2+=c.length+d.length}};
-diff_match_patch.prototype.patch_make=function(a,b,c){var d;if("string"==typeof a&&"string"==typeof b&&"undefined"==typeof c)d=a,b=this.diff_main(d,b,!0),2<b.length&&(this.diff_cleanupSemantic(b),this.diff_cleanupEfficiency(b));else if(a&&"object"==typeof a&&"undefined"==typeof b&&"undefined"==typeof c)b=a,d=this.diff_text1(b);else if("string"==typeof a&&b&&"object"==typeof b&&"undefined"==typeof c)d=a;else if("string"==typeof a&&"string"==typeof b&&c&&"object"==typeof c)d=a,b=c;else throw Error("Unknown call format to patch_make.");if(0===b.length)return[];for(var c=[],a=new diff_match_patch.patch_obj,e=0,f=0,g=0,h=d,j=0;j<b.length;j++){var i=b[j][0],k=b[j][1];if(!e&&0!==i)a.start1=f,a.start2=g;switch(i){case 1:a.diffs[e++]=b[j];a.length2+=k.length;d=d.substring(0,g)+k+d.substring(g);break;case -1:a.length1+=k.length;a.diffs[e++]=b[j];d=d.substring(0,g)+d.substring(g+k.length);break;case 0:k.length<=2*this.Patch_Margin&&e&&b.length!=j+1?(a.diffs[e++]=b[j],a.length1+=k.length,a.length2+=k.length):k.length>=2*this.Patch_Margin&&e&&(this.patch_addContext_(a,h),c.push(a),a=new diff_match_patch.patch_obj,e=0,h=d,f=g)}1!==i&&(f+=k.length);-1!==i&&(g+=k.length)}e&&(this.patch_addContext_(a,h),c.push(a));return c};
-diff_match_patch.prototype.patch_deepCopy=function(a){for(var b=[],c=0;c<a.length;c++){var d=a[c],e=new diff_match_patch.patch_obj;e.diffs=[];for(var f=0;f<d.diffs.length;f++)e.diffs[f]=d.diffs[f].slice();e.start1=d.start1;e.start2=d.start2;e.length1=d.length1;e.length2=d.length2;b[c]=e}return b};
-diff_match_patch.prototype.patch_apply=function(a,b){if(0==a.length)return[b,[]];var a=this.patch_deepCopy(a),c=this.patch_addPadding(a),b=c+b+c;this.patch_splitMax(a);for(var d=0,e=[],f=0;f<a.length;f++){var g=a[f].start2+d,h=this.diff_text1(a[f].diffs),j,i=-1;if(h.length>this.Match_MaxBits){if(j=this.match_main(b,h.substring(0,this.Match_MaxBits),g),-1!=j&&(i=this.match_main(b,h.substring(h.length-this.Match_MaxBits),g+h.length-this.Match_MaxBits),-1==i||j>=i))j=-1}else j=this.match_main(b,h,g);if(-1==j)e[f]=!1,d-=a[f].length2-a[f].length1;else if(e[f]=!0,d=j-g,g=-1==i?b.substring(j,j+h.length):b.substring(j,i+this.Match_MaxBits),h==g)b=b.substring(0,j)+this.diff_text2(a[f].diffs)+b.substring(j+h.length);else if(g=this.diff_main(h,g,!1),h.length>this.Match_MaxBits&&this.diff_levenshtein(g)/h.length>this.Patch_DeleteThreshold)e[f]=!1;else{this.diff_cleanupSemanticLossless(g);for(var h=0,k,i=0;i<a[f].diffs.length;i++){var p=a[f].diffs[i];0!==p[0]&&(k=this.diff_xIndex(g,h));1===p[0]?b=b.substring(0,j+k)+p[1]+b.substring(j+k):-1===p[0]&&(b=b.substring(0,j+k)+b.substring(j+this.diff_xIndex(g,h+p[1].length)));-1!==p[0]&&(h+=p[1].length)}}}b=b.substring(c.length,b.length-c.length);return[b,e]};
-diff_match_patch.prototype.patch_addPadding=function(a){for(var b=this.Patch_Margin,c="",d=1;d<=b;d++)c+=String.fromCharCode(d);for(d=0;d<a.length;d++)a[d].start1+=b,a[d].start2+=b;var d=a[0],e=d.diffs;if(0==e.length||0!=e[0][0])e.unshift([0,c]),d.start1-=b,d.start2-=b,d.length1+=b,d.length2+=b;else if(b>e[0][1].length){var f=b-e[0][1].length;e[0][1]=c.substring(e[0][1].length)+e[0][1];d.start1-=f;d.start2-=f;d.length1+=f;d.length2+=f}d=a[a.length-1];e=d.diffs;0==e.length||0!=e[e.length-1][0]?(e.push([0,c]),d.length1+=b,d.length2+=b):b>e[e.length-1][1].length&&(f=b-e[e.length-1][1].length,e[e.length-1][1]+=c.substring(0,f),d.length1+=f,d.length2+=f);return c};
-diff_match_patch.prototype.patch_splitMax=function(a){for(var b=this.Match_MaxBits,c=0;c<a.length;c++)if(!(a[c].length1<=b)){var d=a[c];a.splice(c--,1);for(var e=d.start1,f=d.start2,g="";0!==d.diffs.length;){var h=new diff_match_patch.patch_obj,j=!0;h.start1=e-g.length;h.start2=f-g.length;if(""!==g)h.length1=h.length2=g.length,h.diffs.push([0,g]);for(;0!==d.diffs.length&&h.length1<b-this.Patch_Margin;){var g=d.diffs[0][0],i=d.diffs[0][1];1===g?(h.length2+=i.length,f+=i.length,h.diffs.push(d.diffs.shift()),j=!1):-1===g&&1==h.diffs.length&&0==h.diffs[0][0]&&i.length>2*b?(h.length1+=i.length,e+=i.length,j=!1,h.diffs.push([g,i]),d.diffs.shift()):(i=i.substring(0,b-h.length1-this.Patch_Margin),h.length1+=i.length,e+=i.length,0===g?(h.length2+=i.length,f+=i.length):j=!1,h.diffs.push([g,i]),i==d.diffs[0][1]?d.diffs.shift():d.diffs[0][1]=d.diffs[0][1].substring(i.length))}g=this.diff_text2(h.diffs);g=g.substring(g.length-this.Patch_Margin);i=this.diff_text1(d.diffs).substring(0,this.Patch_Margin);""!==i&&(h.length1+=i.length,h.length2+=i.length,0!==h.diffs.length&&0===h.diffs[h.diffs.length-1][0]?h.diffs[h.diffs.length-1][1]+=i:h.diffs.push([0,i]));j||a.splice(++c,0,h)}}};
-diff_match_patch.prototype.patch_toText=function(a){for(var b=[],c=0;c<a.length;c++)b[c]=a[c];return b.join("")};
-diff_match_patch.prototype.patch_fromText=function(a){var b=[];if(!a)return b;for(var a=a.split("\n"),c=0,d=/^@@ -(\d+),?(\d*) \+(\d+),?(\d*) @@$/;c<a.length;){var e=a[c].match(d);if(!e)throw Error("Invalid patch string: "+a[c]);var f=new diff_match_patch.patch_obj;b.push(f);f.start1=parseInt(e[1],10);""===e[2]?(f.start1--,f.length1=1):"0"==e[2]?f.length1=0:(f.start1--,f.length1=parseInt(e[2],10));f.start2=parseInt(e[3],10);""===e[4]?(f.start2--,f.length2=1):"0"==e[4]?f.length2=0:(f.start2--,f.length2=parseInt(e[4],10));for(c++;c<a.length;){e=a[c].charAt(0);try{var g=decodeURI(a[c].substring(1))}catch(h){throw Error("Illegal escape in patch_fromText: "+g);}if("-"==e)f.diffs.push([-1,g]);else if("+"==e)f.diffs.push([1,g]);else if(" "==e)f.diffs.push([0,g]);else if("@"==e)break;else if(""!==e)throw Error('Invalid patch mode "'+e+'" in: '+g);c++}}return b};
-diff_match_patch.patch_obj=function(){this.diffs=[];this.start2=this.start1=null;this.length2=this.length1=0};
-diff_match_patch.patch_obj.prototype.toString=function(){var a,b;a=0===this.length1?this.start1+",0":1==this.length1?this.start1+1:this.start1+1+","+this.length1;b=0===this.length2?this.start2+",0":1==this.length2?this.start2+1:this.start2+1+","+this.length2;a=["@@ -"+a+" +"+b+" @@\n"];var c;for(b=0;b<this.diffs.length;b++){switch(this.diffs[b][0]){case 1:c="+";break;case -1:c="-";break;case 0:c=" "}a[b+1]=c+encodeURI(this.diffs[b][1])+"\n"}return a.join("").replace(/%20/g," ")};
-/* diff_match_patch end */
-
-function NOOP () {}
-
-// Wrap Sequelize callback-style to NodeJS"s standard callback-style
-function wrapSeq(fun, next) {
-    return fun.success(function () {
-        next.apply(null, [null].concat(Array.prototype.slice.apply(arguments)));
-    }).error(next);
-}
-
-function hashString(str) {
-    return crypto.createHash('md5').update(str).digest("hex");
-}
-
-// Copied from async
-// Can be generically used in many scenarios
-var async = function() {
-
-    function forEachSeries (arr, iterator, callback) {
-        callback = callback || function () {};
-        if (!arr.length) {
-            return callback();
-        }
-        var completed = 0;
-        var iterate = function () {
-            iterator(arr[completed], function (err) {
-                if (err) {
-                    callback(err);
-                    callback = function () {};
-                }
-                else {
-                    completed += 1;
-                    if (completed === arr.length) {
-                        callback(null);
-                    }
-                    else {
-                        iterate();
-                    }
-                }
-            });
-        };
-        iterate();
-    }
-
-    function series(arr, callback) {
-        forEachSeries(arr, function (fn, next) {
-            fn.call(null, function (err) {
-                if (err)
-                    return callback(err);
-                next();
-            });
-        }, callback);
-    }
-
-    return {
-        series: series,
-        forEachSeries: forEachSeries
-    };
-
-}();
-
 // Models
 var User, Document, Revision, Workspace, ChatMessage;
 var basePath;
 var PID;
 var dbFilePath;
+
 // Cache the workspace state got from the database
 var cachedWS;
 var cachedUsers;
 
-function getDocPath (path) {
-    if (path.indexOf(basePath) === 0)
-        return path.substring(basePath.length+1);
-    return path;
-}
-
-function getAbsolutePath (docId) {
-    return Path.join(basePath, docId);
+function getHomeDir() {
+    return process.env.OPENSHIFT_DATA_DIR || process.env.HOME;
 }
 
 function getProjectWD() {
-    return Path.join(process.env.OPENSHIFT_DATA_DIR || process.env.HOME, ".c9", PID + "");
+    return Path.join(getHomeDir(), ".c9", PID + "");
 }
 
+/**
+ * Checks if the collab server required modules are installed
+ * npm: sqlite3 & sequelize
+ */
 function installServer(callback) {
-
     function checkInstalled() {
         try {
             require("sqlite3");
@@ -152,8 +48,25 @@ function installServer(callback) {
     callback();
 }
 
-function initDB(callback) {
+/**
+ * Wrap Sequelize callback-style to NodeJS"s standard callback-style
+ */
+function wrapSeq(fun, next) {
+    return fun.success(function () {
+        next.apply(null, [null].concat(Array.prototype.slice.apply(arguments)));
+    }).error(next);
+}
 
+/**
+ * Initialize the collab server sqlite3 database
+ *  - Define modules mapping to tables
+ *  - Declare relationships
+ *  - Sync sequelize modules
+ *  - Create and cache the Workspace metadata
+ *  - Set synchronous = 0 for fastest IO performance
+ *  - Create indices, if not existing
+ */
+function initDB(callback) {
     var Sequelize = require("sequelize");
 
     var sequelize = new Sequelize("c9-collab", "c9", "c9-collab-secret", {
@@ -276,145 +189,187 @@ function initDB(callback) {
 
 /**************** operations.js ******************/
 var operations = (function() {
-
-    // Simple edit constructors.
-
-    function insert(chars) {
-        return "i" + chars;
-    }
-
-    function del(chars) {
-        return "d" + chars;
-    }
-
-    function retain(n) {
-        return "r" + String(n);
-    }
-
-    function type(edit) {
-        switch (edit.charAt(0)) {
-        case "r":
-            return "retain";
-        case "d":
-            return "delete";
-        case "i":
-            return "insert";
-        default:
-            throw new TypeError("Unknown type of edit: " + edit);
+/**
+ * Get a diff operation to transform a text document from: `fromText` to `toText`
+ *
+ * @param {String} fromText
+ * @param {String} toText
+ * @return {Operation} op
+ */
+function operation(fromText, toText) {
+    var dmp = new diff_match_patch();
+    var diffs = dmp.diff_main(fromText, toText);
+    dmp.diff_cleanupSemantic(diffs);
+    var d, type, val;
+    var op = [];
+    for (var i = 0; i < diffs.length; i++) {
+        d = diffs[i];
+        type = d[0];
+        val = d[1];
+        switch(type) {
+            case DIFF_EQUAL:
+                op.push("r" + val.length);
+            break;
+            case DIFF_INSERT:
+                op.push("i" + val);
+            break;
+            case DIFF_DELETE:
+                op.push("d" + val);
+            break;
         }
     }
+    return op;
+}
 
-    function val(edit) {
-        return type(edit) === "retain" ? Number(edit.slice(1)) : edit.slice(1);
+// Simple edit constructors.
+
+function insert(chars) {
+    return "i" + chars;
+}
+
+function del(chars) {
+    return "d" + chars;
+}
+
+function retain(n) {
+    return "r" + String(n);
+}
+
+/**
+ * Return the type of a sub-edit
+ *
+ * @param  {String} edit
+ * @return {String} type of the operation
+ */
+function type(edit) {
+    switch (edit[0]) {
+    case "r":
+        return "retain";
+    case "d":
+        return "delete";
+    case "i":
+        return "insert";
+    default:
+        throw new TypeError("Unknown type of edit: ", edit);
     }
+}
 
-    function length(edit) {
-        return type(edit) === "retain" ? Number(edit.slice(1)) : edit.length - 1;
+/**
+ * Return the value of a sub-edit
+ *
+ * @param  {String} sub-edit
+ * @return the value of the operation
+ *   - Retain: the number of characters to retain
+ *   - Insert/Delete: the text to insert or delete
+ */
+function val(edit) {
+    return type(edit) === "retain" ? ~~edit.slice(1) : edit.slice(1);
+}
+
+/**
+ * Return the length of a sub-edit
+ *
+ * @param  {String} edit
+ * @return {Number} the length of the operation
+ *   - Retain: the number of characters to retain
+ *   - Insert/Delete: the text length to insert or delete
+ */
+function length(edit) {
+    return type(edit) === "retain" ? ~~edit.slice(1) : edit.length - 1;
+}
+
+/**
+ * Split a sub-edit on a index: idx
+ *
+ * @param  {String} edit
+ * @return [{String}] an array of length 2 of the sub-operaion splitted to 2 operaions
+ */
+function split(edit, idx) {
+    if (type(edit) === "retain") {
+        var rCount = ~~edit.slice(1);
+        return [
+            "r" + idx,
+            "r" + (rCount - idx)
+        ];
     }
-
-    function split(edit, num) {
-        if (type(edit) === "retain") {
-            var rCount = Number(edit.slice(1));
-            return [
-                "r" + num,
-                "r" + (rCount - num)
-            ];
-        }
-        else {
-            return [
-                edit[0] + edit.substring(1, num + 1),
-                edit[0] + edit.substring(num + 1)
-            ];
-        }
+    else {
+        return [
+            edit[0] + edit.substring(1, idx + 1),
+            edit[0] + edit.substring(idx + 1)
+        ];
     }
+}
 
-    function pack(edits) {
-        var packed = edits.slice();
-        var i = 0;
-        while (i < packed.length - 1) {
-            if (packed[i][0] === packed[i+1][0])
-                packed.splice(i, 2, packed[i][0] + (val(packed[i]) + val(packed[i+1])));
-            else
-                i++;
-        }
-        return packed;
+/**
+ * Pack an operation to a minimal operation
+ *
+ * @param  {Operation} op
+ * @return {Operation} packed
+ */
+function pack(op) {
+    var packed = op.slice();
+    var i = 0;
+    while (i < packed.length - 1) {
+        if (packed[i][0] === packed[i+1][0])
+            packed.splice(i, 2, packed[i][0] + (val(packed[i]) + val(packed[i+1])));
+        else
+            i++;
     }
+    return packed;
+}
 
-    function operation(s, t) {
-        var dmp = new diff_match_patch();
-        var diffs = dmp.diff_main(s, t);
-        dmp.diff_cleanupSemantic(diffs);
-        var d, type, val;
-        var edits = [];
-        for (var i = 0; i < diffs.length; i++) {
-            d = diffs[i];
-            type = d[0];
-            val = d[1];
-            switch(type) {
-                case DIFF_EQUAL:
-                    edits.push("r" + val.length);
+/**
+ * Inverse an operation to undo revert its effect on a document
+ *
+ * @param  {Operation} op
+ * @return {Operation} inversed
+ */
+function inverse(op) {
+    var edit, t, v, inversed = new Array(op.length);
+    for (var i = 0, el = op.length; i < el; i++) {
+        edit = op[i];
+        t = type(edit);
+        v = val(edit);
+        switch (t) {
+            case "retain":
+                inversed[i] = op[i];
                 break;
-                case DIFF_INSERT:
-                    edits.push("i" + val);
+            case "insert":
+                inversed[i] = del(v);
                 break;
-                case DIFF_DELETE:
-                    edits.push("d" + val);
+            case "delete":
+                inversed[i] = insert(v);
                 break;
-            }
         }
-        return edits;
     }
+    return inversed;
+}
 
-    return {
+return {
+    insert: insert,
+    del: del,
+    retain: retain,
+    type: type,
+    val: val,
+    length: length,
+    split: split,
+    pack: pack,
+    operation: operation,
+    inverse: inverse
+};
 
-        operation: operation,
-        insert: insert,
-        del: del,
-        retain: retain,
-        type: type,
-        val: val,
-        length: length,
-        split: split,
-        pack: pack,
-
-        isDelete: function (edit) {
-            return type(edit) === "delete";
-        },
-
-        isRetain: function (edit) {
-            return type(edit) === "retain";
-        },
-
-        isInsert: function (edit) {
-            return type(edit) === "insert";
-        },
-
-        inverse: function (edits) {
-            var edit, t, v, inversed = new Array(edits.length);
-            for (var i = 0, el = edits.length; i < el; i++) {
-                edit = edits[i];
-                t = type(edit);
-                v = val(edit);
-                switch (t) {
-                    case "retain":
-                        inversed[i] = edits[i];
-                        break;
-                    case "insert":
-                        inversed[i] = del(v);
-                        break;
-                    case "delete":
-                        inversed[i] = insert(v);
-                        break;
-                }
-            }
-            return inversed;
-        }
-    };
 })();
 
 /**************** apply.js ******************/
 
-function applyContents(op, doc) {
+/**
+ * Apply an operation on a string document and return the resulting new document text.
+ *
+ * @param  {Opeartion} op - e.g. ["r2", "iabc", "r12"]
+ * @param  {String} doc
+ * @return {String} newDoc
+ */
+ function applyContents(op, doc) {
     var val, newDoc = "";
     for (var i = 0, len = op.length; i < len; i += 1) {
         val = op[i].slice(1);
@@ -443,6 +398,21 @@ function applyContents(op, doc) {
 
 
 /**************** author_attributes.js ******************/
+/**
+ * This is a specifically designed data structure that tends to behave as a relaxed B-Tree
+ * to optimize author attributes processing time, disk usage and network overhead
+ *
+ * It optimizes on two main factors:
+ * - insert/delete/traversal/find time: The B-tree try to maintain a minimal depth, so minimal processing needed for those operations: O(log with base minKeySize)
+ * - Parsing/Stringification time and disk usage: the nodes are implemented as arrays with the first element
+ *     indicating the number of entries in the node
+ *
+ * @param minKeySize - the minimum number of entries in a node
+ * @param maxKeySize - the maximum number of entries in a node
+ *
+ * @author Mostafa
+ * @author Harutyun
+ */
 function AuthorAttributes(minKeySize, maxKeySize) {
     // 2 * x ---> [length, [value]]
     minKeySize = minKeySize || 20; // 4
@@ -603,49 +573,33 @@ function AuthorAttributes(minKeySize, maxKeySize) {
 
 var applyAuthororAttributes = AuthorAttributes().apply;
 
-
-/**************** ot.js ******************/
-function applyOperation(userIds, docId, doc, op, callback) {
-    userIds = userIds || {userId: 0};
-    var userId = userIds.userId;
-    Store.getWorkspaceState(function (err, ws) {
-        if (err)
-            return callback(err);
-        try {
-            doc.contents = applyContents(op, doc.contents);
-            applyAuthororAttributes(doc.authAttribs, op, ws.authorPool[userId]);
-
-            wrapSeq(Revision.create({
-                operation: JSON.stringify(op),
-                author: userId,
-                revNum: doc.revNum + 1,
-                document_id: doc.id
-            }), next);
-        } catch (e) {
-            return next(e);
-        }
-    });
-    function next(err) {
-        if (err)
-            return callback(err);
-        doc.revNum++;
-        Store.saveDocument(doc, /*["contents", "authAttribs", "revNum"],*/ function (err) {
-            if (err)
-                return callback(err);
-            var msg = {
-                docId: docId,
-                clientId: userIds.clientId,
-                userId: userId,
-                revNum: doc.revNum,
-                op: op
-            };
-            callback(null, msg);
-        });
-    }
+/**
+ * Hash a string (document content) for easier comparison of state changes
+ */
+function hashString(str) {
+    return crypto.createHash('md5').update(str).digest("hex");
 }
 
-var Store = {
+/**
+ * Normalize document path to discard workspace prefix
+ */
+function getDocPath(path) {
+    if (path.indexOf(basePath) === 0)
+        return path.substring(basePath.length+1);
+    return path;
+}
 
+/**
+ * Document Store database wrapper utility to ease persistence/retrieval and update of entities such as:
+ * Documents, Revisions, Workspace, ChatMessages, Users
+ */
+var Store = {
+    /**
+     * Create a `Document` from a template with path, contents
+     * Also, create its Revision#0 record
+     * @param {Object}   tmpl
+     * @param {Function} callback
+     */
     newDocument: function (tmpl, callback) {
         var contents = tmpl.contents || "";
         var _self = this;
@@ -699,6 +653,12 @@ var Store = {
         };
     },
 
+    /**
+     * Get a `Document` from the database given its path
+     * @param {String}   path the document path to query the database with
+     * @param [{String}] attributes - optional
+     * @param {Function} callback
+     */
     getDocument: function (path, attributes, callback) {
         var query = { where: {path: getDocPath(path)} };
         if (!callback) {
@@ -713,6 +673,11 @@ var Store = {
         return wrapSeq(Document.find(query), this.$parseDocumentCallback(callback));
     },
 
+    /**
+     * Get the revisions of a certain document
+     * @param {Document} doc
+     * @param {Function} callback
+     */
     getRevisions: function (doc, callback) {
         wrapSeq(doc.getRevisions(), function (err, revisions) {
             if (err)
@@ -734,6 +699,11 @@ var Store = {
         return update;
     },
 
+    /**
+     * Save a document with changes to the database
+     * @param [{String}] attributes - optional
+     * @param {Function} callback
+     */
     saveDocument: function (doc, attributes, callback) {
         if (!callback) {
             callback = attributes;
@@ -758,6 +728,10 @@ var Store = {
         );
     },
 
+    /**
+     * Gets the latest workspace state with the most important properties being: aurhorPool and colorPool
+     * @param {Function} callback
+     */
     getWorkspaceState: function (callback) {
         // the table has only a single entry
         if (cachedWS)
@@ -772,6 +746,11 @@ var Store = {
         });
     },
 
+    /**
+     * Save the workspace with changes to the database
+     * @param {Workspace} ws
+     * @param {Function}  callback
+     */
     saveWorkspaceState: function (ws, callback) {
         var authorPool = ws.authorPool;
         var colorPool = ws.colorPool;
@@ -789,6 +768,10 @@ var Store = {
         });
     },
 
+    /**
+     * Save a document with changes to the database
+     * @param {Function} callback
+     */
     getUsers: function (callback) {
         if (cachedUsers)
             return callback(null, cachedUsers);
@@ -798,6 +781,12 @@ var Store = {
         });
     },
 
+    /**
+     * Add uer's chat message to the database
+     * @param {String}   text
+     * @param {String}   userId
+     * @param {Function} callback
+     */
     saveChatMessage: function(text, userId, callback) {
         wrapSeq(ChatMessage.create({
             text: text,
@@ -805,10 +794,16 @@ var Store = {
         }), callback);
     },
 
-    recentChatHistory: function(callback) {
+    /**
+     * Get the most recent chat messages
+     * @param {Number}   limit - optional
+     * @param {Function} callback
+     */
+    recentChatHistory: function(limit, callback) {
+        limit = limit || 100;
         wrapSeq(ChatMessage.findAll({
             order: 'timestamp DESC',
-            limit: 100
+            limit: limit
         }), function(err, history) {
             if (err)
                 return callback(err);
@@ -840,7 +835,7 @@ var clients;
 // So this variable expresses in-process locks
 // Used to block concurrent edit updates while the document is being processed
 //
-//     { <document id> : true }
+//     { <key or document_id> : [{Function}] }
 var locks = {};
 function lock(key, callback) {
     if (locks[key])
@@ -853,7 +848,7 @@ function unlock(key) {
     var lock = locks[key];
     if (!lock || !lock.length)
         return delete locks[key];
-    var next = lock.splice(0, 1)[0];
+    var next = lock.shift();
     next();
 }
 
@@ -873,6 +868,7 @@ var featuredColors = [
     {r: 66, g: 248, b: 255}
 ];
 
+// An algorithm to select bright random colors
 function randomColor() {
     var a,b,c;
     do {
@@ -906,8 +902,12 @@ function randomColor() {
     return {r: rgb[0], g: rgb[1], b: rgb[2]};
 }
 
-// Handle new socket connections (can be reconnects) and create a new
-// document for them if there is no existing doc id supplied.
+/**
+ * Handle new collab connections (can be reconnects)
+ * Sync user's info to the collab database and select a color and aurhor id for him/her if not previously set
+ * Send USER_JOIN notifications to other connected members
+ * Send handshake CONNECT message to the user with the needed workspace info and chat history
+ */
 function handleConnect(userIds, client, callback) {
     var userId = userIds.userId;
     var clientId = userIds.clientId;
@@ -1011,7 +1011,7 @@ function handleConnect(userIds, client, callback) {
                 }
             }, client);
 
-            Store.recentChatHistory(function (err, chatHistory) {
+            Store.recentChatHistory(100, function (err, chatHistory) {
                 if (err)
                     console.error("[vfs-collab] recentChatHistory", err);
 
@@ -1034,18 +1034,77 @@ function handleConnect(userIds, client, callback) {
     }
 }
 
+/**
+ * Returns true if the users has read access to the filesystem
+ */
 function collabReadAccess (fs) {
-    return /r/.test(fs);
+    return (/r/).test(fs);
 }
 
+/**
+ * Returns true if the users has write access to the filesystem
+ */
 function collabWriteAccess (fs) {
-    return /w/.test(fs);
+    return (/w/).test(fs);
 }
 
-function handleUpdate(userIds, client, message) {
-    var docId = message.docId;
+/**
+ * Apply a user's operation to a document
+ * @param {Object}    userIds - user descriptor with: uid, email, fullname, fs, clientId 
+ * @param {String}    docId   - the document path
+ * @param {Document}  doc     - the document to apply the operation on
+ * @param {Operation} op      - the operation to applly
+ * @param {Function}  callback
+ */
+function applyOperation(userIds, docId, doc, op, callback) {
+    userIds = userIds || {userId: 0};
+    var userId = userIds.userId;
+    Store.getWorkspaceState(function (err, ws) {
+        if (err)
+            return callback(err);
+        try {
+            doc.contents = applyContents(op, doc.contents);
+            applyAuthororAttributes(doc.authAttribs, op, ws.authorPool[userId]);
+
+            wrapSeq(Revision.create({
+                operation: JSON.stringify(op),
+                author: userId,
+                revNum: doc.revNum + 1,
+                document_id: doc.id
+            }), next);
+        } catch (e) {
+            return next(e);
+        }
+    });
+    function next(err) {
+        if (err)
+            return callback(err);
+        doc.revNum++;
+        Store.saveDocument(doc, /*["contents", "authAttribs", "revNum"],*/ function (err) {
+            if (err)
+                return callback(err);
+            var msg = {
+                docId: docId,
+                clientId: userIds.clientId,
+                userId: userId,
+                revNum: doc.revNum,
+                op: op
+            };
+            callback(null, msg);
+        });
+    }
+}
+
+/**
+ * Handle user's EDIT_UPDATE for a document
+ * @param {Object} userIds - user descriptor with: uid, email, fullname, fs, clientId 
+ * @param {Socket} client  - the connected collab client
+ * @param {Object} data    - the EDIT_UPDATE message data with the document id, revision number and applied operation
+ */
+function handleEditUpdate(userIds, client, data) {
+    var docId = data.docId;
     var clientId = userIds.clientId;
-    var newRev = message.revNum;
+    var newRev = data.revNum;
     var docL;
 
     function callback(err) {
@@ -1056,6 +1115,7 @@ function handleUpdate(userIds, client, message) {
         }
     }
 
+    // the user's edit couldn't be commited, please try again
     function syncCommit(err) {
         client.send({
             type: "SYNC_COMMIT",
@@ -1075,6 +1135,7 @@ function handleUpdate(userIds, client, message) {
     if (!collabWriteAccess(userIds.fs))
         return callback("User " + userIds.userId + " don't have write access to edit document " + docId + " - fs: " + userIds.fs);
 
+    // Lock a document while updating - to stop any possible inconsistencies
     lock(docId, function () {
         Store.getDocument(docId, ["contents", "authAttribs", "revNum"], function (err, doc) {
             if (err || !doc)
@@ -1082,15 +1143,15 @@ function handleUpdate(userIds, client, message) {
 
             docL = doc;
 
-            if (doc.revNum !== newRev-1)
+            if (doc.revNum !== newRev-1) // conflicting versions
                 return callback("Version log:" + docId + " "  + doc.revNum + " " + newRev);
 
             // message.author for udno auth attributes
-            applyOperation(userIds, docId, doc, message.op, function (err, msg) {
+            applyOperation(userIds, docId, doc, data.op, function (err, msg) {
                 if (err)
                     return callback("OT Error:" + err);
 
-                msg.selection = message.selection;
+                msg.selection = data.selection;
 
                 broadcast({
                     type: "EDIT_UPDATE",
@@ -1111,8 +1172,14 @@ function handleUpdate(userIds, client, message) {
     });
 }
 
-function handleChatMessage(userIds, client, msg) {
-    var text = msg.text;
+/**
+ * Handle user's CHAT_MESSAGE
+ * @param {Object} userIds - user descriptor with: uid, email, fullname, fs, clientId 
+ * @param {Socket} client  - the connected collab client
+ * @param {Object} data    - the CHAT_MESSAGE data with the chat text
+ */
+function handleChatMessage(userIds, client, data) {
+    var text = data.text;
     var userId = userIds.userId;
 
     // Save the chat message and broadcast it
@@ -1133,6 +1200,12 @@ function handleChatMessage(userIds, client, msg) {
   });
 }
 
+/**
+ * Handle user's CURSOR_UPDATE messages
+ * @param {Object} userIds - user descriptor with: uid, email, fullname, fs, clientId 
+ * @param {Socket} client  - the connected collab client
+ * @param {Object} data    - the CURSOR_UPDATE data with the document id and the user selection
+ */
 function handleCursorUpdate(userIds, client, data) {
     var docId = data.docId;
     var clientId = userIds.clientId;
@@ -1151,6 +1224,12 @@ function handleCursorUpdate(userIds, client, data) {
     }, client, docId);
 }
 
+/**
+ * Broadcast a message to all or a selected group of connected collab clients
+ * @param {Object} message - the message to broadcast
+ * @param {Socket} sender  - optional, when we want to exclude the sender from the group to send the message to
+ * @param {String} docId   - the document id or path
+ */
 function broadcast(message, sender, docId) {
     var toClientIds = docId ? documents[docId] : clients;
     var audienceNum = 0;
@@ -1166,6 +1245,15 @@ function broadcast(message, sender, docId) {
     //    console.error("[vfs-collab] Broadcast to:", audienceNum, "clients", message);
 }
 
+function getAbsolutePath(docId) {
+    // TODO handle home-based files in ssh workspaces: e.g. ~/file.txt - 2
+    return Path.join(basePath, docId);
+}
+
+/**
+ * Watch documents for other filesystem changes and sync them back to the collab documents
+ * @param docId - the document id or path
+ */
 function initWatcher(docId) {
     function callback(err) {
         if (err)
@@ -1175,10 +1263,11 @@ function initWatcher(docId) {
 
     var absPath = getAbsolutePath(docId);
 
-    function doWatcherSync (callback) {
+    // Check if a collab document sync is needed, apply it and save to the filesystem
+    function doWatcherSync(callback) {
         var mtime = Date.now();
         lock(docId, function () {
-            var timeDiff = mtime - watcher.mtime
+            var timeDiff = mtime - watcher.mtime;
             if (timeDiff < WATCHER_SAVE_TIMEOUT)
                 return callback();
 
@@ -1190,7 +1279,7 @@ function initWatcher(docId) {
                 syncDocument(docId, doc, function (err, doc2) {
                     if (err)
                         return callback(err);
-                    docSaveFile(docId, doc2, -1, true, callback);
+                    docSaveDocument(docId, doc2, -1, true, callback);
                 });
             });
         });
@@ -1209,8 +1298,8 @@ function initWatcher(docId) {
                 // git checkout, git merge
                 setTimeout(function () {
                     exists(absPath, function (exist) {
-                        // already managed by deletion watcher
-                        // The document should be deleted ?! - we do 4-hour cleanups
+                        // already managed by the IDE watcher - deletetion event
+                        // Should the document should be deleted ?!
                         if (!exist)
                             return;
 
@@ -1231,6 +1320,12 @@ function initWatcher(docId) {
     }
 }
 
+/**
+ * Handle user's JOIN_DOC messages - a user is joining a document to collaborate on
+ * @param {Object} userIds - user descriptor with: uid, email, fullname, fs, clientId 
+ * @param {Socket} client  - the connected collab client
+ * @param {Object} data    - the JOIN_DOC data with the document id
+ */
 function handleJoinDocument(userIds, client, data) {
     var docId = data.docId;
     var clientId = userIds.clientId;
@@ -1307,6 +1402,7 @@ function handleJoinDocument(userIds, client, data) {
         documents[docId][clientId] = userIds;
         client.openDocIds[docId] = true;
 
+        // Cut the document to pices and stream to the client
         var chunkSize = 10*1024; // 10 KB
         var contentsLen = clientDoc.length;
         var chunksLen = Math.ceil(contentsLen / chunkSize);
@@ -1338,10 +1434,85 @@ function handleJoinDocument(userIds, client, data) {
     }
 }
 
+/**
+ * Normalize text line terminators for collab index-based calculations to seamlessly work
+ * @param  {String} text
+ * @return {String} normalized
+ */
+function normalizeTextLT(text) {
+    var match = text.match(/^.*?(\r\n|\r|\n)/m);
+    var nlCh = match ? match[1] : "\n";
+    return text.split(/\r\n|\r|\n/).join(nlCh);
+}
+
+/**
+ * Synchronize collab document state with the filesystem state (utilizing hashes)
+ *
+ * @param {String}   docId - the document id or path
+ * @param {Document} doc   - the collab document
+ * @param {Function} callback
+ */
+function syncDocument(docId, doc, callback) {
+    var file = getAbsolutePath(docId);
+    isBinaryFile(file, function (err, isBinary) {
+        if (err)
+            return callback("SYNC: Binary check failed - ERR: " + err);
+        if (isBinary)
+            return callback("SYNC: Binary file opened " + isBinary);
+
+        Fs.readFile(file, "utf8", function (err, contents) {
+            if (err)
+                return callback(err);
+
+            var normContents = normalizeTextLT(contents);
+            if (contents !== normContents)
+                console.error("[vfs-collab] SYNC: Line terminator inconsistency found - normalising:", docId);
+
+            var fsHash = hashString(normContents);
+
+            if (!doc) {
+                console.error("[vfs-collab] SYNC: Creating document:", docId, fsHash);
+
+                Store.newDocument({
+                    path: docId,
+                    contents: normContents,
+                    fsHash: fsHash
+                }, callback);
+            }
+            // update database OT state
+            else if (fsHash !== doc.fsHash && doc.contents != normContents) {
+                var op = operations.operation(doc.contents, normContents);
+                console.error("[vfs-collab] SYNC: Updating document:", docId, op.length, fsHash, doc.fsHash);
+                // non-user sync operation
+                doc.fsHash = fsHash; // applyOperation will save it for me
+                applyOperation(null, docId, doc, op, function (err, msg) {
+                    if (err)
+                        return callback("SYNC: Failed updating OT database document state !! " + err.toString());
+                    broadcast({
+                        type: "EDIT_UPDATE",
+                        data: msg
+                    }, null, docId);
+
+                    callback(null, doc);
+                });
+            }
+            else
+                callback(null, doc);
+        });
+    });
+}
+
+/**
+ * Handle user's GET_REVISIONS messages - retrive the revision history of the file
+ *
+ * @param {Object} userIds - user descriptor with: uid, email, fullname, fs, clientId 
+ * @param {Socket} client  - the connected collab client
+ * @param {Object} data    - the JOIN_DOC data with the document id
+ */
 function handleGetRevisions(userIds, client, data) {
     var docId = data.docId;
 
-    function callback (err) {
+    function callback(err) {
         if (err)
             console.error("[vfs-collab] handleGetRevisions ERR:", docId, err);
         unlock(docId);
@@ -1362,6 +1533,7 @@ function handleGetRevisions(userIds, client, data) {
                     revNum: doc.revNum
                 });
 
+                // Cut the revisions into pices and stream to the client
                 var chunkSize = 10*1024; // 10 KB
                 var contentsLen = docRevisions.length;
                 var chunksLen = Math.ceil(contentsLen / chunkSize);
@@ -1383,9 +1555,86 @@ function handleGetRevisions(userIds, client, data) {
             });
         });
     });
-
 }
 
+/**
+ * Handle user's SAVE_FILE messages - save collab documents
+ * @param {Object} userIds - user descriptor with: uid, email, fullname, fs, clientId 
+ * @param {Socket} client  - the connected collab client
+ * @param {Object} data    - the SAVE_FILE data with the document id and wether to sielently save (with auto-save enabled) or star the save
+ */
+function handleSaveFile(userIds, client, data) {
+    var docId = data.docId;
+    var userId = userIds.userId;
+
+    function callback(err) {
+        unlock(docId);
+        if (err) {
+            console.error("[vfs-collab]", err);
+            client.send({
+                type: "FILE_SAVED",
+                data: {
+                    docId: docId,
+                    err: err
+                }
+            });
+        }
+    }
+
+    lock(docId, function () {
+        Store.getDocument(docId, ["contents", "revNum", "starRevNums"], function (err, doc) {
+            if (err || !doc)
+                return callback((err || "Writing a non-collab document !") + " : " +  docId);
+
+            console.error("[vfs-collab] Saving file", docId);
+            if (watchers[docId])
+                watchers[docId].mtime = Date.now();
+
+            Fs.writeFile(getAbsolutePath(docId), doc.contents, "utf8", function (err) {
+                if (err)
+                    return callback("Failed saving file ! : " + docId  + " ERR: " + err);
+
+                docSaveDocument(docId, doc, userId, !data.silent, callback);
+            });
+        });
+    });
+}
+
+/**
+ * Apply the save to the collab document, update the hash and optionally add a star revision
+ * @param {String}   docId     - the document id or path
+ * @param {Document} doc       - the collab document
+ * @param {String}  userId     - the user id
+ * @param {Boolean} star       - add a star to the document if not triggered by auto-save
+ * @param {Function} callback
+ */
+function docSaveDocument(docId, doc, userId, star, callback) {
+    if (star && doc.starRevNums.indexOf(doc.revNum) === -1)
+        doc.starRevNums.push(doc.revNum);
+
+    doc.fsHash = hashString(doc.contents);
+    Store.saveDocument(doc, /*["fsHash", "starRevNums"],*/ function (err) {
+        console.error("[vfs-collab] starRevision added", doc.revNum);
+        var data = {
+            userId: userId,
+            docId: docId,
+            star: star,
+            revNum: doc.revNum
+        };
+        broadcast({
+            type: "FILE_SAVED",
+            data: data
+        }, null, docId);
+        callback();
+    });
+}
+
+/**
+ * Handle user's GET_REVISIONS messages - retrive the revision history of the file
+ * @param {Object} userIds - user descriptor with: uid, email, fullname, fs, clientId 
+ * @param {Socket} client  - the connected collab client
+ * @param {Object} data    - the JOIN_DOC data with the document id
+ */
 function handleLeaveDocument(userIds, client, data) {
     var docId = data.docId;
     var userId = userIds.userId;
@@ -1412,10 +1661,103 @@ function handleLeaveDocument(userIds, client, data) {
     }, client);
 }
 
+/**
+ * Handle any user message by routing to its proper handler
+ *
+ * @param {Object} userIds - user descriptor with: uid, email, fullname, fs, clientId 
+ * @param {Socket} client  - the connected collab client
+ * @param {Object} data    - the SAVE_FILE data with the document id and wether to sielently save (with auto-save enabled) or star the save
+ */
+function handleUserMessage(userIds, client, message) {
+    var data = message.data || {};
+    var docId = data.docId || "";
+    if (docId[0] === "/")
+        data.docId = docId.slice(1);
+    // TODO handle home-based files in ssh workspaces: e.g. ~/file.txt - 1
+    switch (message.type) {
+    case "JOIN_DOC":
+        handleJoinDocument(userIds, client, data);
+        break;
+    case "GET_REVISIONS":
+        handleGetRevisions(userIds, client, data);
+        break;
+    case "LEAVE_DOC":
+        handleLeaveDocument(userIds, client, data);
+        break;
+    case "EDIT_UPDATE":
+        handleEditUpdate(userIds, client, data);
+        break;
+    case "CURSOR_UPDATE":
+        handleCursorUpdate(userIds, client, data);
+        break;
+    case "SAVE_FILE":
+        handleSaveFile(userIds, client, data);
+        break;
+    case "CHAT_MESSAGE":
+        handleChatMessage(userIds, client, data);
+        break;
+    case "PING":
+        client.send({type: "PING"});
+        break;
+    default:
+        throw new Error("Unknown message message type: " + message.type);
+    }
+}
+
+
+/**
+ * @param {Object} userIds - user descriptor with: uid, email, fullname, fs, clientId 
+ * @param {Socket} client  - the just-connected collab client
+ */
+function onConnect(userIds, client) {
+    var userId = userIds.userId;
+    var clientId = userIds.clientId;
+
+    console.error("[vfs-collab] CONNECTED UserID: " + userId + " & ClientId: " + clientId);
+
+    client.on("message", function (messag) {
+        // console.error("[vfs-collab] Message from ",  userIds, ": " + messag);
+        try {
+            messag = JSON.parse(messag);
+        } catch(e) {
+            return console.error("[vfs-collab] Can't parse client data !", messag);
+        }
+        try {
+            handleUserMessage(userIds, client, messag);
+        } catch(e) {
+            return console.error("[vfs-collab] Can't handle user messag", messag, e);
+        }
+    });
+
+    handleConnect(userIds, client);
+
+    client.on("disconnect", function () {
+        for (var docId in client.openDocIds)
+            handleLeaveDocument(userIds, client, {docId: docId});
+        broadcast({
+            type: "USER_LEAVE",
+            data: {
+                userId: userId,
+                clientId: clientId
+            }
+        }, client);
+        console.error("[vfs-collab] DISCONNECTED a socket with userId " + userId);
+    });
+}
+
+var compressTimers = {};
+
+/**
+ * Close a document because it's no more open for collaboration, close the watcher and schedule a compression
+ * @param {String} docId   - the document id or path
+ */
 function closeDocument(docId) {
     delete documents[docId];
 
-    setTimeout(function () {
+    if (compressTimers[docId])
+        clearTimeout(compressTimers[docId]);
+    compressTimers[docId] = setTimeout(function () {
+        delete compressTimers[docId];
         compressDocument(docId, {
             MAX_REVISION_NUM: 256,
             COMPRESSED_REV_NUM: 128
@@ -1428,7 +1770,17 @@ function closeDocument(docId) {
     }
 }
 
-function compressDocument(docId, options, _callback) {
+/**
+ * Pack documents' revisions if they go beyond a certain threshould: options.MAX_REVISION_NUM
+ * to put it back to a reasonable number of revisions: options.COMPRESSED_REV_NUM
+ * 
+ * It applies multiple heuristic algorithms to combine revisions trying not to lose any authorship information
+ * 
+ * @param {String}   docId   - the document id or path
+ * @param {Object}   options - compression configuration parameters
+ * @param {Function} callback
+ */
+function compressDocument(docId, options, callback) {
     if (documents[docId])
         return;
 
@@ -1450,13 +1802,13 @@ function compressDocument(docId, options, _callback) {
     var dayTime      = hourTime * 24;
     var fourDaysTime = dayTime << 2;
 
-    function callback(err) {
+    function _callback(err) {
         unlock(docId);
         if (err === ALREADY_COMPRESSED)
             err = undefined;
         if (err)
             console.error("[vfs-collab] ERROR Closing Document", docId, err);
-        _callback && _callback(err);
+        callback && callback(err);
     }
 
     function cloneRevision(rev, revNum) {
@@ -1622,265 +1974,16 @@ function compressDocument(docId, options, _callback) {
                 });
                 wrapSeq(Revision.bulkCreate(newRevisions), next);
             }
-        ], callback);
+        ], _callback);
     });
-}
-
-function handleSaveFile(userIds, client, data) {
-    var docId = data.docId;
-    var userId = userIds.userId;
-
-    function callback(err) {
-        unlock(docId);
-        if (err) {
-            console.error("[vfs-collab]", err);
-            client.send({
-                type: "FILE_SAVED",
-                data: {
-                    docId: docId,
-                    err: err
-                }
-            });
-        }
-    }
-
-    lock(docId, function () {
-        Store.getDocument(docId, ["contents", "revNum", "starRevNums"], function (err, doc) {
-            if (err || !doc)
-                return callback((err || "Writing a non-collab document !") + " : " +  docId);
-
-            console.error("[vfs-collab] Saving file", docId);
-            if (watchers[docId])
-                watchers[docId].mtime = Date.now();
-
-            Fs.writeFile(getAbsolutePath(docId), doc.contents, "utf8", function (err) {
-                if (err)
-                    return callback("Failed saving file ! : " + docId  + " ERR: " + err);
-
-                docSaveFile(docId, doc, userId, !data.silent, callback);
-            });
-        });
-    });
-}
-
-function docSaveFile(docId, doc, userId, star, callback) {
-    if (star && doc.starRevNums.indexOf(doc.revNum) === -1)
-        doc.starRevNums.push(doc.revNum);
-
-    doc.fsHash = hashString(doc.contents);
-    Store.saveDocument(doc, /*["fsHash", "starRevNums"],*/ function (err) {
-        console.error("[vfs-collab] starRevision added", doc.revNum);
-        var data = {
-            userId: userId,
-            docId: docId,
-            star: star,
-            revNum: doc.revNum
-        };
-        broadcast({
-            type: "FILE_SAVED",
-            data: data
-        }, null, docId);
-        callback();
-    });
-}
-
-function onConnect(userIds, client) {
-    var userId = userIds.userId;
-    var clientId = userIds.clientId;
-
-    console.error("[vfs-collab] CONNECTED UserID: " + userId + " & ClientId: " + clientId);
-
-    client.on("message", function (msg) {
-        // console.error("[vfs-collab] Message from ",  userIds, ": " + msg);
-        try {
-            msg = JSON.parse(msg);
-        } catch(e) {
-            return console.error("[vfs-collab] Can't parse client data !", msg);
-        }
-        try {
-            handleUserMsg(msg);
-        } catch(e) {
-            return console.error("[vfs-collab] Can't handle user msg", msg, e);
-        }
-    });
-
-    handleConnect(userIds, client);
-
-    function handleUserMsg(msg) {
-        var data = msg.data || {};
-        var docId = data.docId || "";
-        if (docId[0] === "/")
-            data.docId = docId.slice(1);
-        switch (msg.type) {
-        case "JOIN_DOC":
-            handleJoinDocument(userIds, client, data);
-            break;
-        case "GET_REVISIONS":
-            handleGetRevisions(userIds, client, data);
-            break;
-        case "LEAVE_DOC":
-            handleLeaveDocument(userIds, client, data);
-            break;
-        case "EDIT_UPDATE":
-            handleUpdate(userIds, client, data);
-            break;
-        case "CURSOR_UPDATE":
-            handleCursorUpdate(userIds, client, data);
-            break;
-        case "SAVE_FILE":
-            handleSaveFile(userIds, client, data);
-            break;
-        case "CHAT_MESSAGE":
-            handleChatMessage(userIds, client, data);
-            break;
-        case "PING":
-            client.send({type: "PING"});
-            break;
-        default:
-            throw new Error("Unknown message message type: " + msg.type);
-        }
-    }
-
-    client.on("disconnect", function () {
-        for (var docId in client.openDocIds)
-            handleLeaveDocument(userIds, client, {docId: docId});
-        broadcast({
-            type: "USER_LEAVE",
-            data: {
-                userId: userId,
-                clientId: clientId
-            }
-        }, client);
-        console.error("[vfs-collab] DISCONNECTED a socket with userId " + userId);
-    });
-}
-
-function normalizeTextLT(text) {
-    var match = text.match(/^.*?(\r\n|\r|\n)/m);
-    var nlCh = match ? match[1] : "\n";
-    return text.split(/\r\n|\r|\n/).join(nlCh);
-}
-
-function isBinaryFile(file, callback) {
-    var max_bytes = 512;
-    exists(file, function (exists) {
-        if (!exists)
-            return callback(null, false);
-
-        Fs.open(file, 'r', function(err, descriptor){
-            if (err)
-                return callback(err);
-            var bytes = new Buffer(max_bytes);
-            // Read the file with no encoding for raw buffer access.
-            Fs.read(descriptor, bytes, 0, bytes.length, 0, function(err, size, bytes){
-                Fs.close(descriptor, function(err2){
-                    if (err || err2)
-                        return callback(err || err2);
-                    return callback(null, isBinaryCheck(size, bytes));
-                });
-            });
-        });
-    });
-
-    function isBinaryCheck (size, bytes) {
-        if (size === 0)
-            return false;
-
-        var suspicious_bytes = 0;
-        var total_bytes = Math.min(size, max_bytes);
-
-        if (size >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF) {
-            // UTF-8 BOM. This isn't binary.
-            return false;
-        }
-
-        for (var i = 0; i < total_bytes; i++) {
-            if (bytes[i] === 0) { // NULL byte--it's binary!
-                return true;
-            }
-            else if ((bytes[i] < 7 || bytes[i] > 14) && (bytes[i] < 32 || bytes[i] > 127)) {
-                // UTF-8 detection
-                if (bytes[i] > 191 && bytes[i] < 224 && i + 1 < total_bytes) {
-                    i++;
-                    if (bytes[i] < 192) {
-                        continue;
-                    }
-                }
-                else if (bytes[i] > 223 && bytes[i] < 239 && i + 2 < total_bytes) {
-                    i++;
-                    if (bytes[i] < 192 && bytes[i + 1] < 192) {
-                        i++;
-                        continue;
-                    }
-                }
-                suspicious_bytes++;
-                // Read at least 32 bytes before making a decision
-                if (i > 32 && (suspicious_bytes * 100) / total_bytes > 10) {
-                    return true;
-                }
-            }
-        }
-
-        if ((suspicious_bytes * 100) / total_bytes > 10) {
-            return true;
-        }
-
-        return false;
-    }
-}
-
-function syncDocument(docId, doc, callback) {
-    var file = Path.join(basePath, docId);
-    isBinaryFile(file, function (err, isBinary) {
-        if (err)
-            return callback("SYNC: Binary check failed - ERR: " + err);
-        if (isBinary)
-            return callback("SYNC: Binary file opened " + isBinary);
-
-        Fs.readFile(file, "utf8", function (err, contents) {
-            if (err)
-                return callback(err);
-
-            var normContents = normalizeTextLT(contents);
-            if (contents !== normContents)
-                console.error("[vfs-collab] SYNC: Line terminator inconsistency found - normalising:", docId);
-
-            var fsHash = hashString(normContents);
-
-            if (!doc) {
-                console.error("[vfs-collab] SYNC: Creating document:", docId, fsHash);
-
-                Store.newDocument({
-                    path: docId,
-                    contents: normContents,
-                    fsHash: fsHash
-                }, callback);
-            }
-            // update database OT state
-            else if (fsHash !== doc.fsHash && doc.contents != normContents) {
-                var op = operations.operation(doc.contents, normContents);
-                console.error("[vfs-collab] SYNC: Updating document:", docId, op.length, fsHash, doc.fsHash);
-                // non-user sync operation
-                doc.fsHash = fsHash; // applyOperation will save it for me
-                applyOperation(null, docId, doc, op, function (err, msg) {
-                    if (err)
-                        return callback("SYNC: Failed updating OT database document state !! " + err.toString());
-                    broadcast({
-                        type: "EDIT_UPDATE",
-                        data: msg
-                    }, null, docId);
-
-                    callback(null, doc);
-                });
-            }
-            else
-                callback(null, doc);
-        });
-    })
 }
 
 // ********* VFS Stream, net.Socket Collab Communication Infrastructure ************ //
 
+/**
+ * Create the collab socket net.Server
+ * The net.Server is file-socket to allow multiple collab-enabled workspaces on SSH workspaces
+ */
 function createServer() {
     var server = net.createServer(function(client) {
 
@@ -1912,7 +2015,7 @@ function createServer() {
             if (server.collabInited)
                 onConnect(userIds, client);
             else
-                server.on("collab.init", function () {
+                server.on("collabInited", function () {
                     onConnect(userIds, client);
                 });
         });
@@ -1955,8 +2058,8 @@ function createServer() {
     return server;
 }
 
-function initSocket(userIds, callback) {
 
+function initSocket(userIds, callback) {
     // var COLLAB_PORT = 33366;
     // var COLLAB_HOST = process.env.OPENSHIFT_DIY_IP || "localhost";
 
@@ -1979,6 +2082,7 @@ function initSocket(userIds, callback) {
 
         async.series([
             function (next) {
+                // Create the directoty ~/.c9 if not existing
                 Fs.mkdir(Path.dirname(projectWD), function (err) {
                     if (err && err.code !== "EEXIST")
                         return next(err);
@@ -1986,6 +2090,7 @@ function initSocket(userIds, callback) {
                 });
             },
             function (next) {
+                // Create the directoty ~/.c9/$pid if not existing
                 Fs.mkdir(projectWD, function (err) {
                     if (err && err.code !== "EEXIST")
                         return next(err);
@@ -1993,6 +2098,7 @@ function initSocket(userIds, callback) {
                 });
             },
             function (next) {
+                // Remove the stale socket, if existing at ~/.c9/$pid/collab.sock
                 Fs.unlink(sockPath, function (err) {
                     if (err && err.code !== "ENOENT")
                         return next(err);
@@ -2012,6 +2118,7 @@ function initSocket(userIds, callback) {
                 watchers = {};
                 clients = {};
 
+                // Check server installation, init the server and then connect the client to the inited collab server
                 installServer(function (err) {
                     if (err)
                         return callback(err);
@@ -2020,7 +2127,7 @@ function initSocket(userIds, callback) {
                             return callback(err);
                         server.collabInited = true;
                         clientConnect();
-                        server.emit("collab.init");
+                        server.emit("collabInited");
                     });
                 });
 
@@ -2032,6 +2139,7 @@ function initSocket(userIds, callback) {
             });
 
             server.on("error", function (err) {
+                // if another connection/thread was able to listen as collab-server, let's just connect to it
                 if (err.code === "EADDRINUSE")
                     return clientConnect();
                 console.error("[vfs-collab] Server error", err);
@@ -2039,6 +2147,8 @@ function initSocket(userIds, callback) {
         });
     }
 
+    // Connect to a collab client
+    // If this fails to connect or the socket file doesn't exist, we try to create the server first
     function clientConnect () {
         var client = net.connect(sockPath, function () {
             client.userIds = userIds;
@@ -2090,6 +2200,14 @@ function initSocket(userIds, callback) {
     }
 }
 
+/**
+ * Export the vfs extend API hook
+ * Receive the user and project identification thorugh the vfs-extend server-verified options
+ * 
+ * @param {Vfs}      vfs      - an instance of localfs.js
+ * @param {Object}   options  - { user: {}, project: {} }
+ * @param {Function} register - register the collab server API
+ */
 var exports = module.exports = function (vfs, options, register) {
 
     var vfsClientMap = {};
@@ -2164,6 +2282,166 @@ var exports = module.exports = function (vfs, options, register) {
 // export for testing
 exports.Store = Store;
 exports.compressDocument = compressDocument;
+
+
+/* Google diff match patch library: https://code.google.com/p/google-diff-match-patch/ */
+
+var DIFF_EQUAL = 0;
+var DIFF_INSERT = 1;
+var DIFF_DELETE = -1;
+function diff_match_patch(){this.Diff_Timeout=1;this.Diff_EditCost=4;this.Match_Threshold=0.5;this.Match_Distance=1E3;this.Patch_DeleteThreshold=0.5;this.Patch_Margin=4;this.Match_MaxBits=32}
+diff_match_patch.prototype.diff_main=function(a,b,c,d){"undefined"==typeof d&&(d=0>=this.Diff_Timeout?Number.MAX_VALUE:(new Date).getTime()+1E3*this.Diff_Timeout);if(null==a||null==b)throw Error("Null input. (diff_main)");if(a==b)return a?[[0,a]]:[];"undefined"==typeof c&&(c=!0);var e=c,f=this.diff_commonPrefix(a,b),c=a.substring(0,f),a=a.substring(f),b=b.substring(f),f=this.diff_commonSuffix(a,b),g=a.substring(a.length-f),a=a.substring(0,a.length-f),b=b.substring(0,b.length-f),a=this.diff_compute_(a,b,e,d);c&&a.unshift([0,c]);g&&a.push([0,g]);this.diff_cleanupMerge(a);return a};
+diff_match_patch.prototype.diff_compute_=function(a,b,c,d){if(!a)return[[1,b]];if(!b)return[[-1,a]];var e=a.length>b.length?a:b,f=a.length>b.length?b:a,g=e.indexOf(f);if(-1!=g)return c=[[1,e.substring(0,g)],[0,f],[1,e.substring(g+f.length)]],a.length>b.length&&(c[0][0]=c[2][0]=-1),c;if(1==f.length)return[[-1,a],[1,b]];return(e=this.diff_halfMatch_(a,b))?(f=e[0],a=e[1],g=e[2],b=e[3],e=e[4],f=this.diff_main(f,g,c,d),c=this.diff_main(a,b,c,d),f.concat([[0,e]],c)):c&&100<a.length&&100<b.length?this.diff_lineMode_(a,b,d):this.diff_bisect_(a,b,d)};
+diff_match_patch.prototype.diff_lineMode_=function(a,b,c){var d=this.diff_linesToChars_(a,b),a=d.chars1,b=d.chars2,d=d.lineArray,a=this.diff_main(a,b,!1,c);this.diff_charsToLines_(a,d);this.diff_cleanupSemantic(a);a.push([0,""]);for(var e=d=b=0,f="",g="";b<a.length;){switch(a[b][0]){case 1:e++;g+=a[b][1];break;case -1:d++;f+=a[b][1];break;case 0:if(1<=d&&1<=e){a.splice(b-d-e,d+e);b=b-d-e;d=this.diff_main(f,g,!1,c);for(e=d.length-1;0<=e;e--)a.splice(b,0,d[e]);b+=d.length}d=e=0;g=f=""}b++}a.pop();return a};
+diff_match_patch.prototype.diff_bisect_=function(a,b,c){for(var d=a.length,e=b.length,f=Math.ceil((d+e)/2),g=f,h=2*f,j=Array(h),i=Array(h),k=0;k<h;k++)j[k]=-1,i[k]=-1;j[g+1]=0;i[g+1]=0;for(var k=d-e,p=0!=k%2,q=0,s=0,o=0,v=0,u=0;u<f&&!((new Date).getTime()>c);u++){for(var n=-u+q;n<=u-s;n+=2){var l=g+n,m;m=n==-u||n!=u&&j[l-1]<j[l+1]?j[l+1]:j[l-1]+1;for(var r=m-n;m<d&&r<e&&a.charAt(m)==b.charAt(r);)m++,r++;j[l]=m;if(m>d)s+=2;else if(r>e)q+=2;else if(p&&(l=g+k-n,0<=l&&l<h&&-1!=i[l])){var t=d-i[l];if(m>=t)return this.diff_bisectSplit_(a,b,m,r,c)}}for(n=-u+o;n<=u-v;n+=2){l=g+n;t=n==-u||n!=u&&i[l-1]<i[l+1]?i[l+1]:i[l-1]+1;for(m=t-n;t<d&&m<e&&a.charAt(d-t-1)==b.charAt(e-m-1);)t++,m++;i[l]=t;if(t>d)v+=2;else if(m>e)o+=2;else if(!p&&(l=g+k-n,0<=l&&l<h&&-1!=j[l]&&(m=j[l],r=g+m-l,t=d-t,m>=t)))return this.diff_bisectSplit_(a,b,m,r,c)}}return[[-1,a],[1,b]]};
+diff_match_patch.prototype.diff_bisectSplit_=function(a,b,c,d,e){var f=a.substring(0,c),g=b.substring(0,d),a=a.substring(c),b=b.substring(d),f=this.diff_main(f,g,!1,e),e=this.diff_main(a,b,!1,e);return f.concat(e)};
+diff_match_patch.prototype.diff_linesToChars_=function(a,b){function c(a){for(var b="",c=0,f=-1,g=d.length;f<a.length-1;){f=a.indexOf("\n",c);-1==f&&(f=a.length-1);var q=a.substring(c,f+1),c=f+1;(e.hasOwnProperty?e.hasOwnProperty(q):void 0!==e[q])?b+=String.fromCharCode(e[q]):(b+=String.fromCharCode(g),e[q]=g,d[g++]=q)}return b}var d=[],e={};d[0]="";var f=c(a),g=c(b);return{chars1:f,chars2:g,lineArray:d}};
+diff_match_patch.prototype.diff_charsToLines_=function(a,b){for(var c=0;c<a.length;c++){for(var d=a[c][1],e=[],f=0;f<d.length;f++)e[f]=b[d.charCodeAt(f)];a[c][1]=e.join("")}};diff_match_patch.prototype.diff_commonPrefix=function(a,b){if(!a||!b||a.charAt(0)!=b.charAt(0))return 0;for(var c=0,d=Math.min(a.length,b.length),e=d,f=0;c<e;)a.substring(f,e)==b.substring(f,e)?f=c=e:d=e,e=Math.floor((d-c)/2+c);return e};
+diff_match_patch.prototype.diff_commonSuffix=function(a,b){if(!a||!b||a.charAt(a.length-1)!=b.charAt(b.length-1))return 0;for(var c=0,d=Math.min(a.length,b.length),e=d,f=0;c<e;)a.substring(a.length-e,a.length-f)==b.substring(b.length-e,b.length-f)?f=c=e:d=e,e=Math.floor((d-c)/2+c);return e};
+diff_match_patch.prototype.diff_commonOverlap_=function(a,b){var c=a.length,d=b.length;if(0==c||0==d)return 0;c>d?a=a.substring(c-d):c<d&&(b=b.substring(0,c));c=Math.min(c,d);if(a==b)return c;for(var d=0,e=1;;){var f=a.substring(c-e),f=b.indexOf(f);if(-1==f)return d;e+=f;if(0==f||a.substring(c-e)==b.substring(0,e))d=e,e++}};
+diff_match_patch.prototype.diff_halfMatch_=function(a,b){function c(a,b,c){for(var d=a.substring(c,c+Math.floor(a.length/4)),e=-1,g="",h,j,n,l;-1!=(e=b.indexOf(d,e+1));){var m=f.diff_commonPrefix(a.substring(c),b.substring(e)),r=f.diff_commonSuffix(a.substring(0,c),b.substring(0,e));g.length<r+m&&(g=b.substring(e-r,e)+b.substring(e,e+m),h=a.substring(0,c-r),j=a.substring(c+m),n=b.substring(0,e-r),l=b.substring(e+m))}return 2*g.length>=a.length?[h,j,n,l,g]:null}if(0>=this.Diff_Timeout)return null;var d=a.length>b.length?a:b,e=a.length>b.length?b:a;if(4>d.length||2*e.length<d.length)return null;var f=this,g=c(d,e,Math.ceil(d.length/4)),d=c(d,e,Math.ceil(d.length/2)),h;if(!g&&!d)return null;h=d?g?g[4].length>d[4].length?g:d:d:g;var j;a.length>b.length?(g=h[0],d=h[1],e=h[2],j=h[3]):(e=h[0],j=h[1],g=h[2],d=h[3]);h=h[4];return[g,d,e,j,h]};
+diff_match_patch.prototype.diff_cleanupSemantic=function(a){for(var b=!1,c=[],d=0,e=null,f=0,g=0,h=0,j=0,i=0;f<a.length;)0==a[f][0]?(c[d++]=f,g=j,h=i,i=j=0,e=a[f][1]):(1==a[f][0]?j+=a[f][1].length:i+=a[f][1].length,e&&e.length<=Math.max(g,h)&&e.length<=Math.max(j,i)&&(a.splice(c[d-1],0,[-1,e]),a[c[d-1]+1][0]=1,d--,d--,f=0<d?c[d-1]:-1,i=j=h=g=0,e=null,b=!0)),f++;b&&this.diff_cleanupMerge(a);this.diff_cleanupSemanticLossless(a);for(f=1;f<a.length;){if(-1==a[f-1][0]&&1==a[f][0]){b=a[f-1][1];c=a[f][1];d=this.diff_commonOverlap_(b,c);e=this.diff_commonOverlap_(c,b);if(d>=e){if(d>=b.length/2||d>=c.length/2)a.splice(f,0,[0,c.substring(0,d)]),a[f-1][1]=b.substring(0,b.length-d),a[f+1][1]=c.substring(d),f++}else if(e>=b.length/2||e>=c.length/2)a.splice(f,0,[0,b.substring(0,e)]),a[f-1][0]=1,a[f-1][1]=c.substring(0,c.length-e),a[f+1][0]=-1,a[f+1][1]=b.substring(e),f++;f++}f++}};
+diff_match_patch.prototype.diff_cleanupSemanticLossless=function(a){function b(a,b){if(!a||!b)return 6;var c=a.charAt(a.length-1),d=b.charAt(0),e=c.match(diff_match_patch.nonAlphaNumericRegex_),f=d.match(diff_match_patch.nonAlphaNumericRegex_),g=e&&c.match(diff_match_patch.whitespaceRegex_),h=f&&d.match(diff_match_patch.whitespaceRegex_),c=g&&c.match(diff_match_patch.linebreakRegex_),d=h&&d.match(diff_match_patch.linebreakRegex_),i=c&&a.match(diff_match_patch.blanklineEndRegex_),j=d&&b.match(diff_match_patch.blanklineStartRegex_);return i||j?5:c||d?4:e&&!g&&h?3:g||h?2:e||f?1:0}for(var c=1;c<a.length-1;){if(0==a[c-1][0]&&0==a[c+1][0]){var d=a[c-1][1],e=a[c][1],f=a[c+1][1],g=this.diff_commonSuffix(d,e);if(g)var h=e.substring(e.length-g),d=d.substring(0,d.length-g),e=h+e.substring(0,e.length-g),f=h+f;for(var g=d,h=e,j=f,i=b(d,e)+b(e,f);e.charAt(0)===f.charAt(0);){var d=d+e.charAt(0),e=e.substring(1)+f.charAt(0),f=f.substring(1),k=b(d,e)+b(e,f);k>=i&&(i=k,g=d,h=e,j=f)}a[c-1][1]!=g&&(g?a[c-1][1]=g:(a.splice(c-1,1),c--),a[c][1]=h,j?a[c+1][1]=j:(a.splice(c+1,1),c--))}c++}};diff_match_patch.nonAlphaNumericRegex_=/[^a-zA-Z0-9]/;diff_match_patch.whitespaceRegex_=/\s/;diff_match_patch.linebreakRegex_=/[\r\n]/;diff_match_patch.blanklineEndRegex_=/\n\r?\n$/;diff_match_patch.blanklineStartRegex_=/^\r?\n\r?\n/;
+diff_match_patch.prototype.diff_cleanupEfficiency=function(a){for(var b=!1,c=[],d=0,e=null,f=0,g=!1,h=!1,j=!1,i=!1;f<a.length;){if(0==a[f][0])a[f][1].length<this.Diff_EditCost&&(j||i)?(c[d++]=f,g=j,h=i,e=a[f][1]):(d=0,e=null),j=i=!1;else if(-1==a[f][0]?i=!0:j=!0,e&&(g&&h&&j&&i||e.length<this.Diff_EditCost/2&&3==g+h+j+i))a.splice(c[d-1],0,[-1,e]),a[c[d-1]+1][0]=1,d--,e=null,g&&h?(j=i=!0,d=0):(d--,f=0<d?c[d-1]:-1,j=i=!1),b=!0;f++}b&&this.diff_cleanupMerge(a)};
+diff_match_patch.prototype.diff_cleanupMerge=function(a){a.push([0,""]);for(var b=0,c=0,d=0,e="",f="",g;b<a.length;)switch(a[b][0]){case 1:d++;f+=a[b][1];b++;break;case -1:c++;e+=a[b][1];b++;break;case 0:1<c+d?(0!==c&&0!==d&&(g=this.diff_commonPrefix(f,e),0!==g&&(0<b-c-d&&0==a[b-c-d-1][0]?a[b-c-d-1][1]+=f.substring(0,g):(a.splice(0,0,[0,f.substring(0,g)]),b++),f=f.substring(g),e=e.substring(g)),g=this.diff_commonSuffix(f,e),0!==g&&(a[b][1]=f.substring(f.length-g)+a[b][1],f=f.substring(0,f.length-g),e=e.substring(0,e.length-g))),0===c?a.splice(b-d,c+d,[1,f]):0===d?a.splice(b-c,c+d,[-1,e]):a.splice(b-c-d,c+d,[-1,e],[1,f]),b=b-c-d+(c?1:0)+(d?1:0)+1):0!==b&&0==a[b-1][0]?(a[b-1][1]+=a[b][1],a.splice(b,1)):b++,c=d=0,f=e=""}""===a[a.length-1][1]&&a.pop();c=!1;for(b=1;b<a.length-1;)0==a[b-1][0]&&0==a[b+1][0]&&(a[b][1].substring(a[b][1].length-a[b-1][1].length)==a[b-1][1]?(a[b][1]=a[b-1][1]+a[b][1].substring(0,a[b][1].length-a[b-1][1].length),a[b+1][1]=a[b-1][1]+a[b+1][1],a.splice(b-1,1),c=!0):a[b][1].substring(0,a[b+1][1].length)==a[b+1][1]&&(a[b-1][1]+=a[b+1][1],a[b][1]=a[b][1].substring(a[b+1][1].length)+a[b+1][1],a.splice(b+1,1),c=!0)),b++;c&&this.diff_cleanupMerge(a)};
+diff_match_patch.prototype.diff_xIndex=function(a,b){var c=0,d=0,e=0,f=0,g;for(g=0;g<a.length;g++){1!==a[g][0]&&(c+=a[g][1].length);-1!==a[g][0]&&(d+=a[g][1].length);if(c>b)break;e=c;f=d}return a.length!=g&&-1===a[g][0]?f:f+(b-e)};
+diff_match_patch.prototype.diff_prettyHtml=function(a){for(var b=[],c=/&/g,d=/</g,e=/>/g,f=/\n/g,g=0;g<a.length;g++){var h=a[g][0],j=a[g][1],j=j.replace(c,"&amp;").replace(d,"&lt;").replace(e,"&gt;").replace(f,"&para;<br>");switch(h){case 1:b[g]='<ins style="background:#e6ffe6;">'+j+"</ins>";break;case -1:b[g]='<del style="background:#ffe6e6;">'+j+"</del>";break;case 0:b[g]="<span>"+j+"</span>"}}return b.join("")};
+diff_match_patch.prototype.diff_text1=function(a){for(var b=[],c=0;c<a.length;c++)1!==a[c][0]&&(b[c]=a[c][1]);return b.join("")};
+diff_match_patch.prototype.diff_text2=function(a){for(var b=[],c=0;c<a.length;c++)-1!==a[c][0]&&(b[c]=a[c][1]);return b.join("")};
+diff_match_patch.prototype.diff_levenshtein=function(a){for(var b=0,c=0,d=0,e=0;e<a.length;e++){var f=a[e][0],g=a[e][1];switch(f){case 1:c+=g.length;break;case -1:d+=g.length;break;case 0:b+=Math.max(c,d),d=c=0}}return b+=Math.max(c,d)};
+diff_match_patch.prototype.diff_toDelta=function(a){for(var b=[],c=0;c<a.length;c++)switch(a[c][0]){case 1:b[c]="+"+encodeURI(a[c][1]);break;case -1:b[c]="-"+a[c][1].length;break;case 0:b[c]="="+a[c][1].length}return b.join("\t").replace(/%20/g," ")};
+diff_match_patch.prototype.diff_fromDelta=function(a,b){for(var c=[],d=0,e=0,f=b.split(/\t/g),g=0;g<f.length;g++){var h=f[g].substring(1);switch(f[g].charAt(0)){case "+":try{c[d++]=[1,decodeURI(h)]}catch(j){throw Error("Illegal escape in diff_fromDelta: "+h);}break;case "-":case "=":var i=parseInt(h,10);if(isNaN(i)||0>i)throw Error("Invalid number in diff_fromDelta: "+h);h=a.substring(e,e+=i);"="==f[g].charAt(0)?c[d++]=[0,h]:c[d++]=[-1,h];break;default:if(f[g])throw Error("Invalid diff operation in diff_fromDelta: "+f[g]);}}if(e!=a.length)throw Error("Delta length ("+e+") does not equal source text length ("+a.length+").");return c};
+diff_match_patch.prototype.match_main=function(a,b,c){if(null==a||null==b||null==c)throw Error("Null input. (match_main)");c=Math.max(0,Math.min(c,a.length));return a==b?0:a.length?a.substring(c,c+b.length)==b?c:this.match_bitap_(a,b,c):-1};
+diff_match_patch.prototype.match_bitap_=function(a,b,c){function d(a,d){var e=a/b.length,g=Math.abs(c-d);return!f.Match_Distance?g?1:e:e+g/f.Match_Distance}if(b.length>this.Match_MaxBits)throw Error("Pattern too long for this browser.");var e=this.match_alphabet_(b),f=this,g=this.Match_Threshold,h=a.indexOf(b,c);-1!=h&&(g=Math.min(d(0,h),g),h=a.lastIndexOf(b,c+b.length),-1!=h&&(g=Math.min(d(0,h),g)));for(var j=1<<b.length-1,h=-1,i,k,p=b.length+a.length,q,s=0;s<b.length;s++){i=0;for(k=p;i<k;)d(s,c+k)<=g?i=k:p=k,k=Math.floor((p-i)/2+i);p=k;i=Math.max(1,c-k+1);var o=Math.min(c+k,a.length)+b.length;k=Array(o+2);for(k[o+1]=(1<<s)-1;o>=i;o--){var v=e[a.charAt(o-1)];k[o]=0===s?(k[o+1]<<1|1)&v:(k[o+1]<<1|1)&v|(q[o+1]|q[o])<<1|1|q[o+1];if(k[o]&j&&(v=d(s,o-1),v<=g))if(g=v,h=o-1,h>c)i=Math.max(1,2*c-h);else break}if(d(s+1,c)>g)break;q=k}return h};
+diff_match_patch.prototype.match_alphabet_=function(a){for(var b={},c=0;c<a.length;c++)b[a.charAt(c)]=0;for(c=0;c<a.length;c++)b[a.charAt(c)]|=1<<a.length-c-1;return b};
+diff_match_patch.prototype.patch_addContext_=function(a,b){if(0!=b.length){for(var c=b.substring(a.start2,a.start2+a.length1),d=0;b.indexOf(c)!=b.lastIndexOf(c)&&c.length<this.Match_MaxBits-this.Patch_Margin-this.Patch_Margin;)d+=this.Patch_Margin,c=b.substring(a.start2-d,a.start2+a.length1+d);d+=this.Patch_Margin;(c=b.substring(a.start2-d,a.start2))&&a.diffs.unshift([0,c]);(d=b.substring(a.start2+a.length1,a.start2+a.length1+d))&&a.diffs.push([0,d]);a.start1-=c.length;a.start2-=c.length;a.length1+=c.length+d.length;a.length2+=c.length+d.length}};
+diff_match_patch.prototype.patch_make=function(a,b,c){var d;if("string"==typeof a&&"string"==typeof b&&"undefined"==typeof c)d=a,b=this.diff_main(d,b,!0),2<b.length&&(this.diff_cleanupSemantic(b),this.diff_cleanupEfficiency(b));else if(a&&"object"==typeof a&&"undefined"==typeof b&&"undefined"==typeof c)b=a,d=this.diff_text1(b);else if("string"==typeof a&&b&&"object"==typeof b&&"undefined"==typeof c)d=a;else if("string"==typeof a&&"string"==typeof b&&c&&"object"==typeof c)d=a,b=c;else throw Error("Unknown call format to patch_make.");if(0===b.length)return[];for(var c=[],a=new diff_match_patch.patch_obj,e=0,f=0,g=0,h=d,j=0;j<b.length;j++){var i=b[j][0],k=b[j][1];if(!e&&0!==i)a.start1=f,a.start2=g;switch(i){case 1:a.diffs[e++]=b[j];a.length2+=k.length;d=d.substring(0,g)+k+d.substring(g);break;case -1:a.length1+=k.length;a.diffs[e++]=b[j];d=d.substring(0,g)+d.substring(g+k.length);break;case 0:k.length<=2*this.Patch_Margin&&e&&b.length!=j+1?(a.diffs[e++]=b[j],a.length1+=k.length,a.length2+=k.length):k.length>=2*this.Patch_Margin&&e&&(this.patch_addContext_(a,h),c.push(a),a=new diff_match_patch.patch_obj,e=0,h=d,f=g)}1!==i&&(f+=k.length);-1!==i&&(g+=k.length)}e&&(this.patch_addContext_(a,h),c.push(a));return c};
+diff_match_patch.prototype.patch_deepCopy=function(a){for(var b=[],c=0;c<a.length;c++){var d=a[c],e=new diff_match_patch.patch_obj;e.diffs=[];for(var f=0;f<d.diffs.length;f++)e.diffs[f]=d.diffs[f].slice();e.start1=d.start1;e.start2=d.start2;e.length1=d.length1;e.length2=d.length2;b[c]=e}return b};
+diff_match_patch.prototype.patch_apply=function(a,b){if(0==a.length)return[b,[]];var a=this.patch_deepCopy(a),c=this.patch_addPadding(a),b=c+b+c;this.patch_splitMax(a);for(var d=0,e=[],f=0;f<a.length;f++){var g=a[f].start2+d,h=this.diff_text1(a[f].diffs),j,i=-1;if(h.length>this.Match_MaxBits){if(j=this.match_main(b,h.substring(0,this.Match_MaxBits),g),-1!=j&&(i=this.match_main(b,h.substring(h.length-this.Match_MaxBits),g+h.length-this.Match_MaxBits),-1==i||j>=i))j=-1}else j=this.match_main(b,h,g);if(-1==j)e[f]=!1,d-=a[f].length2-a[f].length1;else if(e[f]=!0,d=j-g,g=-1==i?b.substring(j,j+h.length):b.substring(j,i+this.Match_MaxBits),h==g)b=b.substring(0,j)+this.diff_text2(a[f].diffs)+b.substring(j+h.length);else if(g=this.diff_main(h,g,!1),h.length>this.Match_MaxBits&&this.diff_levenshtein(g)/h.length>this.Patch_DeleteThreshold)e[f]=!1;else{this.diff_cleanupSemanticLossless(g);for(var h=0,k,i=0;i<a[f].diffs.length;i++){var p=a[f].diffs[i];0!==p[0]&&(k=this.diff_xIndex(g,h));1===p[0]?b=b.substring(0,j+k)+p[1]+b.substring(j+k):-1===p[0]&&(b=b.substring(0,j+k)+b.substring(j+this.diff_xIndex(g,h+p[1].length)));-1!==p[0]&&(h+=p[1].length)}}}b=b.substring(c.length,b.length-c.length);return[b,e]};
+diff_match_patch.prototype.patch_addPadding=function(a){for(var b=this.Patch_Margin,c="",d=1;d<=b;d++)c+=String.fromCharCode(d);for(d=0;d<a.length;d++)a[d].start1+=b,a[d].start2+=b;var d=a[0],e=d.diffs;if(0==e.length||0!=e[0][0])e.unshift([0,c]),d.start1-=b,d.start2-=b,d.length1+=b,d.length2+=b;else if(b>e[0][1].length){var f=b-e[0][1].length;e[0][1]=c.substring(e[0][1].length)+e[0][1];d.start1-=f;d.start2-=f;d.length1+=f;d.length2+=f}d=a[a.length-1];e=d.diffs;0==e.length||0!=e[e.length-1][0]?(e.push([0,c]),d.length1+=b,d.length2+=b):b>e[e.length-1][1].length&&(f=b-e[e.length-1][1].length,e[e.length-1][1]+=c.substring(0,f),d.length1+=f,d.length2+=f);return c};
+diff_match_patch.prototype.patch_splitMax=function(a){for(var b=this.Match_MaxBits,c=0;c<a.length;c++)if(!(a[c].length1<=b)){var d=a[c];a.splice(c--,1);for(var e=d.start1,f=d.start2,g="";0!==d.diffs.length;){var h=new diff_match_patch.patch_obj,j=!0;h.start1=e-g.length;h.start2=f-g.length;if(""!==g)h.length1=h.length2=g.length,h.diffs.push([0,g]);for(;0!==d.diffs.length&&h.length1<b-this.Patch_Margin;){var g=d.diffs[0][0],i=d.diffs[0][1];1===g?(h.length2+=i.length,f+=i.length,h.diffs.push(d.diffs.shift()),j=!1):-1===g&&1==h.diffs.length&&0==h.diffs[0][0]&&i.length>2*b?(h.length1+=i.length,e+=i.length,j=!1,h.diffs.push([g,i]),d.diffs.shift()):(i=i.substring(0,b-h.length1-this.Patch_Margin),h.length1+=i.length,e+=i.length,0===g?(h.length2+=i.length,f+=i.length):j=!1,h.diffs.push([g,i]),i==d.diffs[0][1]?d.diffs.shift():d.diffs[0][1]=d.diffs[0][1].substring(i.length))}g=this.diff_text2(h.diffs);g=g.substring(g.length-this.Patch_Margin);i=this.diff_text1(d.diffs).substring(0,this.Patch_Margin);""!==i&&(h.length1+=i.length,h.length2+=i.length,0!==h.diffs.length&&0===h.diffs[h.diffs.length-1][0]?h.diffs[h.diffs.length-1][1]+=i:h.diffs.push([0,i]));j||a.splice(++c,0,h)}}};
+diff_match_patch.prototype.patch_toText=function(a){for(var b=[],c=0;c<a.length;c++)b[c]=a[c];return b.join("")};
+diff_match_patch.prototype.patch_fromText=function(a){var b=[];if(!a)return b;for(var a=a.split("\n"),c=0,d=/^@@ -(\d+),?(\d*) \+(\d+),?(\d*) @@$/;c<a.length;){var e=a[c].match(d);if(!e)throw Error("Invalid patch string: "+a[c]);var f=new diff_match_patch.patch_obj;b.push(f);f.start1=parseInt(e[1],10);""===e[2]?(f.start1--,f.length1=1):"0"==e[2]?f.length1=0:(f.start1--,f.length1=parseInt(e[2],10));f.start2=parseInt(e[3],10);""===e[4]?(f.start2--,f.length2=1):"0"==e[4]?f.length2=0:(f.start2--,f.length2=parseInt(e[4],10));for(c++;c<a.length;){e=a[c].charAt(0);try{var g=decodeURI(a[c].substring(1))}catch(h){throw Error("Illegal escape in patch_fromText: "+g);}if("-"==e)f.diffs.push([-1,g]);else if("+"==e)f.diffs.push([1,g]);else if(" "==e)f.diffs.push([0,g]);else if("@"==e)break;else if(""!==e)throw Error('Invalid patch mode "'+e+'" in: '+g);c++}}return b};
+diff_match_patch.patch_obj=function(){this.diffs=[];this.start2=this.start1=null;this.length2=this.length1=0};
+diff_match_patch.patch_obj.prototype.toString=function(){var a,b;a=0===this.length1?this.start1+",0":1==this.length1?this.start1+1:this.start1+1+","+this.length1;b=0===this.length2?this.start2+",0":1==this.length2?this.start2+1:this.start2+1+","+this.length2;a=["@@ -"+a+" +"+b+" @@\n"];var c;for(b=0;b<this.diffs.length;b++){switch(this.diffs[b][0]){case 1:c="+";break;case -1:c="-";break;case 0:c=" "}a[b+1]=c+encodeURI(this.diffs[b][1])+"\n"}return a.join("").replace(/%20/g," ")};
+
+/* diff match patch end */
+
+// Copied from async
+// Can be generically used in many scenarios
+var async = function() {
+
+    function forEachSeries (arr, iterator, callback) {
+        callback = callback || function () {};
+        if (!arr.length) {
+            return callback();
+        }
+        var completed = 0;
+        var iterate = function () {
+            iterator(arr[completed], function (err) {
+                if (err) {
+                    callback(err);
+                    callback = function () {};
+                }
+                else {
+                    completed += 1;
+                    if (completed === arr.length) {
+                        callback(null);
+                    }
+                    else {
+                        iterate();
+                    }
+                }
+            });
+        };
+        iterate();
+    }
+
+    function series(arr, callback) {
+        forEachSeries(arr, function (fn, next) {
+            fn.call(null, function (err) {
+                if (err)
+                    return callback(err);
+                next();
+            });
+        }, callback);
+    }
+
+    return {
+        series: series,
+        forEachSeries: forEachSeries
+    };
+
+}();
+
+// Copied from https://github.com/gjtorikian/isBinaryFile
+function isBinaryFile(file, callback) {
+    var max_bytes = 512;
+    exists(file, function (exists) {
+        if (!exists)
+            return callback(null, false);
+
+        Fs.open(file, 'r', function(err, descriptor){
+            if (err)
+                return callback(err);
+            var bytes = new Buffer(max_bytes);
+            // Read the file with no encoding for raw buffer access.
+            Fs.read(descriptor, bytes, 0, bytes.length, 0, function(err, size, bytes){
+                Fs.close(descriptor, function(err2){
+                    if (err || err2)
+                        return callback(err || err2);
+                    return callback(null, isBinaryCheck(size, bytes));
+                });
+            });
+        });
+    });
+
+    function isBinaryCheck (size, bytes) {
+        if (size === 0)
+            return false;
+
+        var suspicious_bytes = 0;
+        var total_bytes = Math.min(size, max_bytes);
+
+        if (size >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF) {
+            // UTF-8 BOM. This isn't binary.
+            return false;
+        }
+
+        for (var i = 0; i < total_bytes; i++) {
+            if (bytes[i] === 0) { // NULL byte--it's binary!
+                return true;
+            }
+            else if ((bytes[i] < 7 || bytes[i] > 14) && (bytes[i] < 32 || bytes[i] > 127)) {
+                // UTF-8 detection
+                if (bytes[i] > 191 && bytes[i] < 224 && i + 1 < total_bytes) {
+                    i++;
+                    if (bytes[i] < 192) {
+                        continue;
+                    }
+                }
+                else if (bytes[i] > 223 && bytes[i] < 239 && i + 2 < total_bytes) {
+                    i++;
+                    if (bytes[i] < 192 && bytes[i + 1] < 192) {
+                        i++;
+                        continue;
+                    }
+                }
+                suspicious_bytes++;
+                // Read at least 32 bytes before making a decision
+                if (i > 32 && (suspicious_bytes * 100) / total_bytes > 10) {
+                    return true;
+                }
+            }
+        }
+
+        if ((suspicious_bytes * 100) / total_bytes > 10) {
+            return true;
+        }
+
+        return false;
+    }
+}
 
 /*
 // Quick testing:

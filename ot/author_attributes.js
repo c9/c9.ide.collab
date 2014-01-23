@@ -3,6 +3,21 @@ define(function(require, exports, module) {
 
 var operations = require("./operations");
 
+/**
+ * This is a specifically designed data structure that tends to behave as a relaxed B-Tree
+ * to optimize author attributes processing time, disk usage and network overhead
+ *
+ * It optimizes on two main factors:
+ * - insert/delete/traversal/find time: The B-tree try to maintain a minimal depth, so minimal processing needed for those operations: O(log with base minKeySize)
+ * - Parsing/Stringification time and disk usage: the nodes are implemented as arrays with the first element
+ *     indicating the number of entries in the node
+ *
+ * @param minKeySize - the minimum number of entries in a node
+ * @param maxKeySize - the maximum number of entries in a node
+ *
+ * @author Mostafa
+ * @author Harutyun
+ */
 function AuthorAttributes(minKeySize, maxKeySize) {
     // 2 * x ---> [length, [value]]
     minKeySize = minKeySize || 20; // 4

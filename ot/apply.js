@@ -13,21 +13,24 @@ var Range = require("ace/range").Range;
  * @return {String} newDoc
  */
 exports.applyContents = function(op, doc) {
-    var i, len, newDoc = "";
-    for (i = 0, len = op.length; i < len; i += 1) {
-        switch (operations.type(op[i])) {
-        case "retain":
-            newDoc += doc.slice(0, operations.val(op[i]));
-            doc = doc.slice(operations.val(op[i]));
+    var val, newDoc = "";
+    for (var i = 0, len = op.length; i < len; i += 1) {
+        val = op[i].slice(1);
+        switch (op[i][0]) {
+        case "r": // retain
+            val = Number(val);
+            newDoc += doc.slice(0, val);
+            doc = doc.slice(val);
             break;
-        case "insert":
-            newDoc += operations.val(op[i]);
+        case "i": // insert
+            newDoc += val;
             break;
-        case "delete":
-            if (doc.indexOf(operations.val(op[i])) !== 0)
-                throw new TypeError("Expected '" + operations.val(op[i]) +
+        case "d": // delete
+            if (doc.indexOf(val) !== 0)
+                throw new TypeError("Expected '" + val +
                     "' to delete, found '" + doc.slice(0, 10) + "'");
-            doc = doc.slice(operations.val(op[i]).length);
+            else
+                doc = doc.slice(val.length);
             break;
         default:
             throw new TypeError("Unknown operation: " + operations.type(op[i]));

@@ -136,6 +136,33 @@ function pack(op) {
     return packed;
 }
 
+/**
+ * Inverse an operation to undo revert its effect on a document
+ *
+ * @param  {Operation} op
+ * @return {Operation} inversed
+ */
+function inverse(op) {
+    var edit, t, v, inversed = new Array(op.length);
+    for (var i = 0, el = op.length; i < el; i++) {
+        edit = op[i];
+        t = type(edit);
+        v = val(edit);
+        switch (t) {
+            case "retain":
+                inversed[i] = op[i];
+                break;
+            case "insert":
+                inversed[i] = del(v);
+                break;
+            case "delete":
+                inversed[i] = insert(v);
+                break;
+        }
+    }
+    return inversed;
+}
+
 module.exports = {
     insert: insert,
     del: del,
@@ -146,40 +173,7 @@ module.exports = {
     split: split,
     pack: pack,
     operation: operation,
-
-    isDelete: function (edit) {
-        return type(edit) === "delete";
-    },
-
-    isRetain: function (edit) {
-        return type(edit) === "retain";
-    },
-
-    isInsert: function (edit) {
-        return type(edit) === "insert";
-    },
-
-    inverse: function (edits) {
-        var edit, t, v, inversed = new Array(edits.length);
-        for (var i = 0, el = edits.length; i < el; i++) {
-            edit = edits[i];
-            t = type(edit);
-            v = val(edit);
-            switch (t) {
-                case "retain":
-                    inversed[i] = edits[i];
-                    break;
-                case "insert":
-                    inversed[i] = del(v);
-                    break;
-                case "delete":
-                    inversed[i] = insert(v);
-                    break;
-            }
-        }
-        return inversed;
-    }
-
+    inverse: inverse
 };
 
 });
