@@ -29,7 +29,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "metadata", "ui", "apf", "se
         var Notification = {showNotification: function() {console.warn("TODO showNotification:", arguments);}};
 
         var plugin       = new Panel("Ajax.org", main.consumes, {
-            index        : 25,
+            index        : 320,
             width        : 250,
             caption      : "Collaboration",
             className    : "collab",
