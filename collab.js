@@ -348,7 +348,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "metadata", "ui", "apf", "se
 
             var chatName = apf.escapeXML(user.fullname);
             var md5Email = user.email && apf.crypto.MD5.hex_md5(user.email.trim().toLowerCase());
-            var defaultImgUrl = encodeURIComponent(c9.staticUrl + "/c9.ide.collab/images/collaborator_default-white.png");
+            var defaultImgUrl = encodeURIComponent("https://www.aiga.org/uploadedImages/AIGA/Content/About_AIGA/Become_a_member/generic_avatar_300.gif");
             console.log("Collab:", user.fullname, msg);
             Notification.showNotification('<img class="gravatar-image" src="https://secure.gravatar.com/avatar/' +
                 md5Email + '?s=26&d='  + defaultImgUrl + '" /><span>' +

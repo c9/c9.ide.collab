@@ -100,21 +100,26 @@ define(function(require, exports, module) {
                 window.addEventListener('resize', resize, true);
             }
 
-            function hide () {
+            function hide() {
                 workspace.off("sync", onMembersLoaded);
             }
 
             function show() {
                 loadMembers();
                 onMembersLoaded();
+                workspace.off("sync", onMembersLoaded);
                 workspace.on("sync", onMembersLoaded);
+            }
+
+            function refresh() {
+                loadMembers();
             }
 
             function resize() {
                 membersTree.resize();
             }
 
-            var cachedMembers;
+            var cachedMembers = [];
             function loadMembers() {
                 api.collab.get("members/list?pending=0", function (err, members) {
                     if (err) return alert("Error", err);
@@ -256,15 +261,19 @@ define(function(require, exports, module) {
                 /**
                  * Trigger a resize of the members tree
                  */
-                resize: resize,
+                resize  : resize,
                 /**
                  * Load workspace members, render the tree and set update listeners
                  */
-                show  : show,
+                show    : show,
+                /**
+                 * Refresh workspace members list
+                 */
+                refresh : refresh,
                 /**
                  * Hide the members tree and unset update listeners
                  */
-                hide  : hide
+                hide    : hide
             });
 
             return plugin;

@@ -69,7 +69,7 @@ main.consumes = ["CollabPanel", "ui", "MembersPanel", "collab", "panels"];
         /**
          * The members panel inside the collab panel allowing workspace adminstrators
          * to grant/revoke read+write access or kickout memmbers from the workspace
-         * and allow non-adminstrators to see other members of the workspace
+         * and allow non-adminstrators users to see other members of the workspace
          * @singleton
          */
         plugin.freezePublicAPI({

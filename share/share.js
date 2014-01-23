@@ -24,6 +24,7 @@ define(function(require, module, exports) {
         var emit     = plugin.getEmitter();
 
         var dialog, btnInvite, btnDone, txtUsername, shareLink, membersParent, accessButton;
+        var membersPanel;
 
         var loaded = false;
         function load() {
@@ -74,6 +75,7 @@ define(function(require, module, exports) {
             membersParent   = plugin.getElement("members");
             accessButton    = plugin.getElement("access").$int;
 
+            shareLink.value = getShareUrl();
             accessButton.addEventListener("click", function () {
                 var className = accessButton.classList;
                 var actionArr = className.contains("rw") ? ["rw", "r"] : ["r", "rw"];
@@ -95,9 +97,8 @@ define(function(require, module, exports) {
                 }
             });
 
-            var membersPanel = new MembersPanel("Ajax.org", main.consumes, {});
+            membersPanel = new MembersPanel("Ajax.org", main.consumes, {});
             membersPanel.draw({ aml: membersParent });
-            membersPanel.show();
 
             emit("draw", null, true);
         }
@@ -110,10 +111,10 @@ define(function(require, module, exports) {
             btnInvite.setAttribute("disabled", true);
             doInvite(username, access, function(err) {
                 btnInvite.setAttribute("disabled", false);
+                txtUsername.setValue("");
                 if (err)
                     return alert("Error", "Error adding workspace member", String(err));
                 hide();
-                txtUsername.setValue("");
                 alert("Success", "Workspace Member Added", "`" + username + "` granted `" + access.toUpperCase() + "` to the workspace !");
             });
         }
@@ -129,9 +130,15 @@ define(function(require, module, exports) {
             });
         }
 
+        function getShareUrl() {
+            var l = location;
+            return l.protocol + "//" + l.host + l.pathname;
+        }
+
         function show(){
             draw();
             dialog.show();
+            membersPanel.show();
             txtUsername.setValue("");
             txtUsername.blur();
             shareLink.focus();
@@ -145,7 +152,7 @@ define(function(require, module, exports) {
         plugin.on("load", function(){
             load();
         });
-        
+
         /***** Register and define API *****/
 
         /**

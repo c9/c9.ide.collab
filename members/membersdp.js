@@ -41,7 +41,7 @@ define(function(require, exports, module) {
             var status = datarow.status || "offline";
             var color = datarow.color || "transparent";
 
-            var defaultImgUrl = encodeURIComponent("http://www.aiga.org/uploadedImages/AIGA/Content/About_AIGA/Become_a_member/generic_avatar_300.gif");
+            var defaultImgUrl = encodeURIComponent("https://www.aiga.org/uploadedImages/AIGA/Content/About_AIGA/Become_a_member/generic_avatar_300.gif");
             var avatarImg = '<img class="gravatar-image" src="https://secure.gravatar.com/avatar/' +
                 datarow.md5Email + '?s=38&d='  + defaultImgUrl + '" />';
 

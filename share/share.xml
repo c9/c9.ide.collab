@@ -12,7 +12,7 @@
       class     = "share"
       draggable = "true">
         <label>Link to share</label>
-        <input id="shareLink" type="text" readonly="true" class="link" value="http://localhost:8181/static/index.html"></input>
+        <input id="shareLink" type="text" readonly="true" class="link"></input>
 
         <label style="margin-top:10px">Who has access</label>
         <a:bar id="members" class="members"></a:bar>
