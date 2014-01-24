@@ -180,7 +180,7 @@ define(function(require, exports, module) {
                     if (isClosed)
                         return;
                     stream.off("data", onData);
-                    stream.destroy();
+                    // stream.destroy();
                     isClosed = true;
                     // onDisconnect();
                 }
