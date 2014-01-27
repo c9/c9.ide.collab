@@ -1,5 +1,5 @@
 /**
- * Collab module for the Cloud9 IDE that uses collab
+ * Collab module for the Cloud9 that uses collab
  *
  * @copyright 2012, Ajax.org B.V.
  * @license GPLv3 <http://www.gnu.org/licenses/gpl.txt>

@@ -23,7 +23,9 @@ function getHomeDir() {
 }
 
 function getProjectWD() {
-    return Path.join(getHomeDir(), ".c9", PID + "");
+    var env = process.env;
+    var pidStr = env.BASE_PROC ? "" : String(PID);
+    return Path.join(env.BASE_PROC || env.OPENSHIFT_DATA_DIR || env.HOME, ".c9", pidStr);
 }
 
 /**
