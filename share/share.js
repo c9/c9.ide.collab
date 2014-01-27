@@ -115,8 +115,10 @@ define(function(require, module, exports) {
                 txtUsername.setValue("");
                 if (err)
                     return alert("Error", "Error adding workspace member", String(err));
-                hide();
-                alert("Success", "Workspace Member Added", "`" + member.name + "` granted `" + accessString + "` to this workspace !");
+                alert("Invitation Sent", 
+                    "Workspace Member Added", 
+                    "You have granted " + member.name + " " + accessString 
+                        + "access to this workspace!");
             });
         }
 
