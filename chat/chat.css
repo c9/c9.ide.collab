@@ -29,13 +29,13 @@
     font-size: 12px;
     padding: 0 0 0 2px;
     .flex(1);
-    background: #292929;
+    background: #333;
 }
 .chatText p {
     padding: 7px 7px 7px 10px;
     word-wrap: break-word;
     border-bottom : 1px dotted #151515;
-    border-top : 1px dotted #373737;
+    border-top : 1px dotted #444;
     position : relative;
     margin : 0;
 }
