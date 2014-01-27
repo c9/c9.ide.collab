@@ -1,9 +1,3 @@
-/**
- * File Finder module for the Cloud9 that uses nak
- *
- * @copyright 2012, Ajax.org B.V.
- * @license GPLv3 <http://www.gnu.org/licenses/gpl.txt>
- */
 define(function(require, exports, module) {
     main.consumes = ["Plugin", "collab.util", "api"];
     main.provides = ["collab.workspace"];
@@ -20,11 +14,11 @@ define(function(require, exports, module) {
         var emit   = plugin.getEmitter();
 
         var authorPool = {};
-        var colorPool = {};
-        var users  = {};
-        var myClientId, myOldClientId, myUserId, fs, reversedAuthorPool, chatHistory;
-
-        var loaded    = false;
+        var colorPool  = {};
+        var users      = {};
+        var loaded     = false;
+        var myClientId, myOldClientId, myUserId, fs;
+        var reversedAuthorPool, chatHistory;
 
         /***** Register and define API *****/
 
@@ -34,15 +28,15 @@ define(function(require, exports, module) {
             else
                 myOldClientId = null;
 
-            myClientId = data.myClientId;
-            myUserId = data.myUserId;
-            fs = data.fs;
-            authorPool = data.authorPool;
+            myClientId         = data.myClientId;
+            myUserId           = data.myUserId;
+            fs                 = data.fs;
+            authorPool         = data.authorPool;
             reversedAuthorPool = util.reverseObject(authorPool);
-            colorPool = data.colorPool;
-            users = data.users;
-            chatHistory = data.chatHistory;
-            loaded = true;
+            colorPool          = data.colorPool;
+            users              = data.users;
+            chatHistory        = data.chatHistory;
+            loaded             = true;
             emit("sync");
         }
 

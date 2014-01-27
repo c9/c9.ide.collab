@@ -123,3 +123,9 @@
     max-width: 500px;
     white-space: pre-wrap;
 }
+
+.panelsbar .panelsbuttonDown.collab, .panelsbar .panelsbuttonDown.collab:hover{
+    /*border-bottom: 1px solid rgb(27, 27, 27);*/
+    box-shadow: 1px -1px @border-highlight inset, 1px 0 @border-highlight;
+    padding-bottom: 7px;
+}

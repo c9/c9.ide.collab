@@ -1,8 +1,11 @@
 define(function(require, exports, module) {
 "use strict";
 
-main.consumes = ["Panel", "c9", "tabManager", "fs", "metadata", "ui", "apf", "settings", "preferences",
-        "ace", "util", "collab.connect", "collab.workspace", "timeslider", "OTDocument"];
+    main.consumes = [
+        "Panel", "c9", "tabManager", "fs", "metadata", "ui", "apf", "settings", 
+        "preferences", "ace", "util", "collab.connect", "collab.workspace", 
+        "timeslider", "OTDocument"
+    ];
     main.provides = ["collab"];
     return main;
 
@@ -26,9 +29,13 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "metadata", "ui", "apf", "se
         var css          = require("text!./collab.css");
         var staticPrefix = options.staticPrefix;
 
-        var Notification = {showNotification: function() {console.warn("TODO showNotification:", arguments);}};
+        var Notification = {
+            showNotification: function() {
+                console.warn("TODO showNotification:", arguments);
+            }
+        };
 
-        var plugin       = new Panel("Ajax.org", main.consumes, {
+        var plugin = new Panel("Ajax.org", main.consumes, {
             index        : 320,
             width        : 250,
             caption      : "Collaboration",
@@ -37,11 +44,10 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "metadata", "ui", "apf", "se
             minWidth     : 130,
             where        : "right"
         });
-
-        var emit         = plugin.getEmitter();
+        var emit = plugin.getEmitter();
 
         // open collab documents
-        var documents    = {};
+        var documents = {};
 
         var loaded = false;
         function load() {
@@ -137,9 +143,9 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "metadata", "ui", "apf", "se
         }
 
         function onMessage(msg) {
-            var data = msg.data || {};
-            var user = data && data.userId && workspace.getUser(data.userId);
-            var type = msg.type;
+            var data  = msg.data || {};
+            var user  = data && data.userId && workspace.getUser(data.userId);
+            var type  = msg.type;
             var docId = data.docId;
             if (docId && docId[0] !== "/")
                 docId = data.docId = "/" + docId;

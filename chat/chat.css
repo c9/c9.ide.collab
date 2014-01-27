@@ -30,7 +30,6 @@
     padding: 0 0 0 2px;
     .flex(1);
     background: #292929;
-    box-shadow: 1px 0 rgba(255, 255, 255, 0.06) inset;
 }
 .chatText p {
     padding: 7px 7px 7px 10px;
@@ -76,12 +75,34 @@
 .chatContainer .ace_searchbox{
     background: #292929;
     height:30px;
-    padding:5px;
-    box-shadow: 1px 0 rgba(255, 255, 255, 0.06) inset;
+    padding: 0;
+    cursor: text;
 }
 .chatContainer .ace_searchbox .sbtb_middle{
     min-height : 37px;
+    
+    border-color: rgb(29, 29, 29);
+    border-radius: 0;
+    border-width: 1px 0 0 0;
+    box-shadow: inset 0px 1px 2px 0 rgba(0, 0, 0, 0.21), inset 1px 0 rgba(255, 255, 255, 0.03);
+    background: rgb(61, 61, 61);
+    padding: 4px 4px 3px 4px;
 }
+.chatContainer .searchTxt.tb_textboxInitial .sbtb_middle .input{
+    color: #B9B9B9 !important;
+    text-indent: 3px;
+}
+.chatContainer .searchbox .sbtb_middle .input{
+    color: #f1f1f1;
+    .font-smoothing(true);
+}
+.chatContainer .ace-tm .ace_marker-layer .ace_selection {
+    background: rgb(76, 99, 18);
+}
+.chatContainer .ace-tm .ace_cursor {
+    color : #f1f1f1;
+}
+
 #chatCounter {
     color: #777;
     font-size: 10px;

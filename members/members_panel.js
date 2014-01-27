@@ -21,7 +21,7 @@ define(function(require, exports, module) {
         var Tree         = require("ace_tree/tree");
         var TreeData     = require("./membersdp");
 
-        var ROLE_ADMIN        = "a";
+        var ROLE_ADMIN   = "a";
 
         function MembersPanel(developer, deps, options){
             // Editor extends ext.Plugin
@@ -178,12 +178,14 @@ define(function(require, exports, module) {
                 else
                     membersDataProvider.setRoot([
                         {
-                            name: "Read+Write",
-                            items: members.rw
+                            name     : "Read+Write",
+                            items    : members.rw,
+                            noSelect : true
                         },
                         {
-                            name: "Read Only",
-                            items: members.r
+                            name     : "Read Only",
+                            items    : members.r,
+                            noSelect : true,
                         }
                     ]);
             }

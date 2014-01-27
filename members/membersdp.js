@@ -19,7 +19,7 @@ define(function(require, exports, module) {
         this.$sortNodes = false;
 
         this.getEmptyMessage = function(){
-            return "Loading Members ...";
+            return "Loading Members...";
         };
 
         this.setRoot = function(root){

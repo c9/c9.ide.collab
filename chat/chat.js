@@ -61,8 +61,8 @@ define(function(require, exports, module) {
             chatInput = new apf.codebox({
                 htmlNode         : parent,
                 skin             : "codebox",
-                "initial-message": "Hello World!",
-                clearbutton      : "true",
+                "initial-message": "Enter your message here",
+                // clearbutton      : "true",
                 focusselect      : "true"
             });
 
