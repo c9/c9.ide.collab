@@ -3,7 +3,7 @@ define(function(require, exports, module) {
 
     main.consumes = [
         "Plugin", "ui", "apf", "Menu", "MenuItem",
-        "collab.workspace", "api", "info", "dialog.alert", "dialog.confirm"
+        "collab.workspace", "info", "dialog.alert", "dialog.confirm"
     ];
     main.provides = ["MembersPanel"];
     return main;
@@ -14,7 +14,6 @@ define(function(require, exports, module) {
         var Menu         = imports.Menu;
         var MenuItem     = imports.MenuItem;
         var workspace    = imports["collab.workspace"];
-        var api          = imports.api;
         var info         = imports.info;
         var alert        = imports["dialog.alert"].show;
         var confirm      = imports["dialog.confirm"].show;
@@ -101,50 +100,27 @@ define(function(require, exports, module) {
             }
 
             function hide() {
-                workspace.off("sync", onMembersLoaded);
+                workspace.off("sync", onWorkspaceSync);
+            }
+            
+            function alertIfError(err) {
+               err && alert("Error", err);
             }
 
             function show() {
-                loadMembers();
-                onMembersLoaded();
-                workspace.off("sync", onMembersLoaded);
-                workspace.on("sync", onMembersLoaded);
-            }
-
-            function refresh() {
-                loadMembers();
+                workspace.loadMembers(alertIfError);
+                workspace.off("sync", onWorkspaceSync);
+                workspace.on("sync", onWorkspaceSync);
             }
 
             function resize() {
                 membersTree.resize();
             }
 
-            var cachedMembers = [];
-            function loadMembers() {
-                api.collab.get("members/list?pending=0", function (err, members) {
-                    if (err) return alert("Error", err);
-
-                    cachedMembers = members;
-                    onMembersLoaded();
-                });
-            }
-
             function updateAccess(acl) {
                 var node = getSelectedMember();
                 var uid = node.uid;
-                api.collab.put("members/update_access", {
-                    body: {
-                        uid    : uid,
-                        access : acl
-                    }
-                }, function (err, data, res) {
-                    if (err) return alert(err);
-
-                    (cachedMembers.filter(function (member) {
-                        return member.uid  == uid;
-                    })[0] || {}).acl = acl;
-                    onMembersLoaded();
-                });
+                workspace.updateAccess(uid, acl, alertIfError);
             }
 
             function removeMember() {
@@ -157,16 +133,7 @@ define(function(require, exports, module) {
                         + "read, write nor collaborate on that workspace ",
                     function(){ // Yes
                         var uid = node.uid;
-                        api.collab.delete("members/remove", {
-                            body: { uid : uid }
-                        }, function (err, data, res) {
-                            if (err) return alert(err);
-
-                            cachedMembers = cachedMembers.filter(function (member) {
-                                return member.uid  != uid;
-                            });
-                            onMembersLoaded();
-                        });
+                        workspace.removeMember(uid, alertIfError);
                     }, function(){ /* No */ }
                 );
             }
@@ -175,21 +142,12 @@ define(function(require, exports, module) {
                 return membersTree.selection.getCursor();
             }
 
-            function onMembersLoaded() {
+            function onWorkspaceSync() {
                 var me = info.getUser();
                 var members = {r: [], rw: []};
                 var myRow = {};
 
-                if (!Array.isArray(cachedMembers)) {
-                    // standalone version test
-                    cachedMembers = [
-                        { name: "Mostafa Eweda", uid: 1, acl: "rw", role: "a", email: "mostafa@c9.io" },
-                        { name: "Lennart Kats", uid: 5, acl: "r", color: "yellow", status: "online", email: "lennart@c9.io" },
-                        { name: "Ruben Daniels", uid: 2, acl: "rw", color: "blue", status: "idle", email: "ruben@ajax.org" },
-                        { name: "Bas de Wachter", uid: 8, acl: "rw", color: "purple", email: "bas@c9.io" }
-                    ];
-                }
-
+                var cachedMembers = workspace.members;
                 cachedMembers.forEach(function (m) {
                     m.isAdmin = m.role == ROLE_ADMIN;
                     m.color = m.color || workspace.getUserColor(m.uid);
@@ -266,10 +224,6 @@ define(function(require, exports, module) {
                  * Load workspace members, render the tree and set update listeners
                  */
                 show    : show,
-                /**
-                 * Refresh workspace members list
-                 */
-                refresh : refresh,
                 /**
                  * Hide the members tree and unset update listeners
                  */

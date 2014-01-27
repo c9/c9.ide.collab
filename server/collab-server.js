@@ -974,7 +974,7 @@ function handleConnect(userIds, client, callback) {
         });
     }
 
-    function doConnect (authorPool, colorPool) {
+    function doConnect(authorPool, colorPool) {
         Store.getUsers(function (err, users) {
             if (err)
                 return console.error("[vfs-collab] getUsers", err);
@@ -983,19 +983,27 @@ function handleConnect(userIds, client, callback) {
                 console.error("[vfs-collab] User", userIds.userId, "is connecting to a workspace with",
                     users.length - 1, "other workspace members");
 
-            var onlineClientIds = Object.keys(clients);
-            var onlineUserIds = {};
-            for (var clId in clients)
-                onlineUserIds[clients[clId].userIds.userId] = true;
-            onlineUserIds = Object.keys(onlineUserIds);
+            var onlineUsers = {};
+            for (var clId in clients) {
+                var uid = clients[clId].userIds.userId;
+                onlineUsers[uid] = (onlineUsers[uid] || 0) + 1;
+            }
 
-            if (onlineUserIds.length > 1)
+            if (Object.keys(onlineUsers).length > 1)
                 console.error("[vfs-collab] User", userIds.userId, "is connecting Collab with",
-                    onlineClientIds.length-1, "other clients & online workspace members", onlineUserIds);
+                    Object.keys(clients).length-1, "other clients & online workspace members", onlineUsers);
 
             var usersMap = {};
             users.forEach(function (user) {
-                usersMap[user.uid] = user;
+                var uid = user.uid;
+                usersMap[uid] = {
+                    email: user.email,
+                    fullname: user.fullname,
+                    uid: user.uid,
+                    online: onlineUsers[uid] || 0,
+                    author: authorPool[uid],
+                    color: colorPool[uid]
+                };
             });
 
             broadcast({
@@ -1003,11 +1011,7 @@ function handleConnect(userIds, client, callback) {
                 data: {
                     userId: userId,
                     clientId: clientId,
-                    fs: userIds.fs,
-                    authorPool: authorPool,
-                    colorPool: colorPool,
-                    users: usersMap,
-                    onlineUserIds: onlineUserIds
+                    user: usersMap[userId]
                 }
             }, client);
 
@@ -1018,8 +1022,6 @@ function handleConnect(userIds, client, callback) {
                 client.send({
                     type: "CONNECT",
                     data: {
-                        // clients: onlineClientIds, // Online clients (clientIds)
-                        onlineUserIds: onlineUserIds, // Online members (userIds)
                         myClientId: clientId,
                         myUserId: userId,
                         fs: userIds.fs,
@@ -1644,7 +1646,7 @@ function handleLeaveDocument(userIds, client, data) {
             docId, clientId, documents[docId] && Object.keys(documents[docId]), Object.keys(client.openDocIds),
             Object.keys(documents), Object.keys(clients));
     delete client.openDocIds[docId];
-    console.error("[vfs-collab]", clientId, " is leaving document", docId);
+    console.error("[vfs-collab]", clientId, "is leaving document", docId);
     delete documents[docId][clientId];
     if (!Object.keys(documents[docId]).length) {
         console.error("[vfs-collab] Closing document", docId);

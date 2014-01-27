@@ -1,7 +1,7 @@
 define(function(require, module, exports) {
     main.consumes = [
         "Plugin", "c9", "commands", "menus", "ui", "layout", "dialog.alert",
-        "MembersPanel", "api", "info"
+        "MembersPanel", "info", "collab.workspace",
     ];
     main.provides = ["dialog.share"];
     return main;
@@ -15,7 +15,7 @@ define(function(require, module, exports) {
         var ui           = imports.ui;
         var alert        = imports["dialog.alert"].show;
         var layout       = imports.layout;
-        var api          = imports.api;
+        var workspace    = imports["collab.workspace"];
 
         var markup   = require("text!./share.xml");
         var css      = require("text!./share.css");
@@ -108,25 +108,15 @@ define(function(require, module, exports) {
         function inviteUser(){
             var username = txtUsername.value;
             var access = accessButton.classList.contains("rw") ? "rw" : "r";
+            var accessString = access === "rw" ? "Read+Write" : "Read-Only";
             btnInvite.setAttribute("disabled", true);
-            doInvite(username, access, function(err) {
+            workspace.addMember(username, access, function(err, member) {
                 btnInvite.setAttribute("disabled", false);
                 txtUsername.setValue("");
                 if (err)
                     return alert("Error", "Error adding workspace member", String(err));
                 hide();
-                alert("Success", "Workspace Member Added", "`" + username + "` granted `" + access.toUpperCase() + "` to the workspace !");
-            });
-        }
-
-        function doInvite(username, access, callback) {
-            api.collab.post("members/add", {
-                body: {
-                    username : username,
-                    access   : access
-                }
-            }, function (err, data, res) {
-                callback(err);
+                alert("Success", "Workspace Member Added", "`" + member.name + "` granted `" + accessString + "` to this workspace !");
             });
         }
 

@@ -127,7 +127,7 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "metadata", "ui", "apf", "se
         }
 
         function onConnectMsg(msg) {
-            workspace.sync(msg.data, true);
+            workspace.syncWorkspace(msg.data);
 
             for (var docId in documents)
                 documents[docId].load();
@@ -157,12 +157,13 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "metadata", "ui", "apf", "se
                     emit("chatMessage", data);
                     break;
                 case "USER_JOIN":
-                    workspace.sync(data);
-                    user = workspace.getUser(data.userId);
+                    user = data.user;
+                    workspace.joinClient(user);
                     throbNotification("came online", user);
                     break;
                 case "USER_LEAVE":
                     // TODO: sync workspace & show user as offline in the members panel
+                    workspace.leaveClient(data.userId);
                     throbNotification("went offline", user);
                     break;
                 case "LEAVE_DOC":
@@ -379,6 +380,9 @@ main.consumes = ["Panel", "c9", "tabManager", "fs", "metadata", "ui", "apf", "se
             drawn = true;
         });
 
+        /**
+         * @singleton
+         */
         plugin.freezePublicAPI({
             _events : [
                 /**
