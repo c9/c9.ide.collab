@@ -46,17 +46,16 @@ define(function(require, module, exports) {
             }), 20100, plugin);
 
             var btn =  new ui.button({
-                "skin"    : "btn-default-css3",
-                "class"   : "btn-green",
+                "skin"    : "c9-menu-btn",
                 "caption" : "Share",
                 "tooltip" : "Share Workspace",
-                "width"   : 80,
+                // "width"   : 80,
                 "command" : "sharedialog"
             });
 
             ui.insertByIndex(layout.findParent({
                 name: "preferences"
-            }), btn, 800, plugin);
+            }), btn, 880, plugin);
         }
 
         var drawn = false;
