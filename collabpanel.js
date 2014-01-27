@@ -17,6 +17,7 @@ define(function(require, module, exports) {
             var caption = options.caption;
             var index   = options.index || 100;
             var height  = options.height || "";
+            var style   = options.style || "";
             var amlFrame;
 
             plugin.on("load", function(){
@@ -29,39 +30,32 @@ define(function(require, module, exports) {
                     buttons     : "min",
                     activetitle : "min",
                     "class"     : "absframe",
+                    style       : "position:relative;" + (style || ""),
                     textselect  : options.textselect,
-                    height      : height,
+                    // height      : height,
                     caption     : caption
                 });
                 
                 var aml = e.aml;
 
                 amlFrame.on("afterstatechange", function () {
-                    var state = amlFrame.state;
-                    var otherFrame = amlFrame == aml.firstChild ? aml.lastChild : aml.firstChild;
-                    var otherState = otherFrame.state;
-                    if (state === "minimized") {
-                        amlFrame.setHeight(22);
-                        if (otherState === "normal")
-                            otherFrame.setHeight();
-                    }
-                    else if (state === "normal") {
-                        if (otherState === "normal") {
-                            amlFrame.setHeight("50%");
-                            otherFrame.setHeight("50%");
-                        }
-                        else {
-                            amlFrame.setHeight();
-                        }
-                    }
-                });
-
-                var splitter = aml.$handle;
-                splitter.on("dragmove", function () {
-                    emit("resize");
-                });
-                splitter.on("dragdrop", function () {
-                    emit("resize");
+                    // var state = amlFrame.state;
+                    // var otherFrame = amlFrame == aml.firstChild ? aml.lastChild : aml.firstChild;
+                    // var otherState = otherFrame.state;
+                    // if (state === "minimized") {
+                    //     amlFrame.setHeight(22);
+                    //     if (otherState === "normal")
+                    //         otherFrame.setHeight();
+                    // }
+                    // else if (state === "normal") {
+                    //     if (otherState === "normal") {
+                    //         amlFrame.setHeight("50%");
+                    //         otherFrame.setHeight("50%");
+                    //     }
+                    //     else {
+                    //         amlFrame.setHeight();
+                    //     }
+                    // }
                 });
 
                 if (index == 100)

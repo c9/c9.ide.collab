@@ -5,8 +5,8 @@ define(function(require, exports, module) {
     function DataProvider(root) {
         BaseClass.call(this, root || {});
 
-        this.rowHeight      = 37;
-        this.rowHeightInner = 35;
+        this.rowHeight      = 22;
+        this.rowHeightInner = 20;
 
         Object.defineProperty(this, "loaded", {
             get : function(){ return this.visibleItems.length; }

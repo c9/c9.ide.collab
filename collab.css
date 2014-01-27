@@ -129,3 +129,10 @@
     box-shadow: 1px -1px @border-highlight inset, 1px 0 @border-highlight;
     padding-bottom: 7px;
 }
+
+.collab-bar{
+    display:flex;
+    display:-webkit-flex;
+    flex-direction: column;
+    -webkit-flex-direction: column;
+}

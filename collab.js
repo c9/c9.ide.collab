@@ -106,17 +106,12 @@ define(function(require, exports, module) {
             var bar = options.aml.appendChild(new ui.bar({
                 "id"    : "winCollab",
                 "skin"  : "panel-bar",
-                childNodes : [
-                    new apf.vsplitbox({
-                        splitter : true,
-                        anchors  : "0 0 0 0"
-                    })
-                ]
+                "class" : "collab-bar"
             }));
             plugin.addElement(bar);
 
-            var html = bar.firstChild.$int;
-            emit("drawPanels", { html: html, aml: bar.firstChild }, true);
+            var html = bar.$int;
+            emit("drawPanels", { html: html, aml: bar }, true);
         }
 
         function onDisconnect() {

@@ -28,14 +28,14 @@ define(function(require, exports, module) {
             var plugin = new Plugin(developer, deps);
             // var emit   = plugin.getEmitter();
 
-            var membersTree, membersDataProvider;
+            var membersTree, membersDataProvider, parent;
 
             var drawn = false;
             function draw(options) {
                 if (drawn) return;
                 drawn = true;
 
-                var parent = options.aml;
+                parent = options.aml;
 
                 // Members panel
                 membersTree         = new Tree(parent.$int);
@@ -55,8 +55,30 @@ define(function(require, exports, module) {
 
                     var className = domTarget.classList;
                     membersDataProvider.selection.selectNode(node);
+                    if (className.contains("access_control")) {
+                        if (className.contains("rw")) {
+                            className.remove("rw");
+                            className.add("r");
+                        }
+                        else {
+                            className.remove("r");
+                            className.add("rw");
+                        }
+                        membersTree.resize(true);
+                    }
+                });
+                membersTree.on("mouseup", function(e){
+                    var domTarget = e.domEvent.target;
+
+                    var pos = e.getDocumentPosition();
+                    var node = membersDataProvider.findItemAtOffset(pos.y);
+                    if (!node || !domTarget)
+                        return;
+
+                    var className = domTarget.classList;
+                    membersDataProvider.selection.selectNode(node);
                     if (className.contains("access_control"))
-                        updateAccess(className.contains("rw") ? "r" : "rw");
+                        updateAccess(node.acl == "rw" ? "r" : "rw");
                     else if (className == "kickout")
                         removeMember();
                 });
@@ -97,6 +119,36 @@ define(function(require, exports, module) {
                 });
                 parent.setAttribute("contextmenu", mnuCtxTreeEl);
                 window.addEventListener('resize', resize, true);
+                
+                parent.on("afterstatechange", function () {
+                    var state = parent.state;
+                    if (state === "minimized") {
+                        update(21);
+                    }
+                    else if (state === "normal") {
+                        update();
+                    }
+                });
+                
+                membersDataProvider.on("change", function(){ update(); });
+                membersDataProvider.on("collapse", function(){ 
+                    setTimeout(update, 10); 
+                });
+                membersDataProvider.on("expand", function(){ 
+                    setTimeout(update, 10); 
+                });
+                
+                update();
+            }
+            
+            function update(treeHeight){
+                var maxHeight = parent.parentNode.$int.offsetHeight * 0.5;
+                if (!treeHeight)
+                    treeHeight = membersTree.renderer.layerConfig.maxHeight + 30;
+    
+                parent.$ext.style.height = Math.min(treeHeight, maxHeight) + "px";
+    
+                membersTree.resize(true);
             }
 
             function hide() {
@@ -178,16 +230,20 @@ define(function(require, exports, module) {
                 else
                     membersDataProvider.setRoot([
                         {
-                            name     : "Read+Write",
-                            items    : members.rw,
-                            noSelect : true
+                            name      : "Read+Write",
+                            items     : members.rw,
+                            noSelect  : true,
+                            className : "heading"
                         },
                         {
-                            name     : "Read Only",
-                            items    : members.r,
-                            noSelect : true,
+                            name      : "Read Only",
+                            items     : members.r,
+                            noSelect  : true,
+                            className : "heading"
                         }
                     ]);
+                
+                update();
             }
 
              /***** Register and define API *****/

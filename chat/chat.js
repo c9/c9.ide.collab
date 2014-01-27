@@ -1,7 +1,10 @@
 define(function(require, exports, module) {
 "use strict";
 
-    main.consumes = ["CollabPanel", "ui", "panels", "collab.util", "collab.workspace", "collab"];
+    main.consumes = [
+        "CollabPanel", "ui", "panels", "collab.util", "collab.workspace", 
+        "collab"
+    ];
     main.provides = ["chat"];
     return main;
 
@@ -26,7 +29,8 @@ define(function(require, exports, module) {
         var plugin = new CollabPanel("Ajax.org", main.consumes, {
             index        : 200,
             caption      : "Group Chat",
-            textselect   : true
+            textselect   : true,
+            style        : "flex:1;-webkit-flex:1"
         });
 
         // var emit  = plugin.getEmitter();

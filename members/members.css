@@ -7,10 +7,10 @@
     padding: 2px 0 0 18px;
     position: relative;
 
-    border-top: 1px solid rgba(255, 255, 255, 0.07);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.33);
+    /*border-top: 1px solid rgba(255, 255, 255, 0.07);*/
+    /*border-bottom: 1px solid rgba(0, 0, 0, 0.33);*/
 
-    pointer-events: auto;
+    /*pointer-events: auto;*/
     padding-left : 42px;
 }
 
@@ -21,14 +21,15 @@
 .memberstree .tree-row .toggler {
     background-image: url("@{image-path}/tree_close_arrow_small.png");
     position: absolute;
-    left: 1px;
+    left: 3px;
     top: 8px
 }
 
 .memberstree .tree-row .caption {
     position: absolute;
-    left: 62px;
-    top: 11px;
+    left: 30px;
+    font-size: 11px;
+    top: 3px;
     color: #f1f1f1;
     right: 93px;
     overflow: hidden;
@@ -36,7 +37,7 @@
 }
 
 .memberstree .tree-row .root.caption {
-    left: 15px;
+    left: 17px;
     top: 5px;
     font-weight: bold;
 }
@@ -49,6 +50,7 @@
 
 .memberstree .avatar {
     position: absolute;
+    display : none;
     left: 3px;
     width: 38px;
     top : -1px;
@@ -70,8 +72,8 @@
     cursor: pointer;
     pointer-events: auto;
     position: absolute;
-    right: 18px;
-    top: 10px;
+    right: 6px;
+    top: 2px;
     z-index:100000;
 }
 
@@ -88,8 +90,8 @@
     cursor : pointer;
     pointer-events: auto;
     position: absolute;
-    right: 35px;
-    top: 10px;
+    right: 24px;
+    top: 2px;
 }
 
 .access_control.disabled {
@@ -150,7 +152,7 @@
     color : #BDCE63;
 }
 
-.memberstree .tree-row:hover {
+.memberstree .tree-row.hover:not(.heading){
     background: @selected-hover-background;
 }
 
@@ -160,7 +162,7 @@
 
 .memberstree.ace_tree_focus .tree-row.selected {
     background: @selected-focus-background;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.69);
+    /*border-bottom: 1px solid rgba(0, 0, 0, 0.69);*/
 }
 
 .memberstree .status {
@@ -168,17 +170,19 @@
     width: 12px;
     height: 12px;
     position: absolute;
-    left: 47px;
-    top: 13px;
+    left: 14px;
+    top: 5px;
     background: url(/static/plugins/c9.ide.collab/members/images/collab-led-states.png) 1px 0 no-repeat;
 }
 
 .memberstree .collaborator_color {
     position: absolute;
     left: 0;
-    top: -1px;
+    top: 2px;
     width: 3px;
-    height: 38px;
+    bottom: 2px;
+    border-radius: 0 3px 3px 0;
+    box-shadow: inset 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .memberstree .status.online { background-position: 0 -24px; }
