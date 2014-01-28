@@ -43,7 +43,8 @@ define(function(require, module, exports) {
 
             var btn =  new ui.button({
                 "skin"    : "c9-menu-btn",
-                "caption" : "Share",
+                // "caption" : "Share",
+                "class"   : "share",
                 "tooltip" : "Share Workspace",
                 // "width"   : 80,
                 "command" : "sharedialog"
