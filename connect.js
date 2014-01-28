@@ -140,7 +140,6 @@ define(function(require, exports, module) {
             collab.connect(options.basePath, clientId, function (err, meta) {
                 if (err)
                     return console.error("COLLAB connect failed", err);
-                console.log("COLLAB connected -", meta.isMaster ? "MASTER" : "SLAVE");
 
                 stream = meta.stream;
                 var isClosed = false;
@@ -171,7 +170,7 @@ define(function(require, exports, module) {
                     connected  = true;
                     connecting = false;
                     connectMsg = data;
-                    console.log("Collab connected");
+                    console.log("COLLAB connected -", meta.isMaster ? "MASTER" : "SLAVE");
                     emit("connect", data);
                     stream.on("data", onData);
                     clearTimeout(connectTimeout);
