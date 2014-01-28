@@ -121,13 +121,7 @@ define(function(require, exports, module) {
                 window.addEventListener('resize', resize, true);
                 
                 parent.on("afterstatechange", function () {
-                    var state = parent.state;
-                    if (state === "minimized") {
-                        update(21);
-                    }
-                    else if (state === "normal") {
-                        update();
-                    }
+                    update();
                 });
                 
                 membersDataProvider.on("change", function(){ update(); });
@@ -141,10 +135,11 @@ define(function(require, exports, module) {
                 update();
             }
             
-            function update(treeHeight){
+            function update(){
                 var maxHeight = parent.parentNode.$int.offsetHeight * 0.5;
-                if (!treeHeight)
-                    treeHeight = membersTree.renderer.layerConfig.maxHeight + 30;
+                var treeHeight = parent.state == "minimized"
+                    ? 21
+                    : membersTree.renderer.layerConfig.maxHeight + 30;
     
                 parent.$ext.style.height = Math.min(treeHeight, maxHeight) + "px";
     

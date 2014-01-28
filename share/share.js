@@ -41,10 +41,6 @@ define(function(require, module, exports) {
                 exec    : show
             }, plugin);
 
-            menus.addItemByPath("Window/Share Workspace", new ui.item({
-                command: "sharedialog"
-            }), 20100, plugin);
-
             var btn =  new ui.button({
                 "skin"    : "c9-menu-btn",
                 "caption" : "Share",
