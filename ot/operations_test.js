@@ -20,15 +20,9 @@ module.exports = {
     },
 
     "test operations binary checks": function () {
-        assert.equal(operations.isRetain("r2"), true);
-        assert.equal(operations.isRetain("iab"), false);
-        assert.equal(operations.isRetain("dab"), false);
-        assert.equal(operations.isInsert("r2"), false);
-        assert.equal(operations.isInsert("iab"), true);
-        assert.equal(operations.isInsert("dab"), false);
-        assert.equal(operations.isDelete("r2"), false);
-        assert.equal(operations.isDelete("iab"), false);
-        assert.equal(operations.isDelete("dab"), true);
+        assert.equal(operations.type("r2"), "retain");
+        assert.equal(operations.type("iab"), "insert");
+        assert.equal(operations.type("dab"), "delete");
     },
 
     "test operations.length": function () {
