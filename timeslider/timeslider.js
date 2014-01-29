@@ -125,9 +125,8 @@ define(function(require, exports, module) {
                 if (!isVisible)
                     return;
                 if (!doc || !doc.loaded)
-                    forceHideSlider();
-                else if (!doc.revisions[0])
-                    doc.loadRevisions();
+                    return forceHideSlider();
+                doc.loadRevisions();
             }, plugin);
 
             save.on("beforeSave", function(e) {
