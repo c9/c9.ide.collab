@@ -113,12 +113,6 @@ define(function(require, exports, module) {
                     forceHideSlider();
             }, plugin);
 
-            tabs.on("tabDestroy", function(e) {
-                var doc = getTabCollabDocument(e.tab);
-                if (activeDocument === doc)
-                    activeDocument = null;
-            }, plugin);
-
             tabs.on("focusSync", function(e) {
                 var doc = getTabCollabDocument(e.tab);
                 activeDocument = doc;
