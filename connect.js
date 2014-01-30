@@ -35,10 +35,16 @@ define(function(require, exports, module) {
         var collabInstalled = !options.isSSH;
         var connecting      = false;
         var connected       = false;
-        var CONNECT_TIMEOUT = 30000;
+        var CONNECT_TIMEOUT = 30000;  // 30 seconds
+        var IDLE_PERIOD     = 300000; // 5 minutes
         var connectMsg;
         var connectTimeout;
         var stream;
+
+        // Idle state handling
+        var focussed = true;
+        var reportedIdle = false;
+        var idleTimeout;
 
         var loaded = false;
         function load(){
@@ -48,8 +54,40 @@ define(function(require, exports, module) {
             if (c9.connected)
                 connect();
 
+            window.addEventListener("focus", updateIdleWithFocus);
+            window.addEventListener("blur", updateIdleWithBlur);
+
             c9.on("connect", connect);
             c9.on("disconnect", onDisconnect);
+        }
+        
+        function updateIdleWithFocus() {
+            focussed = true;
+            clearTimeout(idleTimeout);
+            if (!connected || !reportedIdle)
+                return;
+            send("USER_STATE", {state: "online"});
+            reportedIdle = false;
+        }
+        
+        function updateIdleWithBlur() {
+            focussed = false;
+            if (reportedIdle)
+                return;
+            clearTimeout(idleTimeout);
+            idleTimeout = setTimeout(function() {
+                if (!connected)
+                    return;
+                reportedIdle = true;
+                send("USER_STATE", {state: "idle"});
+            }, IDLE_PERIOD);
+        }
+        
+        function updateIdleStatus() {
+            if (document.hasFocus())
+                updateIdleWithFocus();
+            else
+                updateIdleWithBlur();
         }
 
         var extended = false;
@@ -136,8 +174,11 @@ define(function(require, exports, module) {
 
         function doConnect() {
             // socket.id
-            clientId = vfs.connection.id;
-            collab.connect(options.basePath, clientId, function (err, meta) {
+            clientId = vfs.id;
+            collab.connect({
+                basePath: options.basePath,
+                clientId: clientId
+            }, function (err, meta) {
                 if (err)
                     return console.error("COLLAB connect failed", err);
 
@@ -174,6 +215,7 @@ define(function(require, exports, module) {
                     emit("connect", data);
                     stream.on("data", onData);
                     clearTimeout(connectTimeout);
+                    updateIdleStatus();
                 }
                 function onClose() {
                     if (isClosed)

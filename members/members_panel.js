@@ -198,8 +198,7 @@ define(function(require, exports, module) {
                 cachedMembers.forEach(function (m) {
                     m.isAdmin = m.role == ROLE_ADMIN;
                     m.color = m.color || workspace.getUserColor(m.uid);
-                    // TODO support idle state
-                    m.status = m.status || (workspace.isUserOnline(m.uid) ? "online" : "offline");
+                    m.status = m.onlineStatus || workspace.getUserState(m.uid);
                     m.md5Email = m.email ? apf.crypto.MD5.hex_md5(m.email.trim().toLowerCase()) : "";
                     members[m.acl].push(m);
 

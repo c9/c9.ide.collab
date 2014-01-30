@@ -41,7 +41,8 @@ define(function(require, exports, module) {
         }
 
         function leaveClient(uid) {
-            users[uid].online--;
+            var user = users[uid];
+            user.online = Math.max(user.online-1, 0);
             emit("sync");
         }
 
@@ -50,13 +51,18 @@ define(function(require, exports, module) {
             emit("sync");
         }
 
+        function updateUserState(uid, state) {
+            users[uid].state = state;
+            emit("sync");
+        }
+
         var cachedMembers;
         function loadMembers(callback) {
             if (!options.hosted || cachedMembers) {
                 return setCachedMembers(cachedMembers || [
                     { name: "Mostafa Eweda", uid: 1, acl: "rw", role: "a", email: "mostafa@c9.io" },
-                    { name: "Lennart Kats", uid: 5, acl: "r", color: "yellow", status: "online", email: "lennart@c9.io" },
-                    { name: "Ruben Daniels", uid: 2, acl: "rw", color: "blue", status: "idle", email: "ruben@ajax.org" },
+                    { name: "Lennart Kats", uid: 5, acl: "r", color: "yellow", onlineStatus: "online", email: "lennart@c9.io" },
+                    { name: "Ruben Daniels", uid: 2, acl: "rw", color: "blue", onlineStatus: "idle", email: "ruben@ajax.org" },
                     { name: "Bas de Wachter", uid: 8, acl: "rw", color: "purple", email: "bas@c9.io" }
                 ]);
             }
@@ -143,6 +149,13 @@ define(function(require, exports, module) {
                 callback();
                 emit("sync");
             }
+        }
+
+        function getUserState(uid) {
+            var user = users[uid];
+            if (!user || !user.online)
+                return "offline";
+            return user.state || "online";
         }
 
         plugin.on("newListener", function(event, listener){
@@ -247,9 +260,9 @@ define(function(require, exports, module) {
             /**
              * Return true if the user with uid is currently online
              * @param {Number} uid
-             * @return {Boolean}
+             * @return {String} - the user's online state: idle, online, offline
              */
-            isUserOnline : function(uid) { return users[uid] && !!users[uid].online; },
+            getUserState : getUserState,
             /**
              * Synchronize the workspace with the server-synced state
              *
@@ -269,6 +282,13 @@ define(function(require, exports, module) {
              * @param {User} user - the user id who is leaving the workspace
              */
             joinClient    : joinClient,
+            /**
+             * Synchronize the workspace metadata that a user is joining the collaborative workspace
+             *
+             * @param {String} uid - the user id who is updating his online state
+             * @param {String} state - the updated user state
+             */
+            updateUserState: updateUserState,
             /**
              * Load the workspace members list from the API server
              *

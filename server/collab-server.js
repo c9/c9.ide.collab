@@ -986,9 +986,16 @@ function handleConnect(userIds, client, callback) {
                     users.length - 1, "other workspace members");
 
             var onlineUsers = {};
+            var idleUsers = {};
             for (var clId in clients) {
-                var uid = clients[clId].userIds.userId;
+                var cl = clients[clId];
+                var uid = cl.userIds.userId;
                 onlineUsers[uid] = (onlineUsers[uid] || 0) + 1;
+                var idleClinet = cl.state === "idle";
+                if (typeof idleUsers[uid] === "undefined")
+                    idleUsers[uid] = idleClinet; // set through a USER_STATE message
+                else
+                    idleUsers[uid] = idleUsers[uid] && idleClinet;
             }
 
             if (Object.keys(onlineUsers).length > 1)
@@ -998,11 +1005,20 @@ function handleConnect(userIds, client, callback) {
             var usersMap = {};
             users.forEach(function (user) {
                 var uid = user.uid;
+                var onlineUserClients = onlineUsers[uid] || 0;
+                var onlineState;
+                if (idleUsers[uid])
+                    onlineState = "idle";
+                else if (onlineUserClients)
+                    onlineState = "online";
+                else
+                    onlineState = "offline";
                 usersMap[uid] = {
                     email: user.email,
                     fullname: user.fullname,
                     uid: user.uid,
-                    online: onlineUsers[uid] || 0,
+                    online: onlineUserClients,
+                    state:  onlineState,
                     author: authorPool[uid],
                     color: colorPool[uid]
                 };
@@ -1634,10 +1650,10 @@ function docSaveDocument(docId, doc, userId, star, callback) {
 }
 
 /**
- * Handle user's GET_REVISIONS messages - retrive the revision history of the file
+ * Handle user's LEAVE_DOC messages - client closing a collab document
  * @param {Object} userIds - user descriptor with: uid, email, fullname, fs, clientId 
  * @param {Socket} client  - the connected collab client
- * @param {Object} data    - the JOIN_DOC data with the document id
+ * @param {Object} data    - the LEAVE_DOC data with the document id
  */
 function handleLeaveDocument(userIds, client, data) {
     var docId = data.docId;
@@ -1659,6 +1675,36 @@ function handleLeaveDocument(userIds, client, data) {
         type: "LEAVE_DOC",
         data: {
             docId: docId,
+            userId: userId,
+            clientId: clientId
+        }
+    }, client);
+}
+
+/**
+ * Handle user's USER_STATE messages - update connected clients with user state
+ * @param {Object} userIds - user descriptor with: uid, email, fullname, fs, clientId 
+ * @param {Socket} client  - the connected collab client
+ * @param {Object} data    - the JOIN_DOC data with the document id
+ */
+function handleUserState(userIds, client, data) {
+    var userId = userIds.userId;
+    var clientId = userIds.clientId;
+    console.error("[vfs-collab]", clientId, "is switching to", data.state);
+    clients[clientId].state = data.state;
+    var isUserIdle = Object.keys(clients)
+        .map(function(cliId) {
+            return clients[cliId];
+        }).filter(function(cl){
+            return cl.userIds.userId === userId;
+        }).reduce(function(isIdle, cl) {
+            return isIdle && cl.state === "idle";
+        }, true);
+
+    broadcast({
+        type: "USER_STATE",
+        data: {
+            state: isUserIdle ? "idle" : "online",
             userId: userId,
             clientId: clientId
         }
@@ -1699,6 +1745,9 @@ function handleUserMessage(userIds, client, message) {
         break;
     case "CHAT_MESSAGE":
         handleChatMessage(userIds, client, data);
+        break;
+    case "USER_STATE":
+        handleUserState(userIds, client, data);
         break;
     case "PING":
         client.send({type: "PING"});
@@ -2220,9 +2269,10 @@ var exports = module.exports = function (vfs, options, register) {
     localfsAPI = vfs;
 
     register(null, {
-        connect: function (basePathL, clientId, callback) {
+        connect: function (opts, callback) {
             // old code compatability
             var user = options.user;
+            var clientId = opts.clientId;
             var userIds = {
                 userId: user.uid,
                 email: user.email,
@@ -2232,7 +2282,7 @@ var exports = module.exports = function (vfs, options, register) {
             };
 
             PID = options.project.pid;
-            basePath = Path.normalize(basePathL);
+            basePath = Path.normalize(opts.basePath);
 
             var _self = this;
 

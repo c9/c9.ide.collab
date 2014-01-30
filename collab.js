@@ -163,7 +163,6 @@ define(function(require, exports, module) {
                     throbNotification("came online", user);
                     break;
                 case "USER_LEAVE":
-                    // TODO: sync workspace & show user as offline in the members panel
                     workspace.leaveClient(data.userId);
                     throbNotification("went offline", user);
                     break;
@@ -177,6 +176,9 @@ define(function(require, exports, module) {
                         break;
                     }
                     doc.joinData(data);
+                    break;
+                case "USER_STATE":
+                    workspace.updateUserState(data.userId, data.state);
                     break;
                 default:
                     if (!doc)
