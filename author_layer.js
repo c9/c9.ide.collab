@@ -106,31 +106,30 @@ define(function(require, module, exports) {
                 var emptyAnno = {className: ""};
                 var html = [];
                 var i = config.firstRow;
-                var lastRow = config.lastRow;
-                var fold = _self.session.getNextFoldLine(i);
+                var session = _self.session;
+                var lastRow = Math.min(config.lastRow + config.gutterOffset,  // needed to compensate for hor scollbar
+                    session.getLength() - 1);
+                var fold = session.getNextFoldLine(i);
                 var foldStart = fold ? fold.start.row : Infinity;
-                var foldWidgets = _self.$showFoldWidgets && _self.session.foldWidgets;
-                var breakpoints = _self.session.$breakpoints;
-                var decorations = _self.session.$decorations;
-                var firstLineNumber = _self.session.$firstLineNumber;
+                var foldWidgets = _self.$showFoldWidgets && session.foldWidgets;
+                var breakpoints = session.$breakpoints;
+                var decorations = session.$decorations;
+                var firstLineNumber = session.$firstLineNumber;
                 var lastLineNumber = 0;
 
-                var editorDoc = _self.session.doc;
-                var doc = _self.session.collabDoc;
+                var editorDoc = session.doc;
+                var doc = session.collabDoc;
                 var range = new Range(i, 0, lastRow, editorDoc.getLine(lastRow).length);
-                var authorKeysCache;
-                if (doc)
-                    authorKeysCache = createAuthorKeyCache(editorDoc, doc.authAttribs, range).authorKeys;
+                var isCollabGutter = doc && showAuthorInfo && util.isRealCollab(workspace);
+                var authorKeysCache = isCollabGutter && createAuthorKeyCache(editorDoc, doc.authAttribs, range).authorKeys;
 
                 var colorPool = workspace.colorPool;
                 var reversedAuthorPool = workspace.reversedAuthorPool;
 
-                var isCollabGutter = doc && showAuthorInfo && util.isRealCollab(workspace);
-
                 while (true) {
                     if(i > foldStart) {
                         i = fold.end.row + 1;
-                        fold = _self.session.getNextFoldLine(i, fold);
+                        fold = session.getNextFoldLine(i, fold);
                         foldStart = fold ?fold.start.row :Infinity;
                     }
                     if(i > lastRow)
@@ -150,7 +149,7 @@ define(function(require, module, exports) {
                         html.push(
                             "<div class='ace_gutter-cell", fullname && " ace_author-cell",
                             breakpoints[i] || "", decorations[i] || "", annotation.className,
-                            "' style='height:", _self.session.getRowLength(i) * config.lineHeight, "px;",
+                            "' style='height:", session.getRowLength(i) * config.lineHeight, "px;",
                             "border-left: solid 5px ", authorColor, ";'",
                             "fullname='" + fullname + "'", ">",
                             lastLineNumber = i + firstLineNumber
@@ -159,7 +158,7 @@ define(function(require, module, exports) {
                         html.push(
                             "<div class='ace_gutter-cell",
                             breakpoints[i] || "", decorations[i] || "", annotation.className,
-                            "' style='height:", _self.session.getRowLength(i) * config.lineHeight, "px;'>",
+                            "' style='height:", session.getRowLength(i) * config.lineHeight, "px;'>",
                             lastLineNumber = i + firstLineNumber
                         );
                     }
@@ -168,7 +167,7 @@ define(function(require, module, exports) {
                         var c = foldWidgets[i];
                         // check if cached value is invalidated and we need to recompute
                         if (c == null)
-                            c = foldWidgets[i] = _self.session.getFoldWidget(i);
+                            c = foldWidgets[i] = session.getFoldWidget(i);
                         if (c)
                             html.push(
                                 "<span class='ace_fold-widget ace_", c,
@@ -184,13 +183,13 @@ define(function(require, module, exports) {
                 _self.element = dom.setInnerHtml(_self.element, html.join(""));
                 _self.element.style.height = config.minHeight + "px";
 
-                if (_self.session.$useWrapMode)
-                    lastLineNumber = _self.session.getLength();
+                if (_self.$fixedWidth || session.$useWrapMode)
+                    lastLineNumber = session.getLength();
 
                 var gutterWidth = ("" + lastLineNumber).length * config.characterWidth;
                 var padding = _self.$padding || _self.$computePadding();
                 gutterWidth += padding.left + padding.right;
-                if (gutterWidth !== _self.gutterWidth) {
+                if (gutterWidth !== _self.gutterWidth && !isNaN(gutterWidth)) {
                     _self.gutterWidth = gutterWidth;
                     _self.element.style.width = Math.ceil(_self.gutterWidth) + "px";
                     _self._emit("changeGutterWidth", gutterWidth);
