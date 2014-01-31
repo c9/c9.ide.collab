@@ -344,6 +344,8 @@ define(function(require, exports, module) {
         plugin.on("newListener", function(event, listener){
             if (event == "connect" && connected && connectMsg)
                 listener(null, connectMsg);
+            else if (event == "connecting" && connecting)
+                listener();
         });
 
         /***** Register and define API *****/

@@ -4,7 +4,7 @@ define(function(require, exports, module) {
     main.consumes = [
         "Panel", "c9", "tabManager", "fs", "metadata", "ui", "apf", "settings", 
         "preferences", "ace", "util", "collab.connect", "collab.workspace", 
-        "timeslider", "OTDocument"
+        "timeslider", "OTDocument", "notification.bubble"
     ];
     main.provides = ["collab"];
     return main;
@@ -23,17 +23,12 @@ define(function(require, exports, module) {
         var prefs        = imports.preferences;
         var connect      = imports["collab.connect"];
         var workspace    = imports["collab.workspace"];
+        var bubble       = imports["notification.bubble"];
         var timeslider   = imports.timeslider;
         var OTDocument   = imports.OTDocument;
 
         var css          = require("text!./collab.css");
         var staticPrefix = options.staticPrefix;
-
-        var Notification = {
-            showNotification: function() {
-                console.warn("TODO showNotification:", arguments);
-            }
-        };
 
         var plugin = new Panel("Ajax.org", main.consumes, {
             index        : 320,
@@ -119,12 +114,12 @@ define(function(require, exports, module) {
                 var doc = documents[docId];
                 doc.disconnect();
             }
-            throbNotification("Collab disconnected");
+            // bubbleNotification("Collab disconnected");
             emit("disconnect");
         }
 
         function onConnecting () {
-            throbNotification("Collab connecting");
+            // bubbleNotification("Collab connecting");
         }
 
         function onConnectMsg(msg) {
@@ -133,7 +128,7 @@ define(function(require, exports, module) {
             for (var docId in documents)
                 documents[docId].load();
 
-            throbNotification(msg.err || "Collab connected");
+            // bubbleNotification(msg.err || "Collab connected");
             emit("connect");
         }
 
@@ -160,19 +155,19 @@ define(function(require, exports, module) {
                 case "USER_JOIN":
                     user = data.user;
                     workspace.joinClient(user);
-                    throbNotification("came online", user);
+                    bubbleNotification("came online", user);
                     break;
                 case "USER_LEAVE":
                     workspace.leaveClient(data.userId);
-                    throbNotification("went offline", user);
+                    bubbleNotification("went offline", user);
                     break;
                 case "LEAVE_DOC":
                     doc && doc.clientLeave(data.clientId);
-                    throbNotification("closed file: " + docId, user);
+                    // bubbleNotification("closed file: " + docId, user);
                     break;
                 case "JOIN_DOC":
                     if (workspace.myClientId !== data.clientId) {
-                        throbNotification("opened file: " + docId, user);
+                        // bubbleNotification("opened file: " + docId, user);
                         break;
                     }
                     doc.joinData(data);
@@ -346,15 +341,15 @@ define(function(require, exports, module) {
             return text.split(/\r\n|\r|\n/).join(nlCh);
         }
 
-        function throbNotification(msg, user) {
+        function bubbleNotification(msg, user) {
             if (!user)
-                return Notification.showNotification(msg);
+                return bubble.popup(msg);
 
             var chatName = apf.escapeXML(user.fullname);
             var md5Email = user.email && apf.crypto.MD5.hex_md5(user.email.trim().toLowerCase());
             var defaultImgUrl = encodeURIComponent("https://www.aiga.org/uploadedImages/AIGA/Content/About_AIGA/Become_a_member/generic_avatar_300.gif");
             console.log("Collab:", user.fullname, msg);
-            Notification.showNotification('<img class="gravatar-image" src="https://secure.gravatar.com/avatar/' +
+            bubble.popup('<img class="gravatar-image" src="https://secure.gravatar.com/avatar/' +
                 md5Email + '?s=26&d='  + defaultImgUrl + '" /><span>' +
                 chatName + '<span class="notification_sub">' + msg + '</span></span>');
         }
@@ -366,12 +361,10 @@ define(function(require, exports, module) {
         }
 
         /***** Lifecycle *****/
-
         plugin.on("newListener", function(event, listener){
             if (event == "connect" && connect.connected)
                 listener();
         });
-
         plugin.on("load", function(){
             load();
         });
