@@ -78,7 +78,7 @@ define(function(require, exports, module) {
 
             menus.addItemByPath("File/File Revision History...", new ui.item({
                 type: "check",
-                checked: "[{settings.model}::" + tsVisibleKey + "]",
+                checked: "" + tsVisibleKey + "",
                 command: "toggleTimeslider"
             }), 600, plugin);
 
