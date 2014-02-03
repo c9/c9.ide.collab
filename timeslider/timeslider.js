@@ -1,7 +1,10 @@
 define(function(require, exports, module) {
     "use strict";
 
-    main.consumes = ["Plugin", "c9", "ui", "ace", "tabManager", "settings", "menus", "commands", "save"];
+    main.consumes = [
+        "Plugin", "c9", "ui", "ace", "tabManager", "settings", "menus", 
+        "commands", "save", "layout"
+    ];
     main.provides = ["timeslider"];
     return main;
 
@@ -13,6 +16,7 @@ define(function(require, exports, module) {
         var tabs         = imports.tabManager;
         var settings     = imports.settings;
         var menus        = imports.menus;
+        var layout       = imports.layout;
         var commands     = imports.commands;
         var save         = imports.save;
 
@@ -177,9 +181,9 @@ define(function(require, exports, module) {
             disableSelection(playButton);
             disableSelection(timeslider);
 
-            window.addEventListener("resize", function() {
+            layout.on("resize", function() {
                 updateSliderElements();
-            });
+            }, plugin);
 
             slider.addEventListener("mousedown", function(evt) {
                 if (evt.target.className == "star" && !sliderActive)
