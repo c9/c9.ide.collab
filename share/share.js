@@ -96,7 +96,7 @@ define(function(require, module, exports) {
             membersPanel = new MembersPanel("Ajax.org", main.consumes, {});
             membersPanel.draw({ aml: membersParent });
 
-            emit("draw", null, true);
+            emit.sticky("draw");
         }
 
         /***** Methods *****/

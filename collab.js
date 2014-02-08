@@ -106,7 +106,7 @@ define(function(require, exports, module) {
             plugin.addElement(bar);
 
             var html = bar.$int;
-            emit("drawPanels", { html: html, aml: bar }, true);
+            emit.sticky("drawPanels", { html: html, aml: bar });
         }
 
         function onDisconnect() {

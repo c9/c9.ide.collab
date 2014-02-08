@@ -332,7 +332,7 @@ define(function(require, module, exports) {
                 var err = data.err;
                 if (err) {
                     console.error("JOIN_DOC Error:", docId, err);
-                    return emit("joined", {err: err}, true);
+                    return emit.sticky("joined", {err: err});
                 }
 
                 if (data.chunkNum === 1)
@@ -377,7 +377,7 @@ define(function(require, module, exports) {
 
                 loaded = true;
                 loading = false;
-                emit("joined", {contents: doc.contents, metadata: doc.metadata}, true);
+                emit.sticky("joined", {contents: doc.contents, metadata: doc.metadata});
             }
 
             /**
