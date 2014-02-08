@@ -226,10 +226,12 @@ define(function(require, exports, module) {
         }
 
         function setupJoinAndProgressCallbacks(otDoc, progress, callback) {
-            progress = progress || function(){};
-            otDoc.on("joinProgress", progress);
+            var progressListener = function(e){
+                progress && progress(e.loaded, e.total);
+            };
+            otDoc.on("joinProgress", progressListener);
             otDoc.once("joined", function(e){
-                otDoc.off("joinProgress", progress);
+                otDoc.off("joinProgress", progressListener);
                 callback(e.err, e.contents, e.metadata);
             });
         }
