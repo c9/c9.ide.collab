@@ -72,13 +72,13 @@
     font-weight: normal;
     text-shadow: 0 1px rgb(29, 29, 29);
 }
-.chatContainer .ace_searchbox{
+.chatContainer .searchTxt.tb_console {
     background: #292929;
     height:30px;
     padding: 0;
     cursor: text;
 }
-.chatContainer .ace_searchbox .sbtb_middle{
+.chatContainer .searchTxt.tb_console .sbtb_middle{
     min-height : 37px;
     
     border-color: rgb(29, 29, 29);
