@@ -351,15 +351,9 @@ define(function(require, exports, module) {
             var md5Email = user.email && apf.crypto.MD5.hex_md5(user.email.trim().toLowerCase());
             var defaultImgUrl = encodeURIComponent("https://www.aiga.org/uploadedImages/AIGA/Content/About_AIGA/Become_a_member/generic_avatar_300.gif");
             console.log("Collab:", user.fullname, msg);
-            bubble.popup('<img class="gravatar-image" src="https://secure.gravatar.com/avatar/' +
+            bubble.popup('<img width=26 height=26 class="gravatar-image" src="https://secure.gravatar.com/avatar/' +
                 md5Email + '?s=26&d='  + defaultImgUrl + '" /><span>' +
                 chatName + '<span class="notification_sub">' + msg + '</span></span>');
-        }
-
-        function openLinkedFile(path) {
-            tabs.open({
-                path: path
-            });
         }
 
         /***** Lifecycle *****/
