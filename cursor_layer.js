@@ -279,9 +279,7 @@ define(function(require, module, exports) {
                 document.body.appendChild(node);
 
                 node.className = "cool_tooltip_cursor";
-                node.innerHTML = "<span class='cool_tooltip_cursor_caption'>" + apf.htmlentities(fullname) + "</span>" +
-                    "<span class='cool_tooltip_cursor_button cool_tooltip_cursor_button_chat' title='Group Chat' onclick=\"requ" + "ire('ext/collaborate/collaborate').showGroupChat()\"></span>" +
-                    "<span class='cool_tooltip_cursor_divider'></span>";
+                node.innerHTML = "<span class='cool_tooltip_cursor_caption'>" + apf.htmlentities(fullname) + "</span>";
 
                 // create the arrow
                 var arrow = document.createElement("div");
