@@ -323,10 +323,10 @@ define(function(require, module, exports) {
             // event.addListener(gutterEl, "mousemove", onMousemove);
             event.addListener(gutterEl, "mouseout", onGutterMouseout);
 
-            editor.on("guttermousemove", function(e) {
+            gutterEl.addEventListener("mousemove", function(e) {
                 if (!showAuthorInfo || !util.isRealCollab(workspace))
                     return;
-                var target = e.domEvent.target;
+                var target = e.target;
 
                 if (highlightedCell != target) {
                     if (dom.hasCssClass(target, "ace_author-cell")) {
@@ -337,7 +337,7 @@ define(function(require, module, exports) {
                 }
                 if (highlightedCell) {
                     tooltip.style.top = e.clientY - 15 + "px";
-                    tooltip.style.left = e.clientX + 5 + "px";
+                    tooltip.style.left = e.clientX + "px";
                 } else {
                     onGutterMouseout();
                 }

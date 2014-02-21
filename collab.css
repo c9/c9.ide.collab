@@ -52,65 +52,6 @@
     color: #ccc;
     cursor: default;
 }
-
-.cool_tooltip_cursor_divider {
-    height: 15px;
-    width: 1px;
-    background: #404040;
-    border-left: #000 1px solid;
-    margin-top: 3px;
-    float: right;
-}
-
-.cool_tooltip_cursor_button {
-    width: 20px;
-    height: 20px;
-    background-image: url(/static/plugins/c9.ide.collab/images/tooltip_elements.png);
-    background-repeat: no-repeat;
-    background-position: 0 -40px;
-    float: right;
-    cursor: pointer;
-    cursor: hand;
-}
-
-.cool_tooltip_cursor_button_chat {
-    background-position: 0 -60px !important;
-    margin-right: 4px;
-}
-
-.cool_tooltip_selection {
-    height: 20px;
-    width: auto;
-    background: white !important;
-    border: 1px solid #969696;
-    padding: 0;
-    margin: 0;
-    z-index: 200000;
-}
-
-.cool_tooltip_selection_caption {
-    height: 20px;
-    vertical-align: middle;
-    line-height: 22px;
-    margin: 0 8px 0 8px;
-    font-weight: bold;
-}
-
-.cool_tooltip_selection_button {
-    width: 20px;
-    height: 20px;
-    background-image: url(/static/plugins/c9.ide.collab/images/tooltip_elements.png);
-    background-repeat: no-repeat;
-    background-position: 0 0;
-    border-left: 1px solid #969696;
-    float: right;
-    cursor: pointer;
-    cursor: hand;
-}
-
-.cool_tooltip_selection_button_chat {
-    background-position: 0 -20px !important;
-}
 /* Cursor tooltip end */
 
 /* Author gutter tooltip */
@@ -135,4 +76,16 @@
     display:-webkit-flex;
     flex-direction: column;
     -webkit-flex-direction: column;
+}
+
+.ace_gutter-tooltip {
+    position: fixed;
+    background: rgb(111, 111, 111);
+    border: 1px solid #969696;
+    border-radius: 2px;
+    z-index: 1000000;
+    max-width: 500px;
+    white-space: pre-wrap;
+    color: rgb(217, 255, 15);
+    padding: 1px 2px 1px 2px;
 }
