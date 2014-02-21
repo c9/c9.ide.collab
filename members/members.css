@@ -72,7 +72,7 @@
     cursor: pointer;
     pointer-events: auto;
     position: absolute;
-    right: 6px;
+    right: 16px;
     top: 2px;
     z-index:100000;
 }
@@ -90,7 +90,7 @@
     cursor : pointer;
     pointer-events: auto;
     position: absolute;
-    right: 24px;
+    right: 34px;
     top: 2px;
 }
 
