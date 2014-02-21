@@ -23,10 +23,6 @@ define(function(require, module, exports) {
             showAuthorInfo = settings.getBool(showAuthorInfoKey);
         }, workspace);
 
-        settings.on("read", function () {
-            showAuthorInfo = settings.getBool(showAuthorInfoKey);
-        }, workspace);
-
         ace.on("create", function(e) {
             initGutterLayer(e.editor.ace);
         }, workspace);
@@ -50,6 +46,7 @@ define(function(require, module, exports) {
             }
 
             function drawAuthInfos(html, markerLayer, session, config) {
+                showAuthorInfo = settings.getBool(showAuthorInfoKey);
                 if (!showAuthorInfo || !util.isRealCollab(workspace))
                     return;
 

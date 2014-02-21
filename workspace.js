@@ -196,6 +196,16 @@ define(function(require, exports, module) {
              */
             get authorPool()    { return authorPool; },
             /**
+             * Get the reversed author pool for the collab workspace
+             * It's a mapping object that translates author ids to user ids
+             *
+             *
+             * e.g. { <author mini id> : <uid> }
+             *
+             * @property {Object} reversedAuthorPool
+             */
+            get reversedAuthorPool() { return reversedAuthorPool; },
+            /**
              * Get the color pool for the collab workspace
              * It's a mapping object that translates user ids to their auhtor colors
              *

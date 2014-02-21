@@ -84,7 +84,7 @@ define(function(require, exports, module) {
             }, plugin);
 
             settings.on("read", function () {
-                settings.setDefaults("usr/collab", [["show-author-info", true]]);
+                settings.setDefaults("user/collab", [["show-author-info", true]]);
                 refreshActiveDocuments();
             }, plugin);
 
