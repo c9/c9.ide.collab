@@ -2274,7 +2274,7 @@ var exports = module.exports = function (vfs, options, register) {
             var user = options.user;
             var clientId = opts.clientId;
             var userIds = {
-                userId: user.uid,
+                userId: user.uid || user.id,
                 email: user.email,
                 fullname: user.fullname,
                 clientId: clientId,
