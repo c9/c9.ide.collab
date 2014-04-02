@@ -2,7 +2,7 @@
     <a:window
       id        = "window"
       center    = "true"
-      width     = "480"
+      width     = "380"
       height    = "463"
       icon      = ""
       skin      = "bk-window2"
@@ -21,15 +21,16 @@
             <a:textbox
               id              = "txtUsername"
               skin            = "searchbox"
+              class           = "dark"
               initial-message = "C9 username or email"
-              width           = "335"
+              width           = "235"
               focusselect     = "true" />
 
             <a:bar id="access" class="standalone access_control rw">
                 <div class="readbutton">R</div><div class="writebutton">RW</div>
             </a:bar>
 
-            <a:button id="btnInvite" skin="btn-default-css3" class="btn-green" width="80" right="15" bottom="43">Invite</a:button>
+            <a:button id="btnInvite" skin="btn-default-css3" class="btn-green" width="80" height="25" right="15" bottom="42">Invite</a:button>
             <a:checkbox skin="checkbox_black" style='margin-top:6px; width: 200px;' checked="true">Notify people via email</a:checkbox>
         </blockquote>
 

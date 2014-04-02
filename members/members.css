@@ -22,7 +22,7 @@
     background-image: url("@{image-path}/tree_close_arrow_small.png");
     position: absolute;
     left: 3px;
-    top: 8px
+    top: 7px
 }
 
 .memberstree .tree-row .caption {
@@ -38,7 +38,7 @@
 
 .memberstree .tree-row .root.caption {
     left: 17px;
-    top: 5px;
+    top: 4px;
     font-weight: bold;
 }
 

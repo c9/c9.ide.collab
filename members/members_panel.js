@@ -139,7 +139,7 @@ define(function(require, exports, module) {
                 var maxHeight = parent.parentNode.$int.offsetHeight * 0.5;
                 var treeHeight = parent.state == "minimized"
                     ? 21
-                    : membersTree.renderer.layerConfig.maxHeight + 30;
+                    : membersTree.renderer.layerConfig.maxHeight + 25;
     
                 parent.$ext.style.height = Math.min(treeHeight, maxHeight) + "px";
     
@@ -220,7 +220,12 @@ define(function(require, exports, module) {
                 myRow.name = "You";
 
                 if (!members.r.length)
-                    membersDataProvider.setRoot(members.rw);
+                    membersDataProvider.setRoot([{
+                        name      : "Read+Write",
+                        items     : members.rw,
+                        noSelect  : true,
+                        className : "heading"
+                    }]);
                 else
                     membersDataProvider.setRoot([
                         {
