@@ -110,6 +110,7 @@
     -moz-transform: rotate(-90deg);
     padding: 0px 3px 0 2px;
     color: #f1f1f1;
+    box-shadow: -1px 1px 3px black;
 }
 
 .panelsbutton.collab .newnotifs.size1{
