@@ -2,7 +2,6 @@
     position: absolute;
     right: 40px;
     top: 35px;
-    /*background : #303130;*/
     color: #AAA;
 }
 
@@ -20,7 +19,7 @@
 }
 
 .notificationstree .tree-row:first-child{
-    box-shadow: 0;
+    box-shadow: none;
 }
 .notificationstree .tree-row:last-child{
     border-bottom: 0;
@@ -89,4 +88,35 @@
 
 .notificationstree.ace_tree_focus .tree-row.selected {
     background: @selected-hover-background;
+}
+
+.panelsbutton.collab{
+    position: relative;
+}
+
+.panelsbutton.collab .newnotifs{
+    display: none;
+    position: absolute;
+    left: 5px;
+    background: red;
+    border-radius: 10px;
+    height: 11px;
+    font-size: 10px;
+    font-weight: bold;
+    text-align: center;
+    -webkit-transform-origin: top left;
+    -webkit-transform: rotate(-90deg);
+    -moz-transform-origin: top left;
+    -moz-transform: rotate(-90deg);
+    padding: 0px 3px 0 2px;
+}
+
+.panelsbutton.collab .newnotifs.size1{
+    top: 17px;
+}
+.panelsbutton.collab .newnotifs.size2{
+    top: 21px;
+}
+.panelsbutton.collab .newnotifs.size3{
+    top: 27px;
 }

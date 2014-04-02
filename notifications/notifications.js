@@ -34,7 +34,7 @@ define(function(require, exports, module) {
         // var emit   = plugin.getEmitter();
 
         var notificationsParent, notificationsTree, notificationsDataProvider;
-        var frame;
+        var frame, panelButton, bubble;
         // var visible = false;
 
         var loaded = false;
@@ -77,6 +77,11 @@ define(function(require, exports, module) {
             notificationsParent = options.html;
 
             frame = options.aml;
+            
+            // Notification Bubble
+            panelButton = document.querySelector(".panelsbutton.collab");
+            bubble = panelButton.appendChild(document.createElement("div"));
+            bubble.className = "newnotifs";
 
             // Notifications panel
             notificationsTree = new Tree(notificationsParent);
@@ -174,9 +179,13 @@ define(function(require, exports, module) {
             if (!cachedNotifications.length) {
                 notificationsDataProvider.emptyMessage = "No pending notifications";
                 frame.setHeight(50);
+                bubble.style.display = "none";
             }
             else {
                 frame.setHeight(Math.min(cachedNotifications.length, 3) * 50 + 22);
+                bubble.innerHTML = cachedNotifications.length;
+                bubble.style.display = "block";
+                bubble.className = "newnotifs size" + String(cachedNotifications.length).length;
             }
             
             frame.setAttribute("caption", 
