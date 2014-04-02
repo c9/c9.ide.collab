@@ -1,7 +1,7 @@
 define(function(require, exports, module) {
 "use strict";
 
-main.consumes = ["CollabPanel", "ui", "MembersPanel", "collab", "panels"];
+    main.consumes = ["CollabPanel", "ui", "MembersPanel", "collab", "panels"];
     main.provides = ["members"];
     return main;
 

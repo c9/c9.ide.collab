@@ -1,0 +1,92 @@
+.notificationstree {
+    position: absolute;
+    right: 40px;
+    top: 35px;
+    /*background : #303130;*/
+    color: #AAA;
+}
+
+.notificationstree .message.empty{
+    font-size: 11px;
+    margin: 6px;
+}
+
+.notificationstree .tree-row {
+    position: relative;
+    pointer-events: auto;
+    box-shadow: 0 1px rgba(255, 255, 255, 0.06) inset;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.33);
+    padding: 0 10px 0 50px;
+}
+
+.notificationstree .tree-row:first-child{
+    box-shadow: 0;
+}
+.notificationstree .tree-row:last-child{
+    border-bottom: 0;
+}
+
+.notificationstree .access_control {
+    position: relative;
+    display: inline-block;
+    top: -2px;
+    right: 5px;
+}
+
+.notificationstree .toggler.empty {
+    display: none;
+}
+
+.notificationstree .actions {
+    position: absolute;
+    right: 0px;
+    bottom: 3px;
+}
+
+.notificationstree .access_request .btn-default-css3 {
+    display: inline-block;
+    line-height: 10px;
+    font-size: 11px;
+    margin-right: 5px;
+}
+
+.notificationstree .btn-default-css3 .caption {
+    pointer-events: none;
+}
+
+.notificationstree .tree-row .body>.caption {
+    font-weight: bold;
+}
+
+.notificationstree .tree-row .body {
+    font-size: 11px;
+    color: #f1f1f1;
+    display: inline-block;
+    margin: 5px 0 6px;
+}
+
+.notificationstree .avatar {
+    position: absolute;
+    left: 5px;
+    width: 50px;
+    top: 5px;
+}
+
+.notificationstree .avatar img {
+    width: 37px;
+    height: 37px;
+    border: 1px solid black;
+    box-shadow: 1px 1px 0 rgba(255,255,255,0.06), 1px 1px 0 rgba(255,255,255,0.05) inset;
+}
+
+.notificationstree .tree-row:hover {
+    background: @selected-hover-background;
+}
+
+.notificationstree .tree-row.selected {
+    background: @selected-hover-background;
+}
+
+.notificationstree.ace_tree_focus .tree-row.selected {
+    background: @selected-hover-background;
+}

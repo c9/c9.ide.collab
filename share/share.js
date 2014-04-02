@@ -43,8 +43,8 @@ define(function(require, module, exports) {
 
             var btn =  new ui.button({
                 "skin"    : "c9-menu-btn",
-                // "caption" : "Share",
-                "class"   : "share",
+                "caption" : "Share",
+                // "class"   : "share",
                 "tooltip" : "Share Workspace",
                 // "width"   : 80,
                 "command" : "sharedialog"
@@ -52,7 +52,7 @@ define(function(require, module, exports) {
 
             ui.insertByIndex(layout.findParent({
                 name: "preferences"
-            }), btn, 880, plugin);
+            }), btn, 600, plugin);
         }
 
         var drawn = false;
@@ -129,8 +129,8 @@ define(function(require, module, exports) {
             membersPanel.show();
             txtUsername.setValue("");
             txtUsername.blur();
-            shareLink.focus();
-            shareLink.select();
+            // shareLink.focus();
+            // shareLink.select();
         }
 
         function hide() {
