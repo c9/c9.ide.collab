@@ -42,19 +42,10 @@ define(function(require, exports, module) {
             if (loaded) return;
             loaded = true;
 
-            // var btn =  new ui.button({
-            //     "skin"    : "c9-menu-btn",
-            //     "class"   : "notifications",
-            //     "tooltip" : "Notifications",
-            //     "width"   : 22,
-            //     onmousedown : toggle
-            // });
-            
-            c9.on("ready", loadNotifications);
+            // Needed now for bubble
+            ui.insertCss(css, staticPrefix, plugin);
 
-            // ui.insertByIndex(layout.findParent({
-            //     name: "preferences"
-            // }), btn, 920, plugin);
+            c9.on("ready", loadNotifications);
 
             if (!options.hosted) {
                 // standalone version test
@@ -73,16 +64,10 @@ define(function(require, exports, module) {
             if (drawn) return;
             drawn = true;
 
-            ui.insertCss(css, staticPrefix, plugin);
             notificationsParent = options.html;
 
             frame = options.aml;
             
-            // Notification Bubble
-            panelButton = document.querySelector(".panelsbutton.collab");
-            bubble = panelButton.appendChild(document.createElement("div"));
-            bubble.className = "newnotifs";
-
             // Notifications panel
             notificationsTree = new Tree(notificationsParent);
             notificationsDataProvider = new TreeData();
@@ -121,40 +106,6 @@ define(function(require, exports, module) {
             postLoadedNotifications();
         }
 
-        // function toggle() {
-        //     if (visible)
-        //         hide();
-        //     else
-        //         show();
-        // }
-
-        // function show() {
-        //     draw();
-        //     notificationsParent.style.display = "block";
-        //     notificationsParent.focus();
-        //     document.body.addEventListener("mousedown", hideOutMouseDown);
-        //     onNotificationsLoaded();
-        //     notificationsDataProvider.emptyMessage = "Loading Notifications ...";
-        //     loadNotifications();
-        //     visible = true;
-        // }
-
-        // function hide() {
-        //     notificationsParent.style.display = "none";
-        //     document.body.removeEventListener("mousedown", hideOutMouseDown);
-        //     visible = false;
-        // }
-
-        // function hideOutMouseDown(e) {
-        //     var target = e.target;
-        //     while (target) {
-        //         if (target == notificationsParent)
-        //             return;
-        //         target = target.parentNode;
-        //     }
-        //     hide();
-        // }
-
         var cachedNotifications = [];
         function loadNotifications() {
             if (!options.isAdmin || !options.hosted)
@@ -174,19 +125,30 @@ define(function(require, exports, module) {
         }
 
         function postLoadedNotifications() {
-            if (!drawn)
-                return;
+            if (!bubble) {
+                // Notification Bubble
+                panelButton = document.querySelector(".panelsbutton.collab");
+                bubble = panelButton.appendChild(document.createElement("div"));
+                bubble.className = "newnotifs";
+            }
+            
             if (!cachedNotifications.length) {
-                notificationsDataProvider.emptyMessage = "No pending notifications";
-                frame.setHeight(50);
+                if (drawn) {
+                    notificationsDataProvider.emptyMessage = "No pending notifications";
+                    frame.setHeight(50);
+                }
                 bubble.style.display = "none";
             }
             else {
-                frame.setHeight(Math.min(cachedNotifications.length, 3) * 50 + 22);
+                if (drawn)
+                    frame.setHeight(Math.min(cachedNotifications.length, 3) * 50 + 22);
                 bubble.innerHTML = cachedNotifications.length;
                 bubble.style.display = "block";
                 bubble.className = "newnotifs size" + String(cachedNotifications.length).length;
             }
+            
+            if (!drawn)
+                return;
             
             frame.setAttribute("caption", 
                 "Notifications (" + cachedNotifications.length + ")");
