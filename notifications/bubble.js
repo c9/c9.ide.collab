@@ -31,13 +31,16 @@ define(function(require, exports, module) {
         function draw() {
             if (drawn) return;
             drawn = true;
+            
             ui.insertSkin({
                 name         : "bubble",
                 data         : skin,
                 "media-path" : staticPrefix + "/images/"
             }, plugin);
+            
             ui.insertMarkup(layout.findParent(plugin), markup, plugin);
             ntNotifications = plugin.getElement("ntNotifications");
+            
             emit("draw");
         }
 
@@ -45,10 +48,12 @@ define(function(require, exports, module) {
 
         function popup(message) {
             draw();
+            
             if (menus.minimized)
                 ntNotifications.setAttribute("start-padding", 25);
             else
                 ntNotifications.setAttribute("start-padding", 45);
+                
             ntNotifications.popup(message);
         }
 
@@ -75,6 +80,7 @@ define(function(require, exports, module) {
              * 
              */
             popup : popup,
+            
             _events : [
                 /**
                  * @event draw
