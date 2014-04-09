@@ -62,6 +62,18 @@ define(function(require, module, exports) {
 
             ui.insertCss(css, plugin);
             ui.insertMarkup(null, markup, plugin);
+            
+            commands.addCommand({
+                name    : plugin.name,
+                bindKey : { mac: "ESC", win: "ESC" },
+                group   : "ignore",
+                isAvailable : function(){
+                    return dialog.visible;
+                },
+                exec : function(){
+                    dialog.dispatchEvent("keydown", { keyCode : 27 });
+                }
+            }, plugin);
 
             dialog          = plugin.getElement("window");
             btnInvite       = plugin.getElement("btnInvite");
