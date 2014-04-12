@@ -6,6 +6,7 @@
       height    = "463"
       icon      = ""
       skin      = "bk-window2"
+      kbclose   = "true"
       title     = "Share Workspace"
       buttons   = "close"
       class     = "share dark"
