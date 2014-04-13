@@ -403,7 +403,7 @@ define(function(require, exports, module) {
                 var x = calcHandlerLeft(position) - 1;
                 if (x - prevX < 2 * starWidth) {
                     if (prevStar)
-                        prevStar.style.opacity = 0.05;
+                        prevStar.style.opacity = 0.15;
                     prevStar = star;
                     if (!firstHidden) {
                         firstHidden = x;
