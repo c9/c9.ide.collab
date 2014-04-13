@@ -2,7 +2,7 @@
     <a:window
       id        = "window"
       center    = "true"
-      width     = "380"
+      width     = "430"
       height    = "463"
       icon      = ""
       skin      = "bk-window2"
@@ -24,7 +24,7 @@
               skin            = "searchbox"
               class           = "dark"
               initial-message = "C9 username or email"
-              width           = "235"
+              width           = "285"
               focusselect     = "true" />
 
             <a:bar id="access" class="standalone access_control rw">
