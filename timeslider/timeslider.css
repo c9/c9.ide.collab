@@ -115,7 +115,7 @@
     font-size: 13px;
     font-weight: bold;
     text-align: center;
-    border-radius: 30px;
+    border-radius: 7px;
     box-shadow: 0 1px rgba(255, 255, 255, 0.06), 1px 1px rgba(255, 255, 255, 0.06) inset, -1px 0 rgba(255, 255, 255, 0.06) inset;
     background: -webkit-linear-gradient(top, #3F3F3F 0%, #242424 100%);
     border: 4px solid black;
@@ -130,7 +130,7 @@
     content: "";
     display: block;
     width: 68px;
-    border-radius: 30px;
+    border-radius: 10px;
     border: 4px solid rgba(255, 255, 255, 0.1);
     position: absolute;
     left: -8px;
@@ -163,7 +163,7 @@
 #leftstep {
     background-position: 0 -22px;
     right: 135px;
-    border-radius: 20px 0px 0 20px;
+    border-radius: 7px 0px 0 7px;
     border-right: 1px solid black;
     box-shadow: 0 1px rgba(255, 255, 255, 0.06), 1px 1px rgba(255, 255, 255, 0.06) inset, -1px 0 rgba(255, 255, 255, 0.06) inset, 0 -1px rgb(27, 27, 27) inset;
     background: -webkit-linear-gradient(top, rgb(43, 43, 43) 0%, rgb(36, 36, 36) 100%);
@@ -199,7 +199,7 @@
 #rightstep {
     right: 107px;
     border-left: 0;
-    border-radius: 0 30px 30px 0;
+    border-radius: 0 7px 7px 0;
     box-shadow: 0 1px rgba(255, 255, 255, 0.06), 1px 1px rgba(255, 255, 255, 0.06) inset, -1px 0 rgba(255, 255, 255, 0.06) inset, 0 -1px rgb(27, 27, 27) inset;
     background: -webkit-linear-gradient(top, rgb(43, 43, 43) 0%, rgb(36, 36, 36) 100%);
 }
@@ -225,7 +225,7 @@
     content: "";
     display: block;
     width: 57px;
-    border-radius: 30px;
+    border-radius: 10px;
     border: 4px solid rgba(255, 255, 255, 0.1);
     position: absolute;
     left: -33px;
