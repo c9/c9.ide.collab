@@ -227,7 +227,7 @@ define(function(require, exports, module) {
 
         function setupJoinAndProgressCallbacks(otDoc, progress, callback) {
             var progressListener = function(e){
-                progress && progress(e.loaded, e.total);
+                progress && progress(e.loaded, e.total, e.complete);
             };
             otDoc.on("joinProgress", progressListener);
             otDoc.once("joined", function(e){
