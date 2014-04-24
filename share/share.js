@@ -122,10 +122,10 @@ define(function(require, module, exports) {
                 btnInvite.setAttribute("disabled", false);
                 txtUsername.setValue("");
                 if (err)
-                    return alert("Error", "Error adding workspace member", err.message);
-                alert("Invitation Sent",
-                    "Workspace Member Added",
-                    "You have granted " + member.name + " " + accessString
+                    return alert("Error", "Error adding workspace member", String(err));
+                alert("Invitation Sent", 
+                    "Workspace Member Added", 
+                    "You have granted " + member.name + " " + accessString 
                         + "access to this workspace!");
             });
         }

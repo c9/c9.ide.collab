@@ -151,7 +151,7 @@ define(function(require, exports, module) {
             }
             
             function alertIfError(err) {
-               err && alert("Error", "Members Panel Error", err.message);
+               err && alert("Error", err);
             }
 
             function show() {

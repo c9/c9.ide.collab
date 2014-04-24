@@ -66,9 +66,10 @@ define(function(require, exports, module) {
                     { name: "Bas de Wachter", uid: 8, acl: "rw", color: "purple", email: "bas@c9.io" }
                 ]);
             }
-            api.collab.get("members/list?pending=0", function (err, data) {
+            api.collab.get("members/list?pending=0", function (err, members) {
                 if (err) return callback(err);
-                setCachedMembers(data);
+
+                setCachedMembers(members);
             });
 
             function setCachedMembers(members) {
@@ -94,7 +95,7 @@ define(function(require, exports, module) {
                 }
             }, function (err, data, res) {
                 if (err) return callback(err);
-                addCachedMember(data);
+                addCachedMember(res);
             });
 
             function addCachedMember(member) {
@@ -112,6 +113,7 @@ define(function(require, exports, module) {
                 body: { uid : uid }
             }, function (err, data, res) {
                 if (err) return callback(err);
+
                 removeCachedMember();
             });
 
@@ -134,7 +136,9 @@ define(function(require, exports, module) {
                     access : acl
                 }
             }, function (err, data, res) {
-                if (err) return callback(err);
+                if (err)
+                    return callback(err);
+
                 updateCachedAccess();
             });
 
