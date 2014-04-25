@@ -23,8 +23,9 @@ define(function(require, module, exports) {
         var plugin   = new Plugin("Ajax.org", main.consumes);
         var emit     = plugin.getEmitter();
 
-        var dialog, btnInvite, btnDone, txtUsername, shareLink, membersParent, accessButton;
-        var membersPanel;
+        var dialog, btnInvite, btnDone, txtUsername, membersParent, accessButton;
+        var membersPanel, shareLinkEditor, shareLinkApp, shareLinkPreview;
+        var cbPreview;
 
         var loaded = false;
         function load() {
@@ -75,24 +76,38 @@ define(function(require, module, exports) {
                 }
             }, plugin);
 
-            dialog          = plugin.getElement("window");
-            btnInvite       = plugin.getElement("btnInvite");
-            btnDone         = plugin.getElement("btnDone");
-            txtUsername     = plugin.getElement("txtUsername");
-            shareLink       = plugin.getElement("shareLink").$int;
-            membersParent   = plugin.getElement("members");
-            accessButton    = plugin.getElement("access").$int;
+            dialog           = plugin.getElement("window");
+            btnInvite        = plugin.getElement("btnInvite");
+            btnDone          = plugin.getElement("btnDone");
+            cbPreview        = plugin.getElement("cbPreview");
+            txtUsername      = plugin.getElement("txtUsername");
+            shareLinkEditor  = plugin.getElement("shareLinkEditor").$int;
+            shareLinkApp     = plugin.getElement("shareLinkApp").$int;
+            shareLinkPreview = plugin.getElement("shareLinkPreview").$int;
+            membersParent    = plugin.getElement("members");
+            accessButton     = plugin.getElement("access").$int;
 
-            shareLink.value = getShareUrl();
+            var l = location;
+            var port = (options.local ? ":" + (c9.port || "8080") : "");
+            shareLinkEditor.value  = l.protocol + "//" + l.host + l.pathname;
+            shareLinkApp.value     = (c9.hostname 
+                ? "https://" + c9.hostname
+                : "http://localhost") + port;
+            shareLinkPreview.value = options.previewUrl;
+
             accessButton.addEventListener("click", function () {
                 var className = accessButton.classList;
                 var actionArr = className.contains("rw") ? ["rw", "r"] : ["r", "rw"];
                 className.remove(actionArr[0]);
                 className.add(actionArr[1]);
             });
+            
+            cbPreview.on("afterchange", function(){
+                // @fjakobs, @lennartcl, please add your call to the server here
+            })
 
-            btnDone.addEventListener("click", hide);
-            btnInvite.addEventListener("click", inviteUser);
+            btnDone.on("click", hide);
+            btnInvite.on("click", inviteUser);
 
             txtUsername.on("keydown", function(e){
                 if (e.keyCode == 13) {
@@ -128,11 +143,6 @@ define(function(require, module, exports) {
                     "You have granted " + member.name + " " + accessString 
                         + "access to this workspace!");
             });
-        }
-
-        function getShareUrl() {
-            var l = location;
-            return l.protocol + "//" + l.host + l.pathname;
         }
 
         function show(){
