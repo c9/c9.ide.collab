@@ -3,7 +3,7 @@
       id        = "window"
       center    = "true"
       width     = "430"
-      height    = "570"
+      height    = "575"
       icon      = ""
       skin      = "bk-window2"
       kbclose   = "true"
