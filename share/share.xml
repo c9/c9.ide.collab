@@ -3,7 +3,7 @@
       id        = "window"
       center    = "true"
       width     = "430"
-      height    = "463"
+      height    = "575"
       icon      = ""
       skin      = "bk-window2"
       kbclose   = "true"
@@ -11,9 +11,17 @@
       buttons   = "close"
       class     = "share dark"
       draggable = "true">
-        <label>Link to share</label>
-        <input id="shareLink" type="text" readonly="true" class="link"></input>
-
+        <blockquote class="links">
+          <label>Links to share</label>
+          <label class="subhead">Editor:</label>
+          <input id="shareLinkEditor" type="text" readonly="true" class="link"></input>
+          <label class="subhead">Running Application:</label>
+          <input id="shareLinkApp" type="text" readonly="true" class="link"></input>
+          <label class="subhead">Preview:</label>
+          <input id="shareLinkPreview" type="text" readonly="true" class="link"></input>
+          <a:checkbox id="cbPreview" skin="checkbox_black" style='margin-top:6px; margin-left:130px; width: 200px;' checked="true">Make Preview Publicly Available</a:checkbox>
+        </blockquote>
+        
         <label style="margin-top:10px">Who has access</label>
         <a:bar id="members" class="members"></a:bar>
 
