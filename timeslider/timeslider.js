@@ -120,12 +120,15 @@ define(function(require, exports, module) {
             }, plugin);
 
             tabs.on("focusSync", function(e) {
+                var doc = getTabCollabDocument(e.tab);
+                
                 if (activeDocument && isVisible) {
+                    if (activeDocument == doc) return;
+                    
                     hide();
                     isVisible = true;
                 }
                 
-                var doc = getTabCollabDocument(e.tab);
                 activeDocument = doc;
                 if (!isVisible)
                     return;
