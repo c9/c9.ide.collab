@@ -40,11 +40,10 @@ define(function(require, exports, module) {
         };
 
         // UI elements
-        var container, timeslider, editorContainer, timesliderClose, slider, sliderBar, handle,
-            playButton, playButtonIcon, revisionInfo, revisionDate, revisionLabel,
-            leftStep, rightStep, revertButton, sliderProgress;
-
-        var activeDocument;
+        var container, timeslider, timesliderClose, slider;
+        var sliderBar, handle, playButton, playButtonIcon, revisionInfo;
+        var revisionDate, revisionLabel, leftStep, rightStep, revertButton;
+        var sliderProgress, activeDocument;
 
         /***** Initialization *****/
 
@@ -121,12 +120,18 @@ define(function(require, exports, module) {
             }, plugin);
 
             tabs.on("focusSync", function(e) {
+                if (activeDocument && isVisible) {
+                    hide();
+                    isVisible = true;
+                }
+                
                 var doc = getTabCollabDocument(e.tab);
                 activeDocument = doc;
                 if (!isVisible)
                     return;
                 if (!doc || !doc.loaded)
                     return forceHideSlider();
+                show();
                 doc.loadRevisions();
             }, plugin);
 
@@ -166,7 +171,7 @@ define(function(require, exports, module) {
                 return document.getElementById(id);
             }
 
-            container       = $("timeslider-top");
+            var ext         = $("timeslider-top");
             timeslider      = $("timeslider");
             timesliderClose = $("timeslider_close");
             slider          = $("timeslider-slider");
@@ -182,16 +187,15 @@ define(function(require, exports, module) {
             rightStep       = $("rightstep");
             revertButton    = $("revert_to_rev");
 
-            // HACKY WAY to get the correct div without jQuery selector: $(".basic.codeditorHolder")
-            var editorHolders = document.getElementsByClassName("codeditorHolder");
-            editorHolders = toArray(editorHolders);
-            editorContainer = editorHolders.filter(function (holder) {
-                return holder.classList.contains("basic");
-            })[0];
+            var tbcont = tabs.container;
+            var box = new ui.vsplitbox({});
+            tbcont.parentNode.insertBefore(box, tbcont.nextSibling);
+            container = box.appendChild(new ui.bar({ height: 64 }));
+            container.$ext.appendChild(ext);
+            box.appendChild(tbcont);
+            box.$ext.style.top = 0; // Works around an APF bug
 
             timesliderClose.addEventListener("click", forceHideSlider);
-
-            editorContainer.insertBefore(container, editorContainer.firstChild);
 
             disableSelection(playButton);
             disableSelection(timeslider);
@@ -565,7 +569,7 @@ define(function(require, exports, module) {
 
         function show() {
             draw();
-            container.style.display = "block";
+            container.show();
             // getCodeEditorTab().height(editorContainer.outerHeight() - container.outerHeight());
 
             clearInterval(resizeInterval);
@@ -591,12 +595,15 @@ define(function(require, exports, module) {
 
         function hide() {
             draw();
-            container.style.display = "none";
+            container.hide();
             // getCodeEditorTab().height(editorContainer.outerHeight());
             clearInterval(resizeInterval);
             isVisible = false;
 
             if (activeDocument) {
+                if (activeDocument && activeDocument.loaded)
+                    activeDocument.updateToRevision();
+                
                 var tab = activeDocument.original.tab;
                 var aceEditor = tab.editor.ace;
                 aceEditor.keyBinding.removeKeyboardHandler(timesliderKeyboardHandler);
