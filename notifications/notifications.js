@@ -47,6 +47,7 @@ define(function(require, exports, module) {
 
             c9.on("ready", loadNotifications);
 
+            /* Disabled: these shouldn't show in normal use of standalone or desktop
             if (!options.hosted) {
                 // standalone version test
                 cachedNotifications = createNotifications([
@@ -57,6 +58,7 @@ define(function(require, exports, module) {
                     { name: "Fabian Jakobs", uid: 4, email: "fabian@ajax.org", type: "access_request" }
                 ]);
             }
+            */
         }
 
         var drawn = false;
