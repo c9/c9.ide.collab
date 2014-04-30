@@ -137,7 +137,7 @@ define(function(require, exports, module) {
             var user  = data && data.userId && workspace.getUser(data.userId);
             var type  = msg.type;
             var docId = data.docId;
-            if (docId && docId[0] !== "/")
+            if (docId && "/~".indexOf(docId[0]) === -1)
                 docId = data.docId = "/" + docId;
             var doc = documents[docId];
 

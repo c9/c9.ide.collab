@@ -121,13 +121,18 @@ define(function(require, exports, module) {
             }, plugin);
 
             tabs.on("focusSync", function(e) {
-                var doc = getTabCollabDocument(e.tab);
-                activeDocument = doc;
-                if (!isVisible)
-                    return;
-                if (!doc || !doc.loaded)
-                    return forceHideSlider();
-                doc.loadRevisions();
+                util.nextFrame(function(){
+                    var doc = getTabCollabDocument(e.tab);
+                    var oldActiveDocument = activeDocument;
+                    activeDocument = doc;
+                    if (!isVisible)
+                        return;
+                    if (oldActiveDocument && oldActiveDocument.loaded)
+                        oldActiveDocument.updateToRevision();
+                    if (!doc)
+                        return forceHideSlider();
+                    doc.loadRevisions();
+                });
             }, plugin);
 
             save.on("beforeSave", function(e) {
@@ -591,6 +596,10 @@ define(function(require, exports, module) {
 
         function hide() {
             draw();
+
+            if (sliderPlaying)
+                playpause();
+
             container.style.display = "none";
             // getCodeEditorTab().height(editorContainer.outerHeight());
             clearInterval(resizeInterval);
