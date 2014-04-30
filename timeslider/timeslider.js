@@ -40,11 +40,10 @@ define(function(require, exports, module) {
         };
 
         // UI elements
-        var container, timeslider, editorContainer, timesliderClose, slider, sliderBar, handle,
-            playButton, playButtonIcon, revisionInfo, revisionDate, revisionLabel,
-            leftStep, rightStep, revertButton, sliderProgress;
-
-        var activeDocument;
+        var container, timeslider, timesliderClose, slider;
+        var sliderBar, handle, playButton, playButtonIcon, revisionInfo;
+        var revisionDate, revisionLabel, leftStep, rightStep, revertButton;
+        var sliderProgress, activeDocument;
 
         /***** Initialization *****/
 
@@ -123,14 +122,17 @@ define(function(require, exports, module) {
             tabs.on("focusSync", function(e) {
                 util.nextFrame(function(){
                     var doc = getTabCollabDocument(e.tab);
-                    var oldActiveDocument = activeDocument;
+                    if (activeDocument && isVisible) {
+                        if (activeDocument == doc) return;
+                        hide();
+                        isVisible = true;
+                    }
                     activeDocument = doc;
                     if (!isVisible)
                         return;
-                    if (oldActiveDocument && oldActiveDocument.loaded)
-                        oldActiveDocument.updateToRevision();
                     if (!doc)
                         return forceHideSlider();
+                    show();
                     doc.loadRevisions();
                 });
             }, plugin);
@@ -143,7 +145,6 @@ define(function(require, exports, module) {
             plugin.on("slider", function (revNum) {
                 if (!activeDocument || !isVisible)
                     return;
-
                 schedule(revNum);
             });
         }
@@ -152,7 +153,7 @@ define(function(require, exports, module) {
         function schedule(revNum){
             lastRevNum = revNum;
             if (scheduled) return;
-            
+
             util.nextFrame(function(){
                 lastRevNum && activeDocument.updateToRevision(lastRevNum);
                 scheduled = false;
@@ -171,7 +172,7 @@ define(function(require, exports, module) {
                 return document.getElementById(id);
             }
 
-            container       = $("timeslider-top");
+            var ext         = $("timeslider-top");
             timeslider      = $("timeslider");
             timesliderClose = $("timeslider_close");
             slider          = $("timeslider-slider");
@@ -187,16 +188,15 @@ define(function(require, exports, module) {
             rightStep       = $("rightstep");
             revertButton    = $("revert_to_rev");
 
-            // HACKY WAY to get the correct div without jQuery selector: $(".basic.codeditorHolder")
-            var editorHolders = document.getElementsByClassName("codeditorHolder");
-            editorHolders = toArray(editorHolders);
-            editorContainer = editorHolders.filter(function (holder) {
-                return holder.classList.contains("basic");
-            })[0];
+            var tbcont = tabs.container;
+            var box = new ui.vsplitbox({});
+            tbcont.parentNode.insertBefore(box, tbcont.nextSibling);
+            container = box.appendChild(new ui.bar({ height: 64 }));
+            container.$ext.appendChild(ext);
+            box.appendChild(tbcont);
+            box.$ext.style.top = 0; // Works around an APF bug
 
             timesliderClose.addEventListener("click", forceHideSlider);
-
-            editorContainer.insertBefore(container, editorContainer.firstChild);
 
             disableSelection(playButton);
             disableSelection(timeslider);
@@ -570,8 +570,7 @@ define(function(require, exports, module) {
 
         function show() {
             draw();
-            container.style.display = "block";
-            // getCodeEditorTab().height(editorContainer.outerHeight() - container.outerHeight());
+            container.show();
 
             clearInterval(resizeInterval);
             var oldWidth = timeslider.offsetWidth;
@@ -596,16 +595,17 @@ define(function(require, exports, module) {
 
         function hide() {
             draw();
-
             if (sliderPlaying)
                 playpause();
 
-            container.style.display = "none";
-            // getCodeEditorTab().height(editorContainer.outerHeight());
+            container.hide();
             clearInterval(resizeInterval);
             isVisible = false;
 
             if (activeDocument) {
+                if (activeDocument.loaded)
+                    activeDocument.updateToRevision();
+
                 var tab = activeDocument.original.tab;
                 var aceEditor = tab.editor.ace;
                 aceEditor.keyBinding.removeKeyboardHandler(timesliderKeyboardHandler);
