@@ -567,6 +567,13 @@ define(function(require, exports, module) {
 
         var isVisible = false;
         var resizeInterval;
+        
+        function useStoredState(e){
+            if (e.state.filter && e.doc.meta.$storedState1)
+                e.state = e.doc.meta.$storedState1;
+            else if (!e.state.filter && e.doc.meta.$storedState0)
+                e.state = e.doc.meta.$storedState0;
+        }
 
         function show() {
             draw();
@@ -588,6 +595,11 @@ define(function(require, exports, module) {
                 aceEditor.setReadOnly(true);
                 aceEditor.keyBinding.addKeyboardHandler(timesliderKeyboardHandler);
                 aceEditor.renderer.onResize(true);
+                
+                var doc = activeDocument.original;
+                doc.meta.$storedState0 = doc.getState();
+                doc.meta.$storedState1 = doc.getState(true);
+                doc.on("getState", useStoredState);
             }
 
             emit("visible", isVisible);
@@ -611,6 +623,11 @@ define(function(require, exports, module) {
                 aceEditor.keyBinding.removeKeyboardHandler(timesliderKeyboardHandler);
                 aceEditor.setReadOnly(!!c9.readonly);
                 aceEditor.renderer.onResize(true);
+                
+                var doc = activeDocument.original.meta
+                delete doc.meta.$storedState0;
+                delete doc.meta.$storedState1;
+                doc.off("getState", useStoredState);
             }
 
             emit("visible", isVisible);
