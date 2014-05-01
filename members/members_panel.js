@@ -175,9 +175,9 @@ define(function(require, exports, module) {
                 confirm(
                     "Kickout Member?",
                     "Are you sure you want to kick '" + node.name
-                        + "' out of your workspace '" + info.getWorkspace().name + "' ?",
-                    "By kicking out a member of a workspace, (s)he can no longer "
-                        + "read, write nor collaborate on that workspace ",
+                        + "' out of your workspace '" + info.getWorkspace().name + "'?",
+                    "By kicking out a member of a workspace, they can no longer "
+                        + "read, write or collaborate on that workspace ",
                     function(){ // Yes
                         var uid = node.uid;
                         workspace.removeMember(uid, alertIfError);
