@@ -80,7 +80,7 @@ define(function(require, exports, module) {
                 isAvailable: timesliderAvailable
             }, plugin);
 
-            menus.addItemByPath("File/File Revision History...", new ui.item({
+            menus.addItemByPath("File/Show File Revision History", new ui.item({
                 type: "check",
                 checked: "" + tsVisibleKey + "",
                 command: "toggleTimeslider"
