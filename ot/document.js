@@ -45,7 +45,7 @@ define(function(require, module, exports) {
             var revisions = [], starRevNums = [];
 
             var latestRevNum, lastSel;
-            var sendTimer, cursorTimer;
+            var sendTimer, cursorTimer, delaysDisabled;
 
             var incoming = [];
             var outgoing = [];
@@ -244,6 +244,9 @@ define(function(require, module, exports) {
              * joined to a document and thier latest updated cursor positions
              */
             function calculateDelay() {
+                if (delaysDisabled)
+                    return MIN_DELAY;
+
                 var selections = cursorLayer ? cursorLayer.selections : {};
                 var aceEditor = c9Document.editor.ace;
                 var config = aceEditor.renderer.layerConfig;
@@ -982,6 +985,10 @@ define(function(require, module, exports) {
                  * @property {Boolean} latestRevNum
                  */
                 get changed()      { return isChanged(); },
+                /**
+                 * Set to disable delays when sending changes to the server.
+                 */
+                set delaysDisabled(value) { delaysDisabled = value; },
 
                 /**
                  * Load/Join the document from the collab server
