@@ -28,7 +28,7 @@ function AuthorAttributes(minKeySize, maxKeySize) {
         var len = nodes[i];
         var val = nodes[i+1];
         if (index < 0 || index > len)
-            throw new Error("Invalid index passed !!");
+            throw new Error("Invalid index passed!");
 
         if (val === id) {
             nodes[i] += length;

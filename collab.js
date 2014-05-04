@@ -196,7 +196,7 @@ define(function(require, exports, module) {
             var docSession = doc.getSession();
             var aceSession = docSession && docSession.session;
             if (!aceSession)
-                console.warn("[OT] Ace session not ready - will setSession when ready !!");
+                console.warn("[OT] Ace session not ready - will setSession when ready!");
 
             var otDoc = documents[docId] || new OTDocument(docId, doc);
 

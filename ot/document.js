@@ -650,7 +650,7 @@ define(function(require, module, exports) {
                 if (!revisions[0])
                     return console.warn("[OT] revisions may haven't yet been loaded!");
                 if (!isReadOnly())
-                    return console.error("[OT] Can't updateToRevNum while editing !!");
+                    return console.error("[OT] Can't updateToRevNum while editing!");
                 if (typeof revNum === "undefined")
                     revNum = revisions.length - 1;
                 if (debug)

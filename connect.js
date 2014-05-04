@@ -116,7 +116,7 @@ define(function(require, exports, module) {
             if (connected || connecting)
                 emit("disconnect");
             else
-                console.error("[OT] Already disconnected !!");
+                console.error("[OT] Already disconnected!");
             connecting = connected = extended = false;
             collab = null;
             if (stream) {
