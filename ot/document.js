@@ -981,15 +981,19 @@ define(function(require, module, exports) {
                  */
                 get latestRevNum() { return latestRevNum; },
                 /**
-                 * Specifies wether the collab document is in a dirty state with unsaved changes or not
-                 * @property {Boolean} latestRevNum
+                 * Indicates wether the collab document has unsaved changes.
+                 * @property {Boolean} changed
                  */
                 get changed()      { return isChanged(); },
+                /**
+                 * Indicates whether the document has changes that pend sending to the server.
+                 * @property {Boolean} pendingUpdates
+                 */
+                get pendingUpdates() { return packedCs.length > 1; },
                 /**
                  * Set to disable delays when sending changes to the server.
                  */
                 set delaysDisabled(value) { delaysDisabled = value; },
-
                 /**
                  * Load/Join the document from the collab server
                  * loaded = false
