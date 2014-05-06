@@ -115,28 +115,28 @@ define(function(require, exports, module) {
              * @param {String} text - the text to escape HTML from
              * @param {String} target - optional - the target of the added anchor element
              */
-            escapeHtmlWithClickableLinks : escapeHtmlWithClickableLinks,
+            escapeHtmlWithClickableLinks: escapeHtmlWithClickableLinks,
             /**
              * Escape text from HTML tags
              * @param {String} text - the text to escape HTML from
              */
-            escapeHTML                   : escapeHTML,
+            escapeHTML: escapeHTML,
             /**
              * Format a color
              * @param {Object} color descripted as an object with attributes for red, green and blue : {r: 111, g: 20, b: 255}
              * @param {Number} alpha  - optional - the alpha transparency of the color
              */
-            formatColor                  : formatColor,
+            formatColor: formatColor,
             /**
              * Reverse object keys to values with corresponding values as thier keys
              * @param obj
              */
-            reverseObject                : reverseObject,
+            reverseObject: reverseObject,
             /**
              * Check the collab workspace if collab is really enabled with more than one user active
              * @param {Workspace} workspace
              */
-            isRealCollab                 : isRealCollab
+            isRealCollab: isRealCollab
         });
         
         register(null, {

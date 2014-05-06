@@ -23,9 +23,9 @@ function initDB(callback) {
     });
 
     User = sequelize.define("User", {
-        uid            : { type: Sequelize.STRING, primaryKey: true },
-        fullname       : { type: Sequelize.STRING },
-        email          : { type: Sequelize.STRING }
+        uid: { type: Sequelize.STRING, primaryKey: true },
+        fullname: { type: Sequelize.STRING },
+        email: { type: Sequelize.STRING }
     }, {
         timestamps: true, paranoid: true
     });

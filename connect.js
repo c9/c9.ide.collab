@@ -10,17 +10,17 @@ define(function(require, exports, module) {
     return main;
 
     function main(options, imports, register) {
-        var Plugin   = imports.Plugin;
-        var c9       = imports.c9;
-        var ext      = imports.ext;
-        var ui       = imports.ui;
-        var proc     = imports.proc;
-        var vfs      = imports.vfs;
+        var Plugin = imports.Plugin;
+        var c9 = imports.c9;
+        var ext = imports.ext;
+        var ui = imports.ui;
+        var proc = imports.proc;
+        var vfs = imports.vfs;
 
         /***** Initialization *****/
 
         var plugin = new Plugin("Ajax.org", main.consumes);
-        var emit   = plugin.getEmitter();
+        var emit = plugin.getEmitter();
 
         var clientId;
 
@@ -33,10 +33,10 @@ define(function(require, exports, module) {
 
         var collab;
         var collabInstalled = !options.isSSH;
-        var connecting      = false;
-        var connected       = false;
+        var connecting = false;
+        var connected = false;
         var CONNECT_TIMEOUT = 30000;  // 30 seconds
-        var IDLE_PERIOD     = 300000; // 5 minutes
+        var IDLE_PERIOD = 300000; // 5 minutes
         var connectMsg;
         var connectTimeout;
         var stream;
@@ -98,9 +98,9 @@ define(function(require, exports, module) {
                 return plugin.once("available", callback);
             extended = true;
             ext.loadRemotePlugin("collab", {
-                file     : "collab-server.js",
-                redefine : true
-            }, function(err, api){
+                file: "collab-server.js",
+                redefine: true
+            }, function(err, api) {
                 if (err) {
                     extended = false;
                     return callback(err);
@@ -162,7 +162,7 @@ define(function(require, exports, module) {
                 }
             }, CONNECT_TIMEOUT);
 
-            extendCollab(function(err){
+            extendCollab(function(err) {
                 if (err)
                     return console.error("COLLAB CONNECT ERR", err);
                 if (collabInstalled)
@@ -208,7 +208,7 @@ define(function(require, exports, module) {
                         console.log("[OT] RECEIVED FROM SERVER", data);
                     if (data.type !== "CONNECT")
                         return console.error("[OT] Invalid connect data!", data);
-                    connected  = true;
+                    connected = true;
                     connecting = false;
                     connectMsg = data;
                     console.log("COLLAB connected -", meta.isMaster ? "MASTER" : "SLAVE");
@@ -245,7 +245,7 @@ define(function(require, exports, module) {
         var SSH_CHECKS = [
             'echo "`command -v sqlite3`"',
             'NODE_PATH=' + options.nodePath + ' ' + options.nodeBin +' -e ' +
-             '"try { require(\'sqlite3\'); require(\'sequelize\'); console.log(true); } catch(e) { console.log(false); }"',
+             '"try { require(\'sqlite3\'); require(\'sequelize\'); console.log(true); } catch (e) { console.log(false); }"',
             '',
             'BIN_DIR=$(dirname `which '  + options.nodeBin + '`)',
             'export PATH=$BIN_DIR:$PATH', // hack on nvm installed node versions
@@ -341,7 +341,7 @@ define(function(require, exports, module) {
         });
 
         // Make sure the available event is always called
-        plugin.on("newListener", function(event, listener){
+        plugin.on("newListener", function(event, listener) {
             if (event == "connect" && connected && connectMsg)
                 listener(null, connectMsg);
             else if (event == "connecting" && connecting)
@@ -354,7 +354,7 @@ define(function(require, exports, module) {
          * Finder implementation using collab
          **/
         plugin.freezePublicAPI({
-            _events : [
+            _events: [
                 /**
                  * Fires when the collab VFS API is extended and available to be used by collab to
                  *  connect a user to the collab server.

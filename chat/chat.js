@@ -9,31 +9,31 @@ define(function(require, exports, module) {
     return main;
 
     function main(options, imports, register) {
-        var CollabPanel  = imports.CollabPanel;
-        var ui           = imports.ui;
-        var panels       = imports.panels;
-        var util         = imports["collab.util"];
-        var workspace    = imports["collab.workspace"];
-        var collab       = imports.collab;
+        var CollabPanel = imports.CollabPanel;
+        var ui = imports.ui;
+        var panels = imports.panels;
+        var util = imports["collab.util"];
+        var workspace = imports["collab.workspace"];
+        var collab = imports.collab;
 
-        var html         = require("text!./chat.html");
-        var css          = require("text!./chat.css");
-        var timeago      = require("./timeago");
+        var html = require("text!./chat.html");
+        var css = require("text!./chat.css");
+        var timeago = require("./timeago");
         var staticPrefix = options.staticPrefix;
 
-        var ROLE_NONE         = "n";
-        var ROLE_VISITOR      = "v";
+        var ROLE_NONE = "n";
+        var ROLE_VISITOR = "v";
         var ROLE_COLLABORATOR = "c";
-        var ROLE_ADMIN        = "a";
+        var ROLE_ADMIN = "a";
 
         var plugin = new CollabPanel("Ajax.org", main.consumes, {
-            index        : 200,
-            caption      : "Group Chat",
-            textselect   : true,
-            style        : "flex:1;-webkit-flex:1"
+            index: 200,
+            caption: "Group Chat",
+            textselect: true,
+            style: "flex:1;-webkit-flex:1"
         });
 
-        // var emit  = plugin.getEmitter();
+        // var emit = plugin.getEmitter();
         var emoji = require("./my_emoji");
 
         // panel-relared UI elements
@@ -63,11 +63,11 @@ define(function(require, exports, module) {
             chatText.setAttribute("class", "chatText");
 
             chatInput = new apf.codebox({
-                htmlNode         : parent,
-                skin             : "codebox",
+                htmlNode: parent,
+                skin: "codebox",
                 "initial-message": "Enter your message here",
                 // clearbutton      : "true",
-                focusselect      : "true"
+                focusselect: "true"
             });
 
             plugin.addElement(chatInput);
@@ -76,7 +76,7 @@ define(function(require, exports, module) {
                 if (!/r/.test(workspace.fs))
                     return console.warn("Don't have read access - You can't use chat");
                 var chatHistory = workspace.chatHistory;
-                chatHistory.forEach(function(msg){
+                chatHistory.forEach(function(msg) {
                     addMessage(msg, msg.increment);
                 });
                 scrollDown();
@@ -86,16 +86,16 @@ define(function(require, exports, module) {
             chatInput.ace.setOption("wrap", "free");
             chatInput.ace.commands.addCommands([
                 {
-                    bindKey : "ESC",
-                    exec    : function(){
+                    bindKey: "ESC",
+                    exec: function(){
                         if (chatInput.getValue())
                             chatInput.setValue("");
                         else
                             collab.hide();
                     }
                 }, {
-                    bindKey : "Enter",
-                    exec    : send
+                    bindKey: "Enter",
+                    exec: send
                 }
             ]);
 
@@ -251,9 +251,9 @@ define(function(require, exports, module) {
                 return document.getElementById(id);
             }
 
-            chatThrob   = $("chatThrob");
+            chatThrob = $("chatThrob");
             chatCounter = $("chatCounter");
-            chatNotif   = $("chatNotif");
+            chatNotif = $("chatNotif");
 
             chatThrob.addEventListener("click", function () {
                 chatThrob.style.display = "none";
@@ -274,7 +274,7 @@ define(function(require, exports, module) {
 
         plugin.on("unload", function(){
             loaded = false;
-            drawn  = false;
+            drawn = false;
         });
 
         /***** Register and define API *****/

@@ -7,21 +7,21 @@ define(function(require, module, exports) {
     return main;
 
     function main(options, imports, register) {
-        var Plugin       = imports.Plugin;
-        var c9           = imports.c9;
+        var Plugin = imports.Plugin;
+        var c9 = imports.c9;
         var MembersPanel = imports.MembersPanel;
-        var commands     = imports.commands;
-        var menus        = imports.menus;
-        var ui           = imports.ui;
-        var alert        = imports["dialog.alert"].show;
-        var layout       = imports.layout;
-        var workspace    = imports["collab.workspace"];
+        var commands = imports.commands;
+        var menus = imports.menus;
+        var ui = imports.ui;
+        var alert = imports["dialog.alert"].show;
+        var layout = imports.layout;
+        var workspace = imports["collab.workspace"];
 
-        var markup   = require("text!./share.xml");
-        var css      = require("text!./share.css");
+        var markup = require("text!./share.xml");
+        var css = require("text!./share.css");
 
-        var plugin   = new Plugin("Ajax.org", main.consumes);
-        var emit     = plugin.getEmitter();
+        var plugin = new Plugin("Ajax.org", main.consumes);
+        var emit = plugin.getEmitter();
 
         var dialog, btnInvite, btnDone, txtUsername, membersParent, accessButton;
         var membersPanel, shareLinkEditor, shareLinkApp, shareLinkPreview;
@@ -36,10 +36,10 @@ define(function(require, module, exports) {
                 return;
 
             commands.addCommand({
-                name    : "sharedialog",
-                hint    : "Share the workspace",
-                group   : "General",
-                exec    : show
+                name: "sharedialog",
+                hint: "Share the workspace",
+                group: "General",
+                exec: show
             }, plugin);
 
             var btn =  new ui.button({
@@ -65,32 +65,32 @@ define(function(require, module, exports) {
             ui.insertMarkup(null, markup, plugin);
             
             commands.addCommand({
-                name    : plugin.name,
-                bindKey : { mac: "ESC", win: "ESC" },
-                group   : "ignore",
-                isAvailable : function(){
+                name: plugin.name,
+                bindKey: { mac: "ESC", win: "ESC" },
+                group: "ignore",
+                isAvailable: function(){
                     return dialog.visible;
                 },
-                exec : function(){
+                exec: function(){
                     dialog.dispatchEvent("keydown", { keyCode : 27 });
                 }
             }, plugin);
 
-            dialog           = plugin.getElement("window");
-            btnInvite        = plugin.getElement("btnInvite");
-            btnDone          = plugin.getElement("btnDone");
-            cbPreview        = plugin.getElement("cbPreview");
-            txtUsername      = plugin.getElement("txtUsername");
-            shareLinkEditor  = plugin.getElement("shareLinkEditor").$int;
-            shareLinkApp     = plugin.getElement("shareLinkApp").$int;
+            dialog = plugin.getElement("window");
+            btnInvite = plugin.getElement("btnInvite");
+            btnDone = plugin.getElement("btnDone");
+            cbPreview = plugin.getElement("cbPreview");
+            txtUsername = plugin.getElement("txtUsername");
+            shareLinkEditor = plugin.getElement("shareLinkEditor").$int;
+            shareLinkApp = plugin.getElement("shareLinkApp").$int;
             shareLinkPreview = plugin.getElement("shareLinkPreview").$int;
-            membersParent    = plugin.getElement("members");
-            accessButton     = plugin.getElement("access").$int;
+            membersParent = plugin.getElement("members");
+            accessButton = plugin.getElement("access").$int;
 
             var l = location;
             var port = (options.local ? ":" + (c9.port || "8080") : "");
-            shareLinkEditor.value  = l.protocol + "//" + l.host + l.pathname;
-            shareLinkApp.value     = (c9.hostname 
+            shareLinkEditor.value = l.protocol + "//" + l.host + l.pathname;
+            shareLinkApp.value = (c9.hostname 
                 ? "https://" + c9.hostname
                 : "http://localhost") + port;
             shareLinkPreview.value = options.previewUrl;
@@ -109,7 +109,7 @@ define(function(require, module, exports) {
             btnDone.on("click", hide);
             btnInvite.on("click", inviteUser);
 
-            txtUsername.on("keydown", function(e){
+            txtUsername.on("keydown", function(e) {
                 if (e.keyCode == 13) {
                     inviteUser();
                     e.returnValue = false;

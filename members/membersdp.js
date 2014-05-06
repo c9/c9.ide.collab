@@ -1,15 +1,15 @@
 define(function(require, exports, module) {
-    var oop          = require("ace/lib/oop");
-    var BaseClass    = require("ace_tree/data_provider");
+    var oop = require("ace/lib/oop");
+    var BaseClass = require("ace_tree/data_provider");
 
     function DataProvider(root) {
         BaseClass.call(this, root || {});
 
-        this.rowHeight      = 22;
+        this.rowHeight = 22;
         this.rowHeightInner = 20;
 
         Object.defineProperty(this, "loaded", {
-            get : function(){ return this.visibleItems.length; }
+            get: function(){ return this.visibleItems.length; }
         });
     }
 
@@ -22,7 +22,7 @@ define(function(require, exports, module) {
             return "Loading Members...";
         };
 
-        this.setRoot = function(root){
+        this.setRoot = function(root) {
             if (Array.isArray(root))
                 root = {items: root};
             this.root = root || {};

@@ -9,24 +9,24 @@ define(function(require, exports, module) {
     return main;
 
     function main(options, imports, register) {
-        var Plugin       = imports.Plugin;
-        var apf          = imports.apf;
-        var Menu         = imports.Menu;
-        var MenuItem     = imports.MenuItem;
-        var workspace    = imports["collab.workspace"];
-        var info         = imports.info;
-        var alert        = imports["dialog.alert"].show;
-        var confirm      = imports["dialog.confirm"].show;
+        var Plugin = imports.Plugin;
+        var apf = imports.apf;
+        var Menu = imports.Menu;
+        var MenuItem = imports.MenuItem;
+        var workspace = imports["collab.workspace"];
+        var info = imports.info;
+        var alert = imports["dialog.alert"].show;
+        var confirm = imports["dialog.confirm"].show;
 
-        var Tree         = require("ace_tree/tree");
-        var TreeData     = require("./membersdp");
+        var Tree = require("ace_tree/tree");
+        var TreeData = require("./membersdp");
 
-        var ROLE_ADMIN   = "a";
+        var ROLE_ADMIN = "a";
 
-        function MembersPanel(developer, deps, options){
+        function MembersPanel(developer, deps, options) {
             // Editor extends ext.Plugin
             var plugin = new Plugin(developer, deps);
-            // var emit   = plugin.getEmitter();
+            // var emit = plugin.getEmitter();
 
             var membersTree, membersDataProvider, parent;
 
@@ -38,14 +38,14 @@ define(function(require, exports, module) {
                 parent = options.aml;
 
                 // Members panel
-                membersTree         = new Tree(parent.$int);
+                membersTree = new Tree(parent.$int);
                 membersDataProvider = new TreeData();
                 membersTree.renderer.setTheme({cssClass: "memberstree"});
                 membersTree.renderer.setScrollMargin(0, 10);
                 // Assign the dataprovider
                 membersTree.setDataProvider(membersDataProvider);
 
-                membersTree.on("mousedown", function(e){
+                membersTree.on("mousedown", function(e) {
                     var domTarget = e.domEvent.target;
 
                     var pos = e.getDocumentPosition();
@@ -67,7 +67,7 @@ define(function(require, exports, module) {
                         membersTree.resize(true);
                     }
                 });
-                membersTree.on("mouseup", function(e){
+                membersTree.on("mouseup", function(e) {
                     var domTarget = e.domEvent.target;
 
                     var pos = e.getDocumentPosition();
@@ -84,21 +84,21 @@ define(function(require, exports, module) {
                 });
 
                 var mnuCtxTree = new Menu({
-                    id : "mnuMembers",
+                    id: "mnuMembers",
                     items: [
                         new MenuItem({
-                            caption : "Grant Read+Write Access",
-                            match   : "r",
-                            onclick : updateAccess.bind(null, "rw")
+                            caption: "Grant Read+Write Access",
+                            match: "r",
+                            onclick: updateAccess.bind(null, "rw")
                         }),
                         new MenuItem({
-                            caption : "Revoke Write Access",
-                            match   : "rw",
-                            onclick : updateAccess.bind(null, "r")
+                            caption: "Revoke Write Access",
+                            match: "rw",
+                            onclick: updateAccess.bind(null, "r")
                         }),
                         new MenuItem({
-                            caption : "Kick Out",
-                            onclick : removeMember
+                            caption: "Kick Out",
+                            onclick: removeMember
                         })
                     ]
                 }, plugin);
@@ -221,24 +221,24 @@ define(function(require, exports, module) {
 
                 if (!members.r.length)
                     membersDataProvider.setRoot([{
-                        name      : "Read+Write",
-                        items     : members.rw,
-                        noSelect  : true,
-                        className : "heading"
+                        name: "Read+Write",
+                        items: members.rw,
+                        noSelect: true,
+                        className: "heading"
                     }]);
                 else
                     membersDataProvider.setRoot([
                         {
-                            name      : "Read+Write",
-                            items     : members.rw,
-                            noSelect  : true,
-                            className : "heading"
+                            name: "Read+Write",
+                            items: members.rw,
+                            noSelect: true,
+                            className: "heading"
                         },
                         {
-                            name      : "Read Only",
-                            items     : members.r,
-                            noSelect  : true,
-                            className : "heading"
+                            name: "Read Only",
+                            items: members.r,
+                            noSelect: true,
+                            className: "heading"
                         }
                     ]);
                 
@@ -272,19 +272,19 @@ define(function(require, exports, module) {
                  * 
                  * @param {AMLElement} options.aml
                  */
-                draw  : draw,
+                draw: draw,
                 /**
                  * Trigger a resize of the members tree
                  */
-                resize  : resize,
+                resize: resize,
                 /**
                  * Load workspace members, render the tree and set update listeners
                  */
-                show    : show,
+                show: show,
                 /**
                  * Hide the members tree and unset update listeners
                  */
-                hide    : hide
+                hide: hide
             });
 
             return plugin;

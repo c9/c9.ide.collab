@@ -80,7 +80,7 @@ module.exports = {
         module.exports.setUpSuite(next);
     },
 
-    setUp : function(next) {
+    setUp: function(next) {
         var _self = this;
         initCollab(user1, function (err, collab1, vfs) {
             if (err)

@@ -6,17 +6,17 @@ define(function(require, module, exports) {
     return main;
 
     function main(options, imports, register) {
-        var Plugin      = imports.Plugin;
-        var settings    = imports.settings;
-        var ace         = imports.ace;
-        var tabs        = imports.tabManager;
-        var util        = imports["collab.util"];
-        var workspace   = imports["collab.workspace"];
-        var timeslider  = imports.timeslider;
+        var Plugin = imports.Plugin;
+        var settings = imports.settings;
+        var ace = imports.ace;
+        var tabs = imports.tabManager;
+        var util = imports["collab.util"];
+        var workspace = imports["collab.workspace"];
+        var timeslider = imports.timeslider;
 
         var operations = require("./ot/operations");
-        var Range      = require("ace/range").Range;
-        var RangeList  = require("ace/range_list").RangeList;
+        var Range = require("ace/range").Range;
+        var RangeList = require("ace/range_list").RangeList;
 
         ace.on("create", function(e) {
             initTooltipEvents(e.editor.ace);
@@ -24,12 +24,12 @@ define(function(require, module, exports) {
 
         function CursorLayer(session) {
 
-            var plugin   = new Plugin("Ajax.org", main.consumes);
-            // var emit     = plugin.getEmitter();
+            var plugin = new Plugin("Ajax.org", main.consumes);
+            // var emit = plugin.getEmitter();
 
             var tsRevNum;
-            var tooltipIsOpen   = false;
-            var selections      = {};
+            var tooltipIsOpen = false;
+            var selections = {};
             session.addDynamicMarker({ update: drawTimeSliderOperation }, false);
 
             function updateSelections(selecs) {
@@ -105,12 +105,12 @@ define(function(require, module, exports) {
                 var editorDoc = session.doc;
 
                 // gray for filesystem sync operations
-                if(uid == 0)
+                if (uid == 0)
                     bgColor = {r: 150, g: 150, b: 150};
                 else
                     bgColor = workspace.colorPool[uid];
 
-                if(!bgColor)
+                if (!bgColor)
                     return console.error("[OT] timeslider can't find user's bg color");
 
                 var ops = revision.operation;
@@ -306,10 +306,10 @@ define(function(require, module, exports) {
                 selection.tooltip.style.display = selection.arrow.style.display = "";
                 var x = (coords.pageX - 11);
                 var y = (coords.pageY - 15);
-                selection.arrow.style.top  = y + "px";
+                selection.arrow.style.top = y + "px";
                 selection.arrow.style.left = x + "px";
 
-                selection.tooltip.style.top  = (y - 21) + "px";
+                selection.tooltip.style.top = (y - 21) + "px";
                 selection.tooltip.style.left = (coords.pageX - (selection.tooltip.offsetWidth / 2)) + "px";
 
                 tooltipIsOpen = selection.tooltipIsOpen = true;
@@ -382,7 +382,7 @@ define(function(require, module, exports) {
                 var canvasPos = renderer.scroller.getBoundingClientRect();
                 var screenPos = renderer.pixelToScreenCoordinates(mousePos.x, mousePos.y);
 
-                function screenToPixelPos(pos){
+                function screenToPixelPos(pos) {
                     var x = renderer.$padding + Math.round(pos.column * renderer.characterWidth);
                     var y = pos.row * renderer.lineHeight;
 
@@ -467,7 +467,7 @@ define(function(require, module, exports) {
         function selectionToData(selection) {
             var data;
             if (selection.rangeCount) {
-                data = selection.rangeList.ranges.map(function(r){
+                data = selection.rangeList.ranges.map(function(r) {
                     return [r.start.row, r.start.column,
                         r.end.row, r.end.column, r.cursor == r.start];
                 });

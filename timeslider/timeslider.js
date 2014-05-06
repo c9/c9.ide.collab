@@ -9,21 +9,21 @@ define(function(require, exports, module) {
     return main;
 
     function main(options, imports, register) {
-        var Plugin       = imports.Plugin;
-        var c9           = imports.c9;
-        var ui           = imports.ui;
-        var ace          = imports.ace;
-        var util         = imports.util;
-        var tabs         = imports.tabManager;
-        var settings     = imports.settings;
-        var menus        = imports.menus;
-        var layout       = imports.layout;
-        var commands     = imports.commands;
-        var save         = imports.save;
+        var Plugin = imports.Plugin;
+        var c9 = imports.c9;
+        var ui = imports.ui;
+        var ace = imports.ace;
+        var util = imports.util;
+        var tabs = imports.tabManager;
+        var settings = imports.settings;
+        var menus = imports.menus;
+        var layout = imports.layout;
+        var commands = imports.commands;
+        var save = imports.save;
 
-        var html         = require("text!./timeslider.html");
-        var css          = require("text!./timeslider.css");
-        var dom          = require("ace/lib/dom");
+        var html = require("text!./timeslider.html");
+        var css = require("text!./timeslider.css");
+        var dom = require("ace/lib/dom");
 
         var staticPrefix = options.staticPrefix;
         var isLoading;
@@ -47,20 +47,20 @@ define(function(require, exports, module) {
 
         /***** Initialization *****/
 
-        var plugin   = new Plugin("Ajax.org", main.consumes);
-        var emit     = plugin.getEmitter();
+        var plugin = new Plugin("Ajax.org", main.consumes);
+        var emit = plugin.getEmitter();
 
-        var sliderLength      = 1000;
-        var sliderPos         = 0;
-        var sliderActive      = false;
-        var savedRevisions    = [];
+        var sliderLength = 1000;
+        var sliderPos = 0;
+        var sliderActive = false;
+        var savedRevisions = [];
         var savedRevisionNums = [];
-        var sliderPlaying     = false;
+        var sliderPlaying = false;
         // This number is calibrated from UI experimentation
-        var LEFT_PADDING      = 64;
+        var LEFT_PADDING = 64;
 
-        var loaded   = false;
-        function load(callback){
+        var loaded = false;
+        function load(callback) {
             if (loaded) return false;
             loaded = true;
 
@@ -114,7 +114,7 @@ define(function(require, exports, module) {
                 });
             });
 
-            tabs.on("paneDestroy", function (e){
+            tabs.on("paneDestroy", function (e) {
                 if (!tabs.getPanes(tabs.container).length)
                     forceHideSlider();
             }, plugin);
@@ -150,7 +150,7 @@ define(function(require, exports, module) {
         }
         
         var scheduled, lastRevNum;
-        function schedule(revNum){
+        function schedule(revNum) {
             lastRevNum = revNum;
             if (scheduled) return;
 
@@ -172,21 +172,21 @@ define(function(require, exports, module) {
                 return document.getElementById(id);
             }
 
-            var ext         = $("timeslider-top");
-            timeslider      = $("timeslider");
+            var ext = $("timeslider-top");
+            timeslider = $("timeslider");
             timesliderClose = $("timeslider_close");
-            slider          = $("timeslider-slider");
-            sliderBar       = $("ui-slider-bar");
-            sliderProgress  = $("ui-slider-progress");
-            handle          = $("ui-slider-handle");
-            playButton      = $("playpause_button");
-            playButtonIcon  = $("playpause_button_icon");
-            revisionInfo    = $("revision_info");
-            revisionDate    = $("revision_date");
-            revisionLabel   = $("revision_label");
-            leftStep        = $("leftstep");
-            rightStep       = $("rightstep");
-            revertButton    = $("revert_to_rev");
+            slider = $("timeslider-slider");
+            sliderBar = $("ui-slider-bar");
+            sliderProgress = $("ui-slider-progress");
+            handle = $("ui-slider-handle");
+            playButton = $("playpause_button");
+            playButtonIcon = $("playpause_button_icon");
+            revisionInfo = $("revision_info");
+            revisionDate = $("revision_date");
+            revisionLabel = $("revision_label");
+            leftStep = $("leftstep");
+            rightStep = $("rightstep");
+            revertButton = $("revert_to_rev");
 
             var tbcont = tabs.container;
             var box = new ui.vsplitbox({});
@@ -316,7 +316,7 @@ define(function(require, exports, module) {
                 top += element.offsetTop  || 0;
                 left += element.offsetLeft || 0;
                 element = element.offsetParent;
-            } while(element);
+            } while (element);
 
             return {
                 top: top,
@@ -324,7 +324,7 @@ define(function(require, exports, module) {
             };
         }
         
-        function setHandleLeft(pos){
+        function setHandleLeft(pos) {
             handle.style.left = pos + "px";
             sliderProgress.style.width = (pos - sliderBar.offsetLeft + 10) + "px";
         }
@@ -351,7 +351,7 @@ define(function(require, exports, module) {
                 return Math.round(newloc * sliderLength / barWidth);
             }
             
-            function clamp(clientX){
+            function clamp(clientX) {
                 var newloc = currentLoc + (clientX - startLoc);
                 var handleOverflow = (handle.offsetWidth / 2);
                 if (newloc < sliderBar.offsetLeft - handleOverflow + 1)
@@ -382,7 +382,7 @@ define(function(require, exports, module) {
                 var newSliderPos = calcSliderPos(evt2.clientX);
                 currentLoc = calcHandlerLeft(newSliderPos);
                 setHandleLeft(currentLoc);
-                // if(sliderPos != Math.round(newloc * sliderLength / ($("#ui-slider-bar").width()-2)))
+                // if (sliderPos != Math.round(newloc * sliderLength / ($("#ui-slider-bar").width()-2)))
                 setSliderPosition(newSliderPos);
                 
                 handle.style.transition = "left .1s";
@@ -568,7 +568,7 @@ define(function(require, exports, module) {
         var isVisible = false;
         var resizeInterval;
         
-        function useStoredState(e){
+        function useStoredState(e) {
             if (e.state.filter && e.doc.meta.$storedState1)
                 e.state = e.doc.meta.$storedState1;
             else if (!e.state.filter && e.doc.meta.$storedState0)
@@ -652,7 +652,7 @@ define(function(require, exports, module) {
             }
         }
 
-        function timesliderAvailable(editor){
+        function timesliderAvailable(editor) {
             if (!editor || editor.type !== "ace")
                 return false;
             var aceEditor = editor.ace;
@@ -698,7 +698,7 @@ define(function(require, exports, module) {
         });
         plugin.on("unload", function(){
             loaded = false;
-            drawn  = false;
+            drawn = false;
         });
 
         /***** Register and define API *****/
@@ -753,29 +753,29 @@ define(function(require, exports, module) {
              * Update the revision timer element on the slider
              * @param {Date} time
              */
-            updateTimer       : updateTimer,
+            updateTimer: updateTimer,
             /**
              * Update the saved revisions to be displayed as stars on the slider
              * @param [{Revision}] revisions
              */
-            setSavedRevisions : setSavedRevisions,
+            setSavedRevisions: setSavedRevisions,
             /**
              * Show the timeslider and load the current focussed tab's revisions into the UI
              */
-            show              : show,
+            show: show,
             /**
              * Hide the timeslider element and revert the activeDocument contents to the latest revision
              */
-            hide              : hide,
+            hide: hide,
             /**
              * Trigger the play or pause on the timeslider
              */
-            playpause         : playpause,
+            playpause: playpause,
             /**
              * Add a just-saved star revision to the timeslider
              * @param {Revision} revision
              */
-            addSavedRevision  : addSavedRevision
+            addSavedRevision: addSavedRevision
         });
 
         register(null, {

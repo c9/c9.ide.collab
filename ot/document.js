@@ -6,22 +6,22 @@ define(function(require, module, exports) {
     return main;
 
     function main(options, imports, register) {
-        var Plugin                = imports.Plugin;
-        var connect               = imports["collab.connect"];
-        var c9util                = imports.util;
-        var workspace             = imports["collab.workspace"];
-        var timeslider            = imports.timeslider;
-        var CursorLayer           = imports.CursorLayer;
-        var AuthorLayer           = imports.AuthorLayer;
+        var Plugin = imports.Plugin;
+        var connect = imports["collab.connect"];
+        var c9util = imports.util;
+        var workspace = imports["collab.workspace"];
+        var timeslider = imports.timeslider;
+        var CursorLayer = imports.CursorLayer;
+        var AuthorLayer = imports.AuthorLayer;
 
-        var lang                  = require("ace/lib/lang");
-        // var Range                 = require("ace/range").Range;
-        var xform                 = require("./xform");
-        var operations            = require("./operations");
-        var apply                 = require("./apply");
-        var applyContents         = apply.applyContents;
-        var applyAce              = apply.applyAce;
-        var IndexCache            = require("./index_cache");
+        var lang = require("ace/lib/lang");
+        // var Range = require("ace/range").Range;
+        var xform = require("./xform");
+        var operations = require("./operations");
+        var apply = require("./apply");
+        var applyContents = apply.applyContents;
+        var applyAce = apply.applyAce;
+        var IndexCache = require("./index_cache");
         var applyAuthorAttributes = require("./author_attributes")().apply;
 
         // The minimum delay that should be between a commited EDIT_UPDATE and the next
@@ -33,10 +33,10 @@ define(function(require, module, exports) {
 
         function OTDocument(docId, c9Document) {
 
-            var plugin      = new Plugin("Ajax.org", main.consumes);
-            var emit        = plugin.getEmitter();
+            var plugin = new Plugin("Ajax.org", main.consumes);
+            var emit = plugin.getEmitter();
             var cloneObject = c9util.cloneObject;
-            var debug       = connect.debug;
+            var debug = connect.debug;
 
             var doc, session;
             var docStream, revStream;
@@ -47,14 +47,14 @@ define(function(require, module, exports) {
             var latestRevNum, lastSel;
             var sendTimer, cursorTimer;
 
-            var incoming      = [];
-            var outgoing      = [];
+            var incoming = [];
+            var outgoing = [];
             var ignoreChanges = false;
-            var packedCs      = [];
-            var loaded        = false;
-            var loading       = false;
-            var inited        = false;
-            var state         = "IDLE";
+            var packedCs = [];
+            var loaded = false;
+            var loading = false;
+            var inited = false;
+            var state = "IDLE";
 
             // @see docs in the API section below
             function setSession(aceSession) {
@@ -147,7 +147,7 @@ define(function(require, module, exports) {
                     var aceDoc = session.doc;
                     packedCs = handleUserChanges2(aceDoc, packedCs, e.data);
                     scheduleSend();
-                } catch(ex) {
+                } catch (ex) {
                     console.error("[OT] handleUserChanges", ex);
                 }
             }
@@ -342,9 +342,9 @@ define(function(require, module, exports) {
                 var complete = data.chunkNum === data.chunksLength;
                 if (!c9Document.hasValue())
                     emit("joinProgress", {
-                        loaded   : data.chunkNum,
-                        total    : data.chunksLength,
-                        complete : complete
+                        loaded: data.chunkNum,
+                        total: data.chunksLength,
+                        complete: complete
                     });
 
                 if (!complete)
@@ -633,7 +633,7 @@ define(function(require, module, exports) {
                 for (var revNo = 0; revNo < revNums; revNo++) {
                     var rev = getDetailedRevision(revNo);
                     var count = 0;
-                    if(rev.contents.match(new RegExp(searchString, 'i'))) {
+                    if (rev.contents.match(new RegExp(searchString, 'i'))) {
                         count = rev.contents.match(new RegExp(searchString, 'gi')).length;
                         result[revNo] = count;
                     }
@@ -872,7 +872,7 @@ define(function(require, module, exports) {
             }
 
             plugin.freezePublicAPI({
-                _events : [
+                _events: [
                     /**
                      * Fires when the document has joined
                      * @event joined
@@ -988,57 +988,57 @@ define(function(require, module, exports) {
                  * loaded = false
                  * loading = true
                  */
-                load             : load,
+                load: load,
                 /**
                  * Sets the document's Ace session when the tab is completely inited and its document's EditSession is created and initialized
                  * This happens on tab/file open, or on first tab focus
                  * @param {EditSession} session
                  */
-                setSession       : setSession,
+                setSession: setSession,
                 /**
                  * Leave the document
                  * Unload the document and tell the collab server that I'm leaving it
                  */
-                leave            : leave,
+                leave: leave,
                 /**
                  * Dispose the resources used by the document like the cursorLayer and authorLayer and reset its state
                  */
-                dispose          : dispose,
+                dispose: dispose,
                 /**
                  * Disconnect the document and it will need to reload when the client comes back online
                  */
-                disconnect       : disconnect,
+                disconnect: disconnect,
                 /**
                  * A client leaving the document - should clear his selections or cursors
                  */
-                clientLeave      : clientLeave,
+                clientLeave: clientLeave,
                 /**
                  * Load the document's revisions from the collab server
                  */
-                loadRevisions    : loadRevisions,
+                loadRevisions: loadRevisions,
                 /**
                  * Update the document to its state on a certain revision number
                  * Only works if the revisions were previously loaded
                  * @param {Number} revNum {optional - defaults to the latest revision number}
                  */
-                updateToRevision : updateToRevision,
+                updateToRevision: updateToRevision,
                 /**
                  * Revert the document to its contents at a previous revision
                  * Only works if the revisions were previously loaded
                  * The authorship attributes may differ because the edit operations applied to revert to that revision maybe different
                  * @param {Number} revNum {optional - defaults to the latest revision number}
                  */
-                revertToRevision : revertToRevision,
+                revertToRevision: revertToRevision,
                 /**
                  * Save the collab document to the filesystem through the collab server
                  * @param {Boolean} silent - if true, save the file without adding a star revision number
                  */
-                save             : save,
+                save: save,
                 /**
                  * Search accross the history of the document for existence of a certain text in any previous revision, with count
                  * @param {String} query - the query string to search the history for
                  */
-                historicalSearch : historicalSearch,
+                historicalSearch: historicalSearch,
                 /**
                  * Receive join data chunk messages until the document loads
                  * When the document is loaded:
@@ -1047,13 +1047,13 @@ define(function(require, module, exports) {
                  * 
                  * @param {Object} data - a chunk of data received of the join data stream
                  */
-                joinData         : joinData,
+                joinData: joinData,
                 /**
                  * Handles document-related messages of types:
                  * "EDIT_UPDATE", "SYNC_COMMIT", "CURSOR_UPDATE", "FILE_SAVED", "GET_REVISIONS"
                  * @param {Object} data - a chunk of data received of the join data stream
                  */
-                handleMessage    : handleMessage
+                handleMessage: handleMessage
             });
 
             return plugin;
