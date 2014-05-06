@@ -4,20 +4,20 @@ define(function(require, module, exports) {
     return main;
 
     function main(options, imports, register) {
-        var Plugin    = imports.Plugin;
-        var ui        = imports.ui;
-        var collab    = imports.collab;
+        var Plugin = imports.Plugin;
+        var ui = imports.ui;
+        var collab = imports.collab;
 
-        function CollabPanel(developer, deps, options){
+        function CollabPanel(developer, deps, options) {
             // Editor extends ext.Plugin
             var plugin = new Plugin(developer, deps);
-            var emit   = plugin.getEmitter();
+            var emit = plugin.getEmitter();
             emit.setMaxListeners(1000);
 
             var caption = options.caption;
-            var index   = options.index || 100;
-            var height  = options.height || "";
-            var style   = options.style || "";
+            var index = options.index || 100;
+            var height = options.height || "";
+            var style = options.style || "";
             var amlFrame;
 
             plugin.on("load", function(){
@@ -25,15 +25,15 @@ define(function(require, module, exports) {
                 collab.on("drawPanels", draw, plugin);
             });
 
-            function draw(e){
+            function draw(e) {
                 amlFrame = ui.frame({
-                    buttons     : "min",
-                    activetitle : "min",
+                    buttons: "min",
+                    activetitle: "min",
                     "class"     : "absframe",
-                    style       : "position:relative;" + (style || ""),
-                    textselect  : options.textselect,
+                    style: "position:relative;" + (style || ""),
+                    textselect: options.textselect,
                     // height      : height,
-                    caption     : caption
+                    caption: caption
                 });
                 
                 var aml = e.aml;
@@ -117,7 +117,7 @@ define(function(require, module, exports) {
                  */
                 get aml(){ return amlFrame; },
 
-                _events : [
+                _events: [
                     /**
                      * Fired when the panel container is drawn.
                      * @event draw
@@ -131,12 +131,12 @@ define(function(require, module, exports) {
                 /**
                  * Shows the panel.
                  */
-                show : show,
+                show: show,
 
                 /**
                  * Hides the panel.
                  */
-                hide : hide
+                hide: hide
             });
 
             return plugin;

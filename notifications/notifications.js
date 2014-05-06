@@ -9,29 +9,29 @@ define(function(require, exports, module) {
     return main;
 
     function main(options, imports, register) {
-        var CollabPanel  = imports.CollabPanel;
-        var c9           = imports.c9;
-        var ui           = imports.ui;
-        var api          = imports.api;
-        var alert        = imports["dialog.alert"].show;
+        var CollabPanel = imports.CollabPanel;
+        var c9 = imports.c9;
+        var ui = imports.ui;
+        var api = imports.api;
+        var alert = imports["dialog.alert"].show;
 
-        var css          = require("text!./notifications.css");
+        var css = require("text!./notifications.css");
         var staticPrefix = options.staticPrefix;
 
-        var oop          = require("ace/lib/oop");
-        var Tree         = require("ace_tree/tree");
-        var TreeData     = require("./notificationsdp");
+        var oop = require("ace/lib/oop");
+        var Tree = require("ace_tree/tree");
+        var TreeData = require("./notificationsdp");
 
         var plugin = new CollabPanel("Ajax.org", main.consumes, {
-            index   : 150,
-            caption : "Notifications",
-            height  : "20%"
+            index: 150,
+            caption: "Notifications",
+            height: "20%"
         });
 
         // added notification types as classes below
         var NOTIFICATION_TYPES = {};
 
-        // var emit   = plugin.getEmitter();
+        // var emit = plugin.getEmitter();
 
         var notificationsParent, notificationsTree, notificationsDataProvider;
         var frame, panelButton, bubble;
@@ -77,7 +77,7 @@ define(function(require, exports, module) {
             // Assign the dataprovider
             notificationsTree.setDataProvider(notificationsDataProvider);
 
-            notificationsTree.on("mousedown", function(e){
+            notificationsTree.on("mousedown", function(e) {
                 var domTarget = e.domEvent.target;
 
                 var pos = e.getDocumentPosition();
@@ -88,7 +88,7 @@ define(function(require, exports, module) {
                 notif.handleMouseDown(e);
             });
             
-            notificationsTree.on("mouseup", function(e){
+            notificationsTree.on("mouseup", function(e) {
                 var domTarget = e.domEvent.target;
 
                 var pos = e.getDocumentPosition();
@@ -232,8 +232,8 @@ define(function(require, exports, module) {
                 var uid = this.datarow.uid;
                 api.collab.post("accept_request", {
                     body: {
-                        uid    : uid,
-                        access : access
+                        uid: uid,
+                        access: access
                     }
                 }, function (err, data, res) {
                     if (err) return alert("Error", err);
@@ -252,7 +252,7 @@ define(function(require, exports, module) {
                 var uid = this.datarow.uid;
                 api.collab.post("deny_request", {
                     body: {
-                        uid : uid
+                        uid: uid
                     }
                 }, function (err, data, res) {
                     if (err) return alert("Error", err);
@@ -304,7 +304,7 @@ define(function(require, exports, module) {
 
         plugin.on("unload", function(){
             loaded = false;
-            drawn  = false;
+            drawn = false;
         });
 
         /***** Register and define API *****/

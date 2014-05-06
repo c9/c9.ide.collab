@@ -1,4 +1,4 @@
-/*global describe it before after  =*/
+/*global describe it before after = */
 
 "use client";
 
@@ -13,13 +13,13 @@ require(["lib/architect/architect", "lib/chai/chai", "/vfs-root"],
 
     expect.setupArchitectTest([
         {
-            packagePath : "plugins/c9.core/c9",
-            workspaceId : "javruben/dev",
-            startdate   : new Date(),
-            debug       : true,
-            hosted      : true,
-            local       : false,
-            davPrefix   : "/"
+            packagePath: "plugins/c9.core/c9",
+            workspaceId: "javruben/dev",
+            startdate: new Date(),
+            debug: true,
+            hosted: true,
+            local: false,
+            davPrefix: "/"
         },
         "plugins/c9.core/ext",
         "plugins/c9.core/http",
@@ -31,8 +31,8 @@ require(["lib/architect/architect", "lib/chai/chai", "/vfs-root"],
             testing: true
         },
         {
-            packagePath  : "plugins/c9.ide.ui/ui",
-            staticPrefix : "plugins/c9.ide.ui"
+            packagePath: "plugins/c9.ide.ui/ui",
+            staticPrefix: "plugins/c9.ide.ui"
         },
         "plugins/c9.ide.ui/menus",
         "plugins/c9.ide.editors/document",
@@ -93,43 +93,43 @@ require(["lib/architect/architect", "lib/chai/chai", "/vfs-root"],
 
         // Mock plugins
         {
-            consumes : ["apf", "ui", "Plugin"],
-            provides : [
+            consumes: ["apf", "ui", "Plugin"],
+            provides: [
                 "commands", "commands", "layout", "watcher", "Panel", "info", "save", "dialog.filesave",
                 // "menus", "Menu", "MenuItem", "Divider", - "plugins/c9.ide.ui/menus",
                 "dialog.alert", "dialog.confirm", "dialog.error", "dialog.question", "dialog.fileoverwrite",
                 "panels", "preferences", "clipboard", "auth.bootstrap", "anims", "debugger", "run.gui"
             ],
-            setup    : expect.html.mocked
+            setup: expect.html.mocked
         },
         {
-            consumes : ["fs", "tabManager", "save",
+            consumes: ["fs", "tabManager", "save",
                 "collab.connect", "collab.workspace", "collab", "OTDocument",
                 "members", "chat", "timeslider"],
-            provides : [],
-            setup    : main
+            provides: [],
+            setup: main
         }
     ], architect);
     
     function main(options, imports, register) {
-        var save         = imports.save;
-        var fs           = imports.fs;
-        var tabs         = imports.tabManager;
+        var save = imports.save;
+        var fs = imports.fs;
+        var tabs = imports.tabManager;
 
-        var connect      = imports["collab.connect"];
-        var workspace    = imports["collab.workspace"];
-        var collab       = imports.collab;
-        var OTDocument   = imports.OTDocument;
-        var members      = imports.members;
-        var chat         = imports.chat;
-        var timeslider   = imports.timeslider;
+        var connect = imports["collab.connect"];
+        var workspace = imports["collab.workspace"];
+        var collab = imports.collab;
+        var OTDocument = imports.OTDocument;
+        var members = imports.members;
+        var chat = imports.chat;
+        var timeslider = imports.timeslider;
 
         describe('collab', function() {
             this.timeout(5000);
 
             var filePath = "/collab1.txt";
             
-            before(function(done){
+            before(function(done) {
                 setTimeout(function() {
                     fs.writeFile(filePath, filePath, function(){
                         tabs.openFile(filePath, function(){
@@ -139,7 +139,7 @@ require(["lib/architect/architect", "lib/chai/chai", "/vfs-root"],
                 }, 100);
             });
 
-            after(function(done){
+            after(function(done) {
                 fs.unlink(filePath, function(){
                     done();
                 });
@@ -148,7 +148,7 @@ require(["lib/architect/architect", "lib/chai/chai", "/vfs-root"],
             describe('test collab', function() {
 
                 it('should connect', function(done) {
-                    connect.on("connect", function(msg){
+                    connect.on("connect", function(msg) {
                         expect(connect.connected).to.be.true;
                         expect(collab.connected).to.be.true;
                         expect(Object.keys(workspace.users)).length(1);
@@ -160,7 +160,7 @@ require(["lib/architect/architect", "lib/chai/chai", "/vfs-root"],
 
                 it('should be able to join a document', function(done) {
                     var doc = collab.getDocument(filePath);
-                    doc.on("joined", function(e){
+                    doc.on("joined", function(e) {
                         expect(e.err).to.be.an('undefined');
                         expect(e.contents).to.equal(filePath);
                         done();
@@ -175,7 +175,7 @@ require(["lib/architect/architect", "lib/chai/chai", "/vfs-root"],
                     editorDoc.insert({row: 0, column: 2}, "-abc-");
                     expect(tab.document.value).to.equal("/c-abc-ollab1.txt");
 
-                    doc.on("saved", function(e){
+                    doc.on("saved", function(e) {
                         expect(e.err).to.be.an('undefined');
                         expect(e.star).to.be.true;
                         expect(e.clean).to.be.true;

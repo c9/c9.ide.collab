@@ -4,11 +4,11 @@ define(function(require, module, exports) {
     return main;
 
     function main(options, imports, register) {
-        var Plugin      = imports.Plugin;
-        var settings    = imports.settings;
-        var ace         = imports.ace;
-        var util        = imports["collab.util"];
-        var workspace   = imports["collab.workspace"];
+        var Plugin = imports.Plugin;
+        var settings = imports.settings;
+        var ace = imports.ace;
+        var util = imports["collab.util"];
+        var workspace = imports["collab.workspace"];
 
         var dom = require("ace/lib/dom");
         var event = require("ace/lib/event");
@@ -28,9 +28,9 @@ define(function(require, module, exports) {
         }, workspace);
 
         function AuthorLayer(session) {
-            var plugin  = new Plugin("Ajax.org", main.consumes);
-            // var emit    = plugin.getEmitter();
-            var marker  = session.addDynamicMarker({ update: drawAuthInfos }, false);
+            var plugin = new Plugin("Ajax.org", main.consumes);
+            // var emit = plugin.getEmitter();
+            var marker = session.addDynamicMarker({ update: drawAuthInfos }, false);
 
             function refresh() {
                 var doc = session.collabDoc.original;
@@ -68,12 +68,12 @@ define(function(require, module, exports) {
                 var foldStart = fold ? fold.start.row : Infinity;
 
                 for (var i = firstRow; i < lastRow; i++) {
-                    if(i > foldStart) {
+                    if (i > foldStart) {
                         i = fold.end.row + 1;
                         fold = session.getNextFoldLine(i, fold);
                         foldStart = fold ?fold.start.row :Infinity;
                     }
-                    if(i > lastRow)
+                    if (i > lastRow)
                         break;
 
                     if (!authKeyCache[i] || !rowScores[i])
@@ -124,12 +124,12 @@ define(function(require, module, exports) {
                 var reversedAuthorPool = workspace.reversedAuthorPool;
 
                 while (true) {
-                    if(i > foldStart) {
+                    if (i > foldStart) {
                         i = fold.end.row + 1;
                         fold = session.getNextFoldLine(i, fold);
                         foldStart = fold ?fold.start.row :Infinity;
                     }
-                    if(i > lastRow)
+                    if (i > lastRow)
                         break;
 
                     var annotation = _self.$annotations[i] || emptyAnno;

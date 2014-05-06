@@ -6,21 +6,21 @@ define(function(require, exports, module) {
     return main;
 
     function main(options, imports, register) {
-        var CollabPanel  = imports.CollabPanel;
-        var collab       = imports.collab;
+        var CollabPanel = imports.CollabPanel;
+        var collab = imports.collab;
         var MembersPanel = imports.MembersPanel;
-        var ui           = imports.ui;
-        var panels       = imports.panels;
+        var ui = imports.ui;
+        var panels = imports.panels;
 
-        var css          = require("text!./members.css");
+        var css = require("text!./members.css");
         var staticPrefix = options.staticPrefix;
 
         var membersPanel;
 
         var plugin = new CollabPanel("Ajax.org", main.consumes, {
-            index   : 100,
-            caption : "Workspace Members",
-            height  : "50%"
+            index: 100,
+            caption: "Workspace Members",
+            height: "50%"
         });
 
         var loaded = false;
@@ -61,7 +61,7 @@ define(function(require, exports, module) {
 
         plugin.on("unload", function(){
             loaded = false;
-            drawn  = false;
+            drawn = false;
         });
 
         /***** Register and define API *****/

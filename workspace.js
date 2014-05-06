@@ -4,19 +4,19 @@ define(function(require, exports, module) {
     return main;
 
     function main(options, imports, register) {
-        var Plugin   = imports.Plugin;
-        var util     = imports["collab.util"];
-        var api      = imports.api;
+        var Plugin = imports.Plugin;
+        var util = imports["collab.util"];
+        var api = imports.api;
 
         /***** Initialization *****/
 
         var plugin = new Plugin("Ajax.org", main.consumes);
-        var emit   = plugin.getEmitter();
+        var emit = plugin.getEmitter();
 
         var authorPool = {};
-        var colorPool  = {};
-        var users      = {};
-        var loaded     = false;
+        var colorPool = {};
+        var users = {};
+        var loaded = false;
         var myClientId, myOldClientId, myUserId, fs;
         var reversedAuthorPool, chatHistory;
 
@@ -28,15 +28,15 @@ define(function(require, exports, module) {
             else
                 myOldClientId = null;
 
-            myClientId         = data.myClientId;
-            myUserId           = data.myUserId;
-            fs                 = data.fs;
-            authorPool         = data.authorPool;
+            myClientId = data.myClientId;
+            myUserId = data.myUserId;
+            fs = data.fs;
+            authorPool = data.authorPool;
             reversedAuthorPool = util.reverseObject(authorPool);
-            colorPool          = data.colorPool;
-            users              = data.users;
-            chatHistory        = data.chatHistory;
-            loaded             = true;
+            colorPool = data.colorPool;
+            users = data.users;
+            chatHistory = data.chatHistory;
+            loaded = true;
             emit("sync");
         }
 
@@ -81,16 +81,16 @@ define(function(require, exports, module) {
         function addMember(username, access, callback) {
             if (!options.hosted) {
                 return addCachedMember({
-                    uid   : Math.floor(Math.random()*100000),
-                    name  : username,
-                    acl   : access,
-                    email : "s@a.a"
+                    uid: Math.floor(Math.random()*100000),
+                    name: username,
+                    acl: access,
+                    email: "s@a.a"
                 });
             }
             api.collab.post("members/add", {
                 body: {
-                    username : username,
-                    access   : access
+                    username: username,
+                    access: access
                 }
             }, function (err, data, res) {
                 if (err) return callback(err);
@@ -130,8 +130,8 @@ define(function(require, exports, module) {
 
             api.collab.put("members/update_access", {
                 body: {
-                    uid    : uid,
-                    access : acl
+                    uid: uid,
+                    access: acl
                 }
             }, function (err, data, res) {
                 if (err) return callback(err);
@@ -154,7 +154,7 @@ define(function(require, exports, module) {
             return user.state || "online";
         }
 
-        plugin.on("newListener", function(event, listener){
+        plugin.on("newListener", function(event, listener) {
             if (event == "sync" && loaded)
                  listener();
         });
@@ -164,7 +164,7 @@ define(function(require, exports, module) {
          * @singleton
          **/
         plugin.freezePublicAPI({
-            _events : [
+            _events: [
                 /**
                  * Fires when another user joins or leaves the workspace and the workspace has synced that state
                  * Or when a workspace member is added or removed or updated access
@@ -256,38 +256,38 @@ define(function(require, exports, module) {
              * @param {Number} uid
              * @return {Object} e.g. {fullname: "Mostafa Eweda", uid: 123, email: "mostafa@c9.io", author: 1, color: 2}
              */
-            getUser      : function (uid)   { return users[uid]; },
+            getUser: function (uid)   { return users[uid]; },
             /**
              * Gets a user color given his user id
              * @param {Number} uid
              * @return {Object} e.g. {r: 10, g: 15, b: 255}
              */
-            getUserColor : function (uid)   { return (uid && util.formatColor(colorPool[uid])) || "transparent"; },
+            getUserColor: function (uid)   { return (uid && util.formatColor(colorPool[uid])) || "transparent"; },
             /**
              * Return true if the user with uid is currently online
              * @param {Number} uid
              * @return {String} - the user's online state: idle, online, offline
              */
-            getUserState : getUserState,
+            getUserState: getUserState,
             /**
              * Synchronize the workspace with the server-synced state
              *
              * @param {Object} data
              * @param {Object} mine - wether or not this is a "CONNECT" sync
              */
-            syncWorkspace : syncWorkspace,
+            syncWorkspace: syncWorkspace,
             /**
              * Synchronize the workspace metadata that a user is leaving the collaborative workspace
              *
              * @param {String} uid - the user id who is leaving the workspace
              */
-            leaveClient   : leaveClient,
+            leaveClient: leaveClient,
             /**
              * Synchronize the workspace metadata that a user is joining the collaborative workspace
              *
              * @param {User} user - the user id who is leaving the workspace
              */
-            joinClient    : joinClient,
+            joinClient: joinClient,
             /**
              * Synchronize the workspace metadata that a user is joining the collaborative workspace
              *
@@ -300,21 +300,21 @@ define(function(require, exports, module) {
              *
              * @param {Function} callback
              */
-            loadMembers   : loadMembers,
+            loadMembers: loadMembers,
             /**
              * Update workspace member access right to the workspace throgh the API server
              *
              * @param {String}   uid      - the user id
              * @param {Function} callback
              */
-            updateAccess  : updateAccess,
+            updateAccess: updateAccess,
             /**
              * Remove workspace member from the workspace throgh the API server
              *
              * @param {String}   uid      - the user id
              * @param {Function} callback
              */
-            removeMember  : removeMember,
+            removeMember: removeMember,
             /**
              * Add a Cloud9 user as workspace member throgh the API server
              *
@@ -322,7 +322,7 @@ define(function(require, exports, module) {
              * @param {String}   access   - the access right to the workspace ( read-only ("r") or read+write ("rw") )
              * @param {Function} callback
              */
-            addMember     : addMember
+            addMember: addMember
         });
         
         register(null, {

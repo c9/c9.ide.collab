@@ -11,7 +11,7 @@ function createServer() {
         });
     });
 
-    server.on("error", function(err){
+    server.on("error", function(err) {
        console.log("Server error:", err.code);
     });
 

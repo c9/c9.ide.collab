@@ -10,34 +10,34 @@ define(function(require, exports, module) {
     return main;
 
     function main(options, imports, register) {
-        var Panel        = imports.Panel;
-        var c9           = imports.c9;
-        var tabs         = imports.tabManager;
-        var fs           = imports.fs;
-        var metadata     = imports.metadata;
-        var ui           = imports.ui;
-        var apf          = imports.apf;
-        var ace          = imports.ace;
-        var util         = imports.util;
-        var settings     = imports.settings;
-        var prefs        = imports.preferences;
-        var connect      = imports["collab.connect"];
-        var workspace    = imports["collab.workspace"];
-        var bubble       = imports["notification.bubble"];
-        var timeslider   = imports.timeslider;
-        var OTDocument   = imports.OTDocument;
+        var Panel = imports.Panel;
+        var c9 = imports.c9;
+        var tabs = imports.tabManager;
+        var fs = imports.fs;
+        var metadata = imports.metadata;
+        var ui = imports.ui;
+        var apf = imports.apf;
+        var ace = imports.ace;
+        var util = imports.util;
+        var settings = imports.settings;
+        var prefs = imports.preferences;
+        var connect = imports["collab.connect"];
+        var workspace = imports["collab.workspace"];
+        var bubble = imports["notification.bubble"];
+        var timeslider = imports.timeslider;
+        var OTDocument = imports.OTDocument;
 
-        var css          = require("text!./collab.css");
+        var css = require("text!./collab.css");
         var staticPrefix = options.staticPrefix;
 
         var plugin = new Panel("Ajax.org", main.consumes, {
-            index        : 10,
-            width        : 250,
-            caption      : "Collaborate",
-            className    : "collab",
-            elementName  : "winCollab",
-            minWidth     : 130,
-            where        : "right"
+            index: 10,
+            width: 250,
+            caption: "Collaborate",
+            className: "collab",
+            elementName: "winCollab",
+            minWidth: 130,
+            where: "right"
         });
         var emit = plugin.getEmitter();
 
@@ -75,9 +75,9 @@ define(function(require, exports, module) {
                 "General" : {
                     "Collaboration" : {
                         "Show Authorship Info" : {
-                            type     : "checkbox",
-                            position : 8000,
-                            path     : showAuthorInfoKey
+                            type: "checkbox",
+                            position: 8000,
+                            path: showAuthorInfoKey
                         }
                     }
                 }
@@ -110,7 +110,7 @@ define(function(require, exports, module) {
         }
 
         function onDisconnect() {
-            for(var docId in documents) {
+            for (var docId in documents) {
                 var doc = documents[docId];
                 doc.disconnect();
             }
@@ -133,9 +133,9 @@ define(function(require, exports, module) {
         }
 
         function onMessage(msg) {
-            var data  = msg.data || {};
-            var user  = data && data.userId && workspace.getUser(data.userId);
-            var type  = msg.type;
+            var data = msg.data || {};
+            var user = data && data.userId && workspace.getUser(data.userId);
+            var type = msg.type;
             var docId = data.docId;
             if (docId && "/~".indexOf(docId[0]) === -1)
                 docId = data.docId = "/" + docId;
@@ -147,7 +147,7 @@ define(function(require, exports, module) {
             if (data.clientId && data.clientId === workspace.myOldClientId)
                 return console.warn("[OT] Skipping my own 'away' disconnection notifications");
 
-            switch (type){
+            switch (type) {
                 case "CHAT_MESSAGE":
                     data.increment = true;
                     emit("chatMessage", data);
@@ -226,11 +226,11 @@ define(function(require, exports, module) {
         }
 
         function setupJoinAndProgressCallbacks(otDoc, progress, callback) {
-            var progressListener = function(e){
+            var progressListener = function(e) {
                 progress && progress(e.loaded, e.total, e.complete);
             };
             otDoc.on("joinProgress", progressListener);
-            otDoc.once("joined", function(e){
+            otDoc.once("joined", function(e) {
                 otDoc.off("joinProgress", progressListener);
                 callback(e.err, e.contents, e.metadata);
             });
@@ -357,14 +357,14 @@ define(function(require, exports, module) {
         }
 
         /***** Lifecycle *****/
-        plugin.on("newListener", function(event, listener){
+        plugin.on("newListener", function(event, listener) {
             if (event == "connect" && connect.connected)
                 listener();
         });
         plugin.on("load", function(){
             load();
         });
-        plugin.on("draw", function(e){
+        plugin.on("draw", function(e) {
             draw(e);
         });
         plugin.on("unload", function(){
@@ -376,7 +376,7 @@ define(function(require, exports, module) {
          * @singleton
          */
         plugin.freezePublicAPI({
-            _events : [
+            _events: [
                 /**
                  * Fires when the collab panel is first drawn to enable sub-collab-panels to listen and render correctly
                  * @event drawPanels
@@ -420,13 +420,13 @@ define(function(require, exports, module) {
              * @param  {String}     path the file path of the document
              * @return {OTDocument} the collab document open with this path
              */
-            getDocument  : function (path) { return documents[path]; },
+            getDocument: function (path) { return documents[path]; },
             /**
              * Send a message to the collab server
              * @param  {String}     type    the type of the message
              * @param  {Object}     message the message body to send
              */
-            send          : function(type, message) { connect.send(type, message); }
+            send: function(type, message) { connect.send(type, message); }
         });
 
         register(null, {

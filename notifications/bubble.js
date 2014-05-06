@@ -6,10 +6,10 @@ define(function(require, exports, module) {
     return main;
 
     function main(options, imports, register) {
-        var Plugin   = imports.Plugin;
-        var ui       = imports.ui;
-        var menus    = imports.menus;
-        var layout   = imports.layout;
+        var Plugin = imports.Plugin;
+        var ui = imports.ui;
+        var menus = imports.menus;
+        var layout = imports.layout;
 
         /***** Initialization *****/
 
@@ -17,7 +17,7 @@ define(function(require, exports, module) {
         var staticPrefix = options.staticPrefix;
         var skin = require("text!./skin.xml");
         var markup = require("text!./bubble.xml");
-        var emit   = plugin.getEmitter();
+        var emit = plugin.getEmitter();
         
         var ntNotifications;
         
@@ -33,8 +33,8 @@ define(function(require, exports, module) {
             drawn = true;
             
             ui.insertSkin({
-                name         : "bubble",
-                data         : skin,
+                name: "bubble",
+                data: skin,
                 "media-path" : staticPrefix + "/images/"
             }, plugin);
             
@@ -68,7 +68,7 @@ define(function(require, exports, module) {
         });
         plugin.on("unload", function() {
             loaded = false;
-            drawn  = false;
+            drawn = false;
         });
 
         /***** Register and define API *****/
@@ -79,9 +79,9 @@ define(function(require, exports, module) {
             /**
              * 
              */
-            popup : popup,
+            popup: popup,
             
-            _events : [
+            _events: [
                 /**
                  * @event draw
                  */
