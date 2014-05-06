@@ -3,7 +3,7 @@ define(function(require, exports, module) {
 
     main.consumes = [
         "Plugin", "c9", "ui", "ace", "tabManager", "settings", "menus", 
-        "commands", "save", "layout"
+        "commands", "save", "layout", "util"
     ];
     main.provides = ["timeslider"];
     return main;
@@ -13,6 +13,7 @@ define(function(require, exports, module) {
         var c9           = imports.c9;
         var ui           = imports.ui;
         var ace          = imports.ace;
+        var util         = imports.util;
         var tabs         = imports.tabManager;
         var settings     = imports.settings;
         var menus        = imports.menus;
@@ -39,11 +40,10 @@ define(function(require, exports, module) {
         };
 
         // UI elements
-        var container, timeslider, editorContainer, timesliderClose, slider, sliderBar, handle,
-            playButton, playButtonIcon, revisionInfo, revisionDate, revisionLabel,
-            leftStep, rightStep, revertButton;
-
-        var activeDocument;
+        var container, timeslider, timesliderClose, slider;
+        var sliderBar, handle, playButton, playButtonIcon, revisionInfo;
+        var revisionDate, revisionLabel, leftStep, rightStep, revertButton;
+        var sliderProgress, activeDocument;
 
         /***** Initialization *****/
 
@@ -57,7 +57,7 @@ define(function(require, exports, module) {
         var savedRevisionNums = [];
         var sliderPlaying     = false;
         // This number is calibrated from UI experimentation
-        var LEFT_PADDING      = 59;
+        var LEFT_PADDING      = 64;
 
         var loaded   = false;
         function load(callback){
@@ -80,11 +80,13 @@ define(function(require, exports, module) {
                 isAvailable: timesliderAvailable
             }, plugin);
 
-            menus.addItemByPath("File/File Revision History...", new ui.item({
+            menus.addItemByPath("File/Show File Revision History", new ui.item({
                 type: "check",
                 checked: "" + tsVisibleKey + "",
                 command: "toggleTimeslider"
-            }), 600, plugin);
+            }), 1240, plugin);
+            
+            menus.addItemByPath("File/~", new ui.divider(), 1250, plugin);
 
             settings.on("read", function () {
                 // force-hide-timeslider with initial loading
@@ -118,13 +120,21 @@ define(function(require, exports, module) {
             }, plugin);
 
             tabs.on("focusSync", function(e) {
-                var doc = getTabCollabDocument(e.tab);
-                activeDocument = doc;
-                if (!isVisible)
-                    return;
-                if (!doc || !doc.loaded)
-                    return forceHideSlider();
-                doc.loadRevisions();
+                util.nextFrame(function(){
+                    var doc = getTabCollabDocument(e.tab);
+                    if (activeDocument && isVisible) {
+                        if (activeDocument == doc) return;
+                        hide();
+                        isVisible = true;
+                    }
+                    activeDocument = doc;
+                    if (!isVisible)
+                        return;
+                    if (!doc)
+                        return forceHideSlider();
+                    show();
+                    doc.loadRevisions();
+                });
             }, plugin);
 
             save.on("beforeSave", function(e) {
@@ -135,8 +145,18 @@ define(function(require, exports, module) {
             plugin.on("slider", function (revNum) {
                 if (!activeDocument || !isVisible)
                     return;
+                schedule(revNum);
+            });
+        }
+        
+        var scheduled, lastRevNum;
+        function schedule(revNum){
+            lastRevNum = revNum;
+            if (scheduled) return;
 
-                activeDocument.updateToRevision(revNum);
+            util.nextFrame(function(){
+                lastRevNum && activeDocument.updateToRevision(lastRevNum);
+                scheduled = false;
             });
         }
 
@@ -152,11 +172,12 @@ define(function(require, exports, module) {
                 return document.getElementById(id);
             }
 
-            container       = $("timeslider-top");
+            var ext         = $("timeslider-top");
             timeslider      = $("timeslider");
             timesliderClose = $("timeslider_close");
             slider          = $("timeslider-slider");
             sliderBar       = $("ui-slider-bar");
+            sliderProgress  = $("ui-slider-progress");
             handle          = $("ui-slider-handle");
             playButton      = $("playpause_button");
             playButtonIcon  = $("playpause_button_icon");
@@ -167,16 +188,15 @@ define(function(require, exports, module) {
             rightStep       = $("rightstep");
             revertButton    = $("revert_to_rev");
 
-            // HACKY WAY to get the correct div without jQuery selector: $(".basic.codeditorHolder")
-            var editorHolders = document.getElementsByClassName("codeditorHolder");
-            editorHolders = toArray(editorHolders);
-            editorContainer = editorHolders.filter(function (holder) {
-                return holder.classList.contains("basic");
-            })[0];
+            var tbcont = tabs.container;
+            var box = new ui.vsplitbox({});
+            tbcont.parentNode.insertBefore(box, tbcont.nextSibling);
+            container = box.appendChild(new ui.bar({ height: 64 }));
+            container.$ext.appendChild(ext);
+            box.appendChild(tbcont);
+            box.$ext.style.top = 0; // Works around an APF bug
 
             timesliderClose.addEventListener("click", forceHideSlider);
-
-            editorContainer.insertBefore(container, editorContainer.firstChild);
 
             disableSelection(playButton);
             disableSelection(timeslider);
@@ -197,14 +217,14 @@ define(function(require, exports, module) {
 
             // play/pause toggling
             playButton.addEventListener("mousedown", function(evt) {
-                playButton.style["background-image"] = "url("+ staticPrefix + "/images/play_depressed.png)";
+                // playButton.style["background-image"] = "url("+ staticPrefix + "/images/play_depressed.png)";
                 playButton.addEventListener("mouseup", function onMouseUp(evt2) {
-                    playButton.style["background-image"] = "url(" + staticPrefix + "/images/play_undepressed.png)";
+                    // playButton.style["background-image"] = "url(" + staticPrefix + "/images/play_undepressed.png)";
                     playButton.removeEventListener("mouseup", onMouseUp);
                     playpause();
                 });
                 document.addEventListener("mouseup", function onMouseUp(evt2) {
-                    playButton.style["background-image"] = "url(" + staticPrefix + "/images/play_undepressed.png)";
+                    // playButton.style["background-image"] = "url(" + staticPrefix + "/images/play_undepressed.png)";
                     document.removeEventListener("mouseup", onMouseUp);
                 });
             });
@@ -241,37 +261,38 @@ define(function(require, exports, module) {
                         stepper.style["background-position"] = origcss;
                         stepper.removeEventListener("mouseup", onMouseUp);
                         // document.removeEventListener("mouseup". onMouseUp);
-                        var id = stepper.id;
-                        if (id == "leftstep") {
-                            setSliderPosition(sliderPos - 1);
-                        }
-                        else if (id == "rightstep") {
-                            setSliderPosition(sliderPos + 1);
-                        }
-                        else if (id == "leftstar") {
-                            nextStar = 0; // default to first revision in document
-                            for (i = 0; i < savedRevisionNums.length; i++) {
-                                pos = savedRevisionNums[i];
-                                if (pos < sliderPos && nextStar < pos)
-                                    nextStar = pos;
-                            }
-                            setSliderPosition(nextStar);
-                        }
-                        else if (id == "rightstar") {
-                            nextStar = sliderLength; // default to last revision in document
-                            for (i = 0; i < savedRevisionNums.length; i++) {
-                                pos = savedRevisionNums[i];
-                                if (pos > sliderPos && nextStar > pos)
-                                    nextStar = pos;
-                            }
-                            setSliderPosition(nextStar);
-                        }
                     });
                     document.addEventListener("mouseup", function onMouseUp(evt2) {
                         stepper.style["background-position"] = origcss;
                         document.removeEventListener("mouseup". onMouseUp);
                         // stepper.removeEventListener("mouseup", onMouseUp);
                     });
+                    
+                    var id = stepper.id;
+                    if (id == "leftstep") {
+                        setSliderPosition(sliderPos - 1);
+                    }
+                    else if (id == "rightstep") {
+                        setSliderPosition(sliderPos + 1);
+                    }
+                    else if (id == "leftstar") {
+                        nextStar = 0; // default to first revision in document
+                        for (i = 0; i < savedRevisionNums.length; i++) {
+                            pos = savedRevisionNums[i];
+                            if (pos < sliderPos && nextStar < pos)
+                                nextStar = pos;
+                        }
+                        setSliderPosition(nextStar);
+                    }
+                    else if (id == "rightstar") {
+                        nextStar = sliderLength; // default to last revision in document
+                        for (i = 0; i < savedRevisionNums.length; i++) {
+                            pos = savedRevisionNums[i];
+                            if (pos > sliderPos && nextStar > pos)
+                                nextStar = pos;
+                        }
+                        setSliderPosition(nextStar);
+                    }
                 });
             });
 
@@ -302,11 +323,16 @@ define(function(require, exports, module) {
                 left: left
             };
         }
+        
+        function setHandleLeft(pos){
+            handle.style.left = pos + "px";
+            sliderProgress.style.width = (pos - sliderBar.offsetLeft + 10) + "px";
+        }
 
         function onBarMouseDown(evt) {
             var newloc = evt.clientX - cumulativeOffset(sliderBar).left;
             var newSliderPos = Math.round(newloc * sliderLength / (sliderBar.offsetWidth - 2));
-            handle.style.left = calcHandlerLeft(newSliderPos) + "px";
+            setHandleLeft(calcHandlerLeft(newSliderPos));
             onHandleMouseDown(evt);
         }
 
@@ -314,7 +340,7 @@ define(function(require, exports, module) {
             var startLoc = evt.clientX;
             var currentLoc = parseInt(handle.style.left.split("px")[0], 10);
             sliderActive = true;
-
+            
             function calcSliderPos(clientX) {
                 var newloc = currentLoc + (clientX - startLoc) - LEFT_PADDING;
                 if (newloc < 0)
@@ -324,12 +350,25 @@ define(function(require, exports, module) {
                     newloc = barWidth;
                 return Math.round(newloc * sliderLength / barWidth);
             }
+            
+            function clamp(clientX){
+                var newloc = currentLoc + (clientX - startLoc);
+                var handleOverflow = (handle.offsetWidth / 2);
+                if (newloc < sliderBar.offsetLeft - handleOverflow + 1)
+                    newloc = sliderBar.offsetLeft - handleOverflow + 1;
+                if (newloc > sliderBar.offsetLeft + sliderBar.offsetWidth - handleOverflow - 1)
+                    newloc = sliderBar.offsetLeft + sliderBar.offsetWidth - handleOverflow - 1;
+                return newloc;
+            }
 
             function onMouseMove(evt2) {
                 handle.style.pointer = "move";
+                handle.style.transition = "none";
+                sliderProgress.style.transition = "none";
+                
                 var newSliderPos = calcSliderPos(evt2.clientX);
                 revisionLabel.innerHTML = "Version " + newSliderPos;
-                handle.style.left = calcHandlerLeft(newSliderPos) + "px";
+                setHandleLeft(clamp(evt2.clientX));
                 if (sliderPos != newSliderPos) {
                     sliderPos = newSliderPos;
                     emit("slider", newSliderPos);
@@ -342,9 +381,12 @@ define(function(require, exports, module) {
                 sliderActive = false;
                 var newSliderPos = calcSliderPos(evt2.clientX);
                 currentLoc = calcHandlerLeft(newSliderPos);
-                handle.style.left = currentLoc + "px";
+                setHandleLeft(currentLoc);
                 // if(sliderPos != Math.round(newloc * sliderLength / ($("#ui-slider-bar").width()-2)))
                 setSliderPosition(newSliderPos);
+                
+                handle.style.transition = "left .1s";
+                sliderProgress.style.transition = "width .1s";
             }
 
             document.addEventListener("mousemove", onMouseMove);
@@ -366,7 +408,7 @@ define(function(require, exports, module) {
                 var x = calcHandlerLeft(position) - 1;
                 if (x - prevX < 2 * starWidth) {
                     if (prevStar)
-                        prevStar.style.opacity = 0.05;
+                        prevStar.style.opacity = 0.15;
                     prevStar = star;
                     if (!firstHidden) {
                         firstHidden = x;
@@ -380,7 +422,7 @@ define(function(require, exports, module) {
                 star.style.left = x + "px";
                 star.style.opacity = 1;
             }
-            handle.style.left = calcHandlerLeft(sliderPos) + "px";
+            setHandleLeft(calcHandlerLeft(sliderPos));
         }
 
         function addSavedRevision(revision) {
@@ -447,26 +489,26 @@ define(function(require, exports, module) {
             newpos = Number(newpos);
             if (newpos < 0 || newpos > sliderLength) return;
 
-            handle.style.left = calcHandlerLeft(newpos) + "px";
+            setHandleLeft(calcHandlerLeft(newpos));
 
             if (savedRevisionNums.indexOf(newpos) === -1) {
                 revisionLabel.innerHTML = "Version " + newpos;
-                revisionLabel.style.color = "";
+                revisionLabel.className = "revision_label";
             }
             else {
                 revisionLabel.innerHTML = "Saved Version " + newpos;
-                revisionLabel.style.color = "rgb(168, 231, 168)";
+                revisionLabel.className = "revision_label saved";
             }
 
             if (newpos === 0)
-                leftStep.style.opacity = 0.5;
+                leftStep.className = "stepper disabled";
             else
-                leftStep.style.opacity = 1;
+                leftStep.className = "stepper";
 
             if (newpos == sliderLength)
-                rightStep.style.opacity = 0.5;
+                rightStep.className = "stepper disabled";
             else
-                rightStep.style.opacity = 1;
+                rightStep.className = "stepper";
 
             sliderPos = newpos;
             updateRevertVisibility();
@@ -476,9 +518,9 @@ define(function(require, exports, module) {
 
         function updateRevertVisibility() {
             if (isRevertAvailable())
-                revertButton.style.opacity = 1;
+                revertButton.className = "revert";
             else
-                revertButton.style.opacity = 0.5;
+                revertButton.className = "revert disabled";
         }
 
         function getSliderLength() {
@@ -525,11 +567,17 @@ define(function(require, exports, module) {
 
         var isVisible = false;
         var resizeInterval;
+        
+        function useStoredState(e){
+            if (e.state.filter && e.doc.meta.$storedState1)
+                e.state = e.doc.meta.$storedState1;
+            else if (!e.state.filter && e.doc.meta.$storedState0)
+                e.state = e.doc.meta.$storedState0;
+        }
 
         function show() {
             draw();
-            container.style.display = "block";
-            // getCodeEditorTab().height(editorContainer.outerHeight() - container.outerHeight());
+            container.show();
 
             clearInterval(resizeInterval);
             var oldWidth = timeslider.offsetWidth;
@@ -547,6 +595,11 @@ define(function(require, exports, module) {
                 aceEditor.setReadOnly(true);
                 aceEditor.keyBinding.addKeyboardHandler(timesliderKeyboardHandler);
                 aceEditor.renderer.onResize(true);
+                
+                var doc = activeDocument.original;
+                doc.meta.$storedState0 = doc.getState();
+                doc.meta.$storedState1 = doc.getState(true);
+                doc.on("getState", useStoredState);
             }
 
             emit("visible", isVisible);
@@ -554,17 +607,27 @@ define(function(require, exports, module) {
 
         function hide() {
             draw();
-            container.style.display = "none";
-            // getCodeEditorTab().height(editorContainer.outerHeight());
+            if (sliderPlaying)
+                playpause();
+
+            container.hide();
             clearInterval(resizeInterval);
             isVisible = false;
 
             if (activeDocument) {
+                if (activeDocument.loaded)
+                    activeDocument.updateToRevision();
+
                 var tab = activeDocument.original.tab;
                 var aceEditor = tab.editor.ace;
                 aceEditor.keyBinding.removeKeyboardHandler(timesliderKeyboardHandler);
                 aceEditor.setReadOnly(!!c9.readonly);
                 aceEditor.renderer.onResize(true);
+                
+                var doc = activeDocument.original.meta
+                delete doc.meta.$storedState0;
+                delete doc.meta.$storedState1;
+                doc.off("getState", useStoredState);
             }
 
             emit("visible", isVisible);
@@ -578,11 +641,13 @@ define(function(require, exports, module) {
         function toggleTimeslider() {
             if (isVisible) {
                 activeDocument && activeDocument.loaded && activeDocument.updateToRevision();
+                lastRevNum = null;
                 hide();
             }
             else {
                 // ide.dispatchEvent("track_action", {type: "timeslider"});
                 show();
+                lastRevNum = null;
                 activeDocument && activeDocument.loadRevisions();
             }
         }
@@ -609,15 +674,15 @@ define(function(require, exports, module) {
             isLoading = loading;
 
             if (loading) {
-                playButton.style["background-image"] = "url("+ staticPrefix + "/images/loading.gif)";
-                playButton.style.margin = "7px 0px 0px 5px";
-                playButtonIcon.style.display = revisionInfo.style.display = "none";
+                // playButton.style["background-image"] = "url("+ staticPrefix + "/images/loading.gif)";
+                // playButton.style.margin = "7px 0px 0px 5px";
+                // playButtonIcon.style.display = revisionInfo.style.display = "none";
                 setSavedRevisions([]);
             }
             else {
-                playButton.style["background-image"] = "url(" + staticPrefix + "/images/play_depressed.png)";
-                playButton.style.margin = "";
-                playButtonIcon.style.display = revisionInfo.style.display = "block";
+                // playButton.style["background-image"] = "url(" + staticPrefix + "/images/play_depressed.png)";
+                // playButton.style.margin = "";
+                // playButtonIcon.style.display = revisionInfo.style.display = "block";
             }
         }
 

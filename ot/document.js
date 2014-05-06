@@ -59,7 +59,7 @@ define(function(require, module, exports) {
             // @see docs in the API section below
             function setSession(aceSession) {
                 if (session)
-                    return console.warn("[OT] Ace's session previously set !");
+                    return console.warn("[OT] Ace's session previously set!");
 
                 session = aceSession;
                 session.collabDoc = plugin;
@@ -339,11 +339,16 @@ define(function(require, module, exports) {
                     docStream = "";
                 docStream += data.chunk;
 
-                if (data.chunkNum !== data.chunksLength) {
-                    if (!c9Document.hasValue())
-                        emit("joinProgress", {loaded: data.chunkNum, total: data.chunksLength});
+                var complete = data.chunkNum === data.chunksLength;
+                if (!c9Document.hasValue())
+                    emit("joinProgress", {
+                        loaded   : data.chunkNum,
+                        total    : data.chunksLength,
+                        complete : complete
+                    });
+
+                if (!complete)
                     return;
-                }
 
                 doc = JSON.parse(docStream);
                 docStream = null;
@@ -479,7 +484,7 @@ define(function(require, module, exports) {
             // An edit message can also have a piggy-packed selection update - optimization
             function handleIncomingEdit(msg) {
                 if (msg.revNum !== latestRevNum + 1) {
-                    console.error("[OT] Incoming edit revNum mismatch !",
+                    console.error("[OT] Incoming edit revNum mismatch!",
                         msg.revNum, latestRevNum + 1);
                     return;
                 }
@@ -559,7 +564,7 @@ define(function(require, module, exports) {
             // Update the timeslider if rendering this document
             function addRevision(msg) {
                 if (!msg.op.length)
-                    console.error("[OT] Empty rev operation should never happen !");
+                    console.error("[OT] Empty rev operation should never happen!");
                 revisions[msg.revNum] = {
                     operation: msg.op,
                     revNum: msg.revNum,
@@ -643,7 +648,7 @@ define(function(require, module, exports) {
             // @see docs in the API section below
             function updateToRevision(revNum) {
                 if (!revisions[0])
-                    return console.warn("[OT] revisions may haven't yet been loaded !");
+                    return console.warn("[OT] revisions may haven't yet been loaded!");
                 if (!isReadOnly())
                     return console.error("[OT] Can't updateToRevNum while editing !!");
                 if (typeof revNum === "undefined")
@@ -714,7 +719,7 @@ define(function(require, module, exports) {
                 case "FILE_SAVED":
                     var err = data.err;
                     if (err) {
-                        console.error("[OT] Failed saving file !", err, docId);
+                        console.error("[OT] Failed saving file!", err, docId);
                         emit("saved", {err: err});
                         break;
                     }

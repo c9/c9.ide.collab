@@ -47,7 +47,7 @@ define(function(require, exports, module) {
 
             c9.on("ready", loadNotifications);
 
-            if (!options.hosted) {
+            if (!options.hosted && c9.debug) {
                 // standalone version test
                 cachedNotifications = createNotifications([
                     { name: "Bas de Wachter", uid: 8, email: "bas@c9.io", type: "access_request" },

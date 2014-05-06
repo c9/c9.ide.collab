@@ -1,10 +1,10 @@
 #timeslider-top {
-    color: rgb(255,255,255);
     color: rgba(255,255,255,0.85);
     border-bottom: solid rgb(194, 194, 194) 1px;
     width: 100%;
     z-index: 10;
-    box-shadow: 0 -5px 10px rgba(134, 134, 134, 0.4) inset;
+    background: #252525 url("/static/plugins/c9.ide.layout.classic/images/c9-noise.png");
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
 }
 
 #timeslider {
@@ -27,40 +27,66 @@
     height: 61px;
     left: 0;
     position: absolute;
-    top: 10px;
+    top: 16px;
     width: 100%;
 }
 
 #playpause_button, #playpause_button_icon {
-    height: 47px;
+    height: 33px;
     position: absolute;
-    width: 47px;
+    width: 33px;
+    z-index: 1;
 }
 
 #playpause_button {
-    background-image: url(/static/plugins/c9.ide.collab/timeslider/images/play_undepressed.png);
     background-repeat: no-repeat;
-    left: 10px;
-    top: 9px;
+    left: 13px;
+    top: 13px;
+    border-radius: 40px;
+    border: 3px solid black;
+    /*background: rgba(255, 255, 255, 0.08);*/
+    background: -webkit-linear-gradient(top, rgb(63, 63, 63), rgb(39, 39, 39));
+    box-shadow: 4px 6px 13px 0px rgba(0, 0, 0, 0.65), 0 1px rgba(255, 255, 255, 0.08);
+    transition: box-shadow .1s;
+}
+
+#playpause_button:hover #playpause_button_icon{
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+#playpause_button:active{
+    box-shadow: 0 1px rgba(255, 255, 255, 0.08);
+}
+
+#playpause_button:active #playpause_button_icon{
+    box-shadow: 0 0px rgba(255, 255, 255, 0.1) inset;
+    background-color: rgba(0, 0, 0, 0.04);
 }
 
 #playpause_button_icon {
-    background-image: url(/static/plugins/c9.ide.collab/timeslider/images/play.png);
-    left: 0;
-    top: 0;
+    background: url(/static/plugins/c9.ide.collab/timeslider/images/play.png) -7px -6px;
+    left: 0px;
+    top: 0px;
+    border-radius: 50px;
+    box-sizing: border-box;
+    box-shadow: 0 1px rgba(255, 255, 255, 0.1) inset;
+    transition: background-color .1s;
+}
+
+#playpause_button_border{
+    display: block;
+    border-radius: 40px;
+    width: 41px;
+    height: 41px;
+    border: 4px solid rgba(255, 255, 255, 0.11);
+    left: 8px;
+    top: 8px;
+    z-index: 0;
+    position: absolute;
 }
 
 .pause#playpause_button_icon {
     background-image: url(/static/plugins/c9.ide.collab/timeslider/images/pause.png)
-}
-
-#leftstep, #rightstep {
-    background: url(/static/plugins/c9.ide.collab/timeslider/images/stepper_buttons.png) 0 0 no-repeat;
-    height: 21px;
-    overflow: hidden;
-    position: absolute;
-    top: 30px;
-    width: 30px;
 }
 
 #timeslider .close {
@@ -71,96 +97,275 @@
     display: block;
     right: 5px;
     top: 4px;
-    background-position: -28px 0;
+    background-position: 0 -14px;
     background-image: url(/static/plugins/c9.ide.collab/timeslider/images/close_tab_btn.png);
     background-repeat: no-repeat;
 }
 
 #timeslider .close:hover {
-    background-position: -14px 0;
+    background-position: -28px -14px;
 }
 
 #timeslider .revert {
     position: absolute;
-    width: 45px;
-    top: 33px;
-    right: 10px;
-    background-color: rgb(242, 242, 242);
-    color: rgb(83,83,83);
+    width: 59px;
+    top: 20px;
+    right: 23px;
+    color: #B9B9B9;
     font-size: 13px;
     font-weight: bold;
     text-align: center;
-    border-radius: 4px;
+    border-radius: 7px;
+    box-shadow: 0 1px rgba(255, 255, 255, 0.06), 1px 1px rgba(255, 255, 255, 0.06) inset, -1px 0 rgba(255, 255, 255, 0.06) inset;
+    /*background: -webkit-linear-gradient(top, #3F3F3F 0%, #242424 100%);*/
+    background: -webkit-linear-gradient(top, rgb(43, 43, 43) 0%, rgb(36, 36, 36) 100%);
+    border: 4px solid black;
+    height: 15px;
+    padding: 1px 1px 1px 0;
+    font-family: Tahoma;
+    font-size: 12px;
+    text-shadow: 0 1px rgba(0, 0, 0, 0.36);
+}
+
+#timeslider .revert:after {
+    content: "";
+    display: block;
+    width: 68px;
+    border-radius: 10px;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    position: absolute;
+    left: -8px;
+    top: -8px;
+    height: 25px;
+}
+
+#timeslider .revert.disabled {
+    box-shadow: 0 1px rgba(255, 255, 255, 0.06), 0 0px rgba(255, 255, 255, 0.03) inset, 0 0px #131313 inset;
+    background: -webkit-linear-gradient(right, #1F1F1F 0%, #1F1F1F 60%, #1B1B1B 100%);
+    color: rgb(54, 54, 54);
+}
+#timeslider .revert:hover:not(.disabled){
+    background: -webkit-linear-gradient(top, rgb(53, 53, 53) 0%, rgb(46, 46, 46) 100%);
+}
+#timeslider .revert:active:not(.disabled){
+    box-shadow: 0 1px rgba(0, 0, 0, 0.06), 1px 1px 2px rgba(0, 0, 0, 0.66) inset, -1px 0 rgba(0, 0, 0, 0.06) inset, 0 -1px 2px rgba(255, 255, 255, 0.06) inset;
+    background: -webkit-linear-gradient(top, rgb(43, 43, 43) 0%, rgb(36, 36, 36) 100%);
+    padding: 2px 0px 0px 1px;
+}
+
+#leftstep, #rightstep {
+    position: absolute;
+    top: 20px;
+    width: 25px;
+    height: 20px;
+    border: 3px solid black;
 }
 
 #leftstep {
     background-position: 0 -22px;
-    right: 90px;
+    right: 135px;
+    border-radius: 7px 0px 0 7px;
+    border-right: 1px solid black;
+    box-shadow: 0 1px rgba(255, 255, 255, 0.06), 1px 1px rgba(255, 255, 255, 0.06) inset, -1px 0 rgba(255, 255, 255, 0.06) inset, 0 -1px rgb(27, 27, 27) inset;
+    background: -webkit-linear-gradient(top, rgb(43, 43, 43) 0%, rgb(36, 36, 36) 100%);
+    z-index: 100;
+}
+#leftstep.disabled {
+    box-shadow: 0 1px rgba(255, 255, 255, 0.06), 0 0px rgba(255, 255, 255, 0.03) inset, 0 0px #131313 inset;
+    background: -webkit-linear-gradient(left, #1F1F1F 0%, #1F1F1F 60%, #1B1B1B 100%);
+}
+#leftstep.disabled:after{
+    opacity: 0.3;
+}
+#leftstep:hover:not(.disabled){
+    background: -webkit-linear-gradient(top, rgb(53, 53, 53) 0%, rgb(46, 46, 46) 100%);
+}
+#leftstep:active:not(.disabled){
+    box-shadow: 0 1px rgba(0, 0, 0, 0.06), 1px 1px 3px rgba(0, 0, 0, 0.66) inset, -1px 0 rgba(0, 0, 0, 0.06) inset, 0 -1px 2px rgba(255, 255, 255, 0.06) inset;
+    background: -webkit-linear-gradient(top, rgb(43, 43, 43) 0%, rgb(36, 36, 36) 100%);
+}
+#leftstep:active:not(.disabled):after {
+    margin: 4px 0 0 8px;
+}
+
+#leftstep:after {
+    content: "";
+    height: 15px;
+    width: 12px;
+    background: url(/static/plugins/c9.ide.collab/timeslider/images/stepper_buttons.png) 0px 0px;
+    display: block;
+    margin: 3px 0 0 7px;
 }
 
 #rightstep {
-    background-position: -29px -22px;
-    right: 61px;
+    right: 107px;
+    border-left: 0;
+    border-radius: 0 7px 7px 0;
+    box-shadow: 0 1px rgba(255, 255, 255, 0.06), 1px 1px rgba(255, 255, 255, 0.06) inset, -1px 0 rgba(255, 255, 255, 0.06) inset, 0 -1px rgb(27, 27, 27) inset;
+    background: -webkit-linear-gradient(top, rgb(43, 43, 43) 0%, rgb(36, 36, 36) 100%);
+}
+#rightstep.disabled {
+    box-shadow: 0 1px rgba(255, 255, 255, 0.06), 0 0px rgba(255, 255, 255, 0.03) inset, 0 0px #131313 inset;
+    background: -webkit-linear-gradient(right, #1F1F1F 0%, #1F1F1F 60%, #1B1B1B 100%);
+}
+#rightstep.disabled:after{
+    opacity: 0.3;
+}
+#rightstep:hover:not(.disabled){
+    background: -webkit-linear-gradient(top, rgb(53, 53, 53) 0%, rgb(46, 46, 46) 100%);
+}
+#rightstep:active:not(.disabled){
+    box-shadow: 0 1px rgba(0, 0, 0, 0.06), 1px 1px 2px rgba(0, 0, 0, 0.66) inset, -1px 0 rgba(0, 0, 0, 0.06) inset, 0 -1px 2px rgba(255, 255, 255, 0.06) inset;
+    background: -webkit-linear-gradient(top, rgb(43, 43, 43) 0%, rgb(36, 36, 36) 100%);
+}
+#rightstep:active:not(.disabled):after {
+    margin: 4px 0 0 8px;
+}
+
+#rightstep:before {
+    content: "";
+    display: block;
+    width: 57px;
+    border-radius: 10px;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    position: absolute;
+    left: -33px;
+    top: -7px;
+    height: 26px;
+}
+#rightstep:after {
+    content: "";
+    height: 15px;
+    width: 12px;
+    background: url(/static/plugins/c9.ide.collab/timeslider/images/stepper_buttons.png) -12px 0px;
+    display: block;
+    margin: 3px 0 0 7px;
 }
 
 #timeslider .star {
-    background-image: url(/static/plugins/c9.ide.collab/timeslider/images/star.png);
     cursor: pointer;
-    height: 16px;
+    height: 8px;
     position: absolute;
-    top: 22px;
-    width: 15px;
+    top: 12px;
+    width: 8px;
     z-index: 3;
+    background: #abc326;
+    border-radius: 4px;
+    margin-left: 5px;
+    box-shadow: 0 1px 1px rgba(255, 255, 255, 0.66) inset, 0 1px 0 rgba(0, 0, 0, 0.5), 0 2px rgba(255, 255, 255, 0.12);
+}
+
+#timeslider .star:after {
+    content: "";
+    display: block;
+    height: 7px;
+    background: rgba(22, 22, 22, 1);
+    width: 2px;
+    top: 9px;
+    position: absolute;
+    left: 3px;
+    z-index: -1;
+    box-shadow: 1px 0px rgba(255, 255, 255, 0.06), 1px 0 rgba(0, 0, 0, 0.26) inset;
 }
 
 #revision_info {
     position: absolute;
-    left: 66px;
-    top: 10px;
+    left: 70px;
+    top: 8px;
 }
 
+#revision_label.saved{
+    color: #A4BD42;
+}
+
+#ui-slider-progress {
+    pointer-events: none;
+    position: absolute;
+    content: "";
+    background: red;
+    height: 5px;
+    display: block;
+    top: 28px;
+    left: 71px;
+    border-radius: 4px;
+    background: -webkit-linear-gradient(bottom, #64722a 0%, #abc326 100%);
+    border-top: 1px solid rgba(0, 0, 0, 0.72);
+    z-index: 1;
+    box-shadow: 0 -1px rgba(0, 0, 0, 0.58) inset;
+    transition: width .1s;
+}
+    
 #ui-slider-handle {
     -webkit-user-select: none;
     -moz-user-select: none;
     user-select: none;
-    cursor: pointer;
+    
+    display: block;
     position: absolute;
-    top: 15px;
-    width: 9px;
-    z-index: 2;
-    background: rgb(120, 164, 185);
-    height: 28px;
-    border-radius: 4px;
-    box-shadow: 3px 3px 10px rgba(255,255,255,0.3) inset;
-    border: 1px solid rgb(87, 87, 87);
+    height: 14px;
+    width: 15px;
+    background: transparent;
+    top: 24px;
+    box-shadow: 0 3px 4px rgba(0, 0, 0, 0.49);
+    border-radius: 5px;
+    transition: left .1s;
+    z-index: 100;
 }
 
 #ui-slider-handle span {
-    display: block;
+    cursor: default;
     position: absolute;
-    height: 17px;
-    width: 1px;
-    background: rgb(102, 102, 102);
-    top: 5px;
-    left: 4px;
+    width: 21px;
+    left: -2px;
+    z-index: 2;
+    background: -webkit-linear-gradient(bottom, #2d2d2d 0%, #454546 100%);
+    height: 13px;
+    border-radius: 4px;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.54);
+    border-top: 1px solid #616161;
+    transition: background .2s;
 }
 
-.slider-bar-edge {
-    position: absolute;
+#ui-slider-handle:hover span{
+    background: -webkit-linear-gradient(bottom, #383838 0%, #4F4F4F 100%);
+}
+
+#ui-slider-handle span:before {
+    content: "";
+    display: inline-block;
+    border-left: 1px solid rgba(255, 255, 255, 0.28);
     width: 1px;
-    top: 18px;
-    height: 22px;
-    background-color: rgb(233, 233, 233);
-    z-index: 1
+    border-right: 1px solid rgba(255, 255, 255, 0.27);
+    margin-right: 1px;
+    height: 6px;
+    margin-left: 7px;
+    margin-top: 3px;
+    box-shadow: 0px 1px 1px rgba(0, 0, 0, 0.3);
+    vertical-align: top;
+}
+#ui-slider-handle span:after {
+    content: "";
+    display: inline-block;
+    border-left: 1px solid rgba(255, 255, 255, 0.28);
+    width: 1px;
+    border-right: 1px solid rgba(255, 255, 255, 0.27);
+    margin-right: 1px;
+    height: 6px;
+    margin-top: 3px;
+    box-shadow: 0px 1px 1px rgba(0, 0, 0, 0.3);
+    vertical-align: top;
 }
 
 #slide-bar-bar {
     position: absolute;
+    margin-right: -5px;
     left: 0;
     right: 0;
     top: 26px;
     height: 6px;
-    background-color: rgb(155, 155, 155);
+    background-color: rgba(0,0,0,0.3);
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6) inset, 0 1px rgba(255, 255, 255, 0.06);
 }
 
 #ui-slider-bar {
@@ -169,8 +374,8 @@
     user-select: none;
     cursor: pointer;
     height: 35px;
-    margin-left: 65px;
-    margin-right: 135px;
+    margin-left: 70px;
+    margin-right: 185px;
     position: relative;
     top: 2px;
 }

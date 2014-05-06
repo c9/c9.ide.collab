@@ -207,7 +207,7 @@ define(function(require, exports, module) {
                     if (debug)
                         console.log("[OT] RECEIVED FROM SERVER", data);
                     if (data.type !== "CONNECT")
-                        return console.error("[OT] Invalid connect data !", data);
+                        return console.error("[OT] Invalid connect data!", data);
                     connected  = true;
                     connecting = false;
                     connectMsg = data;
