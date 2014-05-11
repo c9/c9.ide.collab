@@ -36,6 +36,7 @@ define(function(require, exports, module) {
         var collabInstalled = !options.isSSH;
         var connecting = false;
         var connected = false;
+        var fatalError = false;
         var CONNECT_TIMEOUT = 30000;  // 30 seconds
         var IDLE_PERIOD = 300000; // 5 minutes
         var connectMsg;
@@ -61,7 +62,7 @@ define(function(require, exports, module) {
             c9.on("connect", connect);
             c9.on("disconnect", onDisconnect);
         }
-        
+
         function updateIdleWithFocus() {
             focussed = true;
             clearTimeout(idleTimeout);
@@ -153,6 +154,9 @@ define(function(require, exports, module) {
         /***** Methods *****/
 
         function connect() {
+            if (fatalError)
+                return;
+            
             if (connected)
                 onDisconnect();
 
@@ -191,8 +195,10 @@ define(function(require, exports, module) {
                 basePath: options.basePath,
                 clientId: clientId
             }, function (err, meta) {
-                if (err)
+                if (err) {
+                    fatalError = err.code === "EFATAL";
                     return console.error("COLLAB connect failed", err);
+                }
 
                 stream = meta.stream;
                 var isClosed = false;
