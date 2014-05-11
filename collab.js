@@ -50,7 +50,7 @@ define(function(require, exports, module) {
             loaded = true;
 
             connect.on("message", onMessage);
-            connect.on("conencting", onConnecting);
+            connect.on("connecting", onConnecting);
             connect.on("connect", onConnectMsg);
             connect.on("disconnect", onDisconnect);
 

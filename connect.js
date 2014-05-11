@@ -21,6 +21,7 @@ define(function(require, exports, module) {
 
         var plugin = new Plugin("Ajax.org", main.consumes);
         var emit = plugin.getEmitter();
+        var managedWorkspace = options.managedWorkspace;
 
         var clientId;
 
@@ -97,19 +98,30 @@ define(function(require, exports, module) {
             if (extended)
                 return plugin.once("available", callback);
             extended = true;
-            ext.loadRemotePlugin("collab", {
-                file: "collab-server.js",
-                redefine: true
-            }, function(err, api) {
-                if (err) {
-                    extended = false;
-                    return callback(err);
-                }
-                collab = api;
-
-                emit("available", true);
-                callback();
+            
+            if (managedWorkspace)
+                return extend();
+            
+            require(["text!./server/collab-server.js"], function(code) {
+                extend(code);
             });
+            
+            function extend(code) {
+                ext.loadRemotePlugin("collab", {
+                    file: !code && "collab-server.js",
+                    redefine: true,
+                    code: code
+                }, function(err, api) {
+                    if (err) {
+                        extended = false;
+                        return callback(err);
+                    }
+                    collab = api;
+    
+                    emit("available", true);
+                    callback();
+                });
+            }
         }
 
         function onDisconnect() {
