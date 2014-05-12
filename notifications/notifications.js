@@ -45,7 +45,7 @@ define(function(require, exports, module) {
             // Needed now for bubble
             ui.insertCss(css, staticPrefix, plugin);
 
-            c9.on("ready", loadNotifications);
+            c9.once("ready", loadNotifications);
 
             if (!options.hosted && c9.debug) {
                 // standalone version test
