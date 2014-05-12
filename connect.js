@@ -119,7 +119,7 @@ define(function(require, exports, module) {
                     }
                     collab = api;
     
-                    emit("available", true);
+                    emit.sticky("available");
                     callback();
                 });
             }
@@ -131,6 +131,7 @@ define(function(require, exports, module) {
             else
                 console.error("[OT] Already disconnected!");
             connecting = connected = extended = false;
+            emit.unsticky("available");
             collab = null;
             if (stream) {
                 stream.$close();
