@@ -21,6 +21,7 @@ define(function(require, exports, module) {
 
         var plugin = new Plugin("Ajax.org", main.consumes);
         var emit = plugin.getEmitter();
+        var managedWorkspace = options.managedWorkspace;
 
         var clientId;
 
@@ -35,6 +36,7 @@ define(function(require, exports, module) {
         var collabInstalled = !options.isSSH;
         var connecting = false;
         var connected = false;
+        var fatalError = false;
         var CONNECT_TIMEOUT = 30000;  // 30 seconds
         var IDLE_PERIOD = 300000; // 5 minutes
         var connectMsg;
@@ -60,7 +62,7 @@ define(function(require, exports, module) {
             c9.on("connect", connect);
             c9.on("disconnect", onDisconnect);
         }
-        
+
         function updateIdleWithFocus() {
             focussed = true;
             clearTimeout(idleTimeout);
@@ -97,26 +99,37 @@ define(function(require, exports, module) {
             if (extended)
                 return plugin.once("available", callback);
             extended = true;
-            ext.loadRemotePlugin("collab", {
-                file: "collab-server.js",
-                redefine: true
-            }, function(err, api) {
-                if (err) {
-                    extended = false;
-                    return callback(err);
-                }
-                collab = api;
-
-                emit("available", true);
-                callback();
+            
+            if (managedWorkspace)
+                return extend();
+            
+            require(["text!./server/collab-server.js"], function(code) {
+                extend(code);
             });
+            
+            function extend(code) {
+                ext.loadRemotePlugin("collab", {
+                    file: !code && "collab-server.js",
+                    redefine: true,
+                    code: code
+                }, function(err, api) {
+                    if (err) {
+                        extended = false;
+                        return callback(err);
+                    }
+                    collab = api;
+    
+                    emit("available", true);
+                    callback();
+                });
+            }
         }
 
         function onDisconnect() {
             if (connected || connecting)
                 emit("disconnect");
             else
-                console.error("[OT] Already disconnected !!");
+                console.error("[OT] Already disconnected!");
             connecting = connected = extended = false;
             collab = null;
             if (stream) {
@@ -141,6 +154,9 @@ define(function(require, exports, module) {
         /***** Methods *****/
 
         function connect() {
+            if (fatalError)
+                return;
+            
             if (connected)
                 onDisconnect();
 
@@ -179,8 +195,10 @@ define(function(require, exports, module) {
                 basePath: options.basePath,
                 clientId: clientId
             }, function (err, meta) {
-                if (err)
+                if (err) {
+                    fatalError = err.code === "EFATAL";
                     return console.error("COLLAB connect failed", err);
+                }
 
                 stream = meta.stream;
                 var isClosed = false;
