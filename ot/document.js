@@ -30,6 +30,7 @@ define(function(require, module, exports) {
         // The maximum delay that should be between a commited EDIT_UPDATE and the next
         // happens when I'm editing alone
         var MAX_DELAY = options.maxDelay;
+        var MAX_COMMIT_TRIALS = 3;
 
         function OTDocument(docId, c9Document) {
 
@@ -45,6 +46,7 @@ define(function(require, module, exports) {
             var revisions = [], starRevNums = [];
 
             var latestRevNum, lastSel;
+            var commitTrials = 0;
             var sendTimer, cursorTimer;
 
             var incoming = [];
@@ -297,6 +299,7 @@ define(function(require, module, exports) {
 
                 if (outgoing.length) {
                     state = "COMMITTING";
+                    commitTrials++;
                     var top = outgoing[0];
                     top.revNum = latestRevNum + 1;
                     top.selection = lastSel = CursorLayer.selectionToData(session.selection);
@@ -491,21 +494,29 @@ define(function(require, module, exports) {
                 var st = new Date();
                 if (outgoing.length && isOurOutgoing(msg, outgoing[0])) {
                     // 'op' not sent to save network bandwidth
+                    commitTrials = 0;
                     msg.op = outgoing[0].op;
                     outgoing.shift();
                     addRevision(msg);
                     state = "IDLE";
-                    if (pendingSave) {
-                        pendingSave.outLen--;
-                        if (pendingSave.outLen === 0)
-                            doSave(pendingSave.silent);
-                    }
+                    if (pendingSave && --pendingSave.outLen === 0)
+                        doSave(pendingSave.silent);
                     scheduleSend();
                 } else {
                     addRevision(msg);
-                    outgoing.push({op: packedCs});
-                    xformEach(outgoing, msg);
-                    packedCs = outgoing.pop().op;
+                    if (msg.sync) {
+                        // revert & discard all my uncommited changesets because:
+                        // a- a file watcher caused this document sync on (overriding my changes)
+                        // b- my changes may lead to inconsist state or can fail to be applied to the new synced document state
+                        revertMyPendingChanges(msg.userId);
+                        pendingSave = null;
+                    }
+                    else {
+                        // maintain my outgoing and current changeset
+                        outgoing.push({op: packedCs});
+                        xformEach(outgoing, msg);
+                        packedCs = outgoing.pop().op;
+                    }
                     var sel = session.selection;
                     // insert edits on the right of the cursor/selection to not move the user's cursor unexpectedly (done by Google Docs)
                     cursorLayer.setInsertRight(msg.clientId, false);
@@ -514,6 +525,8 @@ define(function(require, module, exports) {
                     sel.anchor.$insertRight = sel.lead.$insertRight = false;
                     // reset the right cursor/selection behaviour
                     cursorLayer.setInsertRight(msg.clientId, true);
+                    if (msg.sync)
+                        flagFileSaved(msg, true, true);
                 }
                 latestRevNum = msg.revNum;
                 if (msg.selection)
@@ -524,11 +537,11 @@ define(function(require, module, exports) {
 
             // If the document is at the latest state, apply a edit into the current document state
             // Else if the timeslider is visible, do nothing - we can later get the contents from the revisions
-            function applyEdit(msg, editorDoc) {
+            function applyEdit(msg, aceDoc) {
                 if (timeslider.visible)
                     return;
                 ignoreChanges = true;
-                applyAce(msg.op, editorDoc);
+                applyAce(msg.op, aceDoc);
                 applyAuthorAttributes(doc.authAttribs, msg.op, workspace.authorPool[msg.userId]);
                 authorLayer.refresh();
                 doc.revNum = msg.revNum;
@@ -694,6 +707,19 @@ define(function(require, module, exports) {
                 ignoreChanges = false;
             }
 
+            function revertMyPendingChanges(userId) {
+                console.warn("[OT] Reverting my changes to recover sync or inconsistent state");
+                userId = userId || workspace.myUserId;
+                if (!isPackedUnity())
+                    outgoing.push({op: packedCs});
+                ignoreChanges = true;
+                outgoing.splice(0, outgoing.length).forEach(function (myEdit) {
+                    applyEdit({op: operations.inverse(myEdit.op), userId: userId}, session.doc);
+                });
+                ignoreChanges = false;
+                clearCs(session.getValue().length);
+            }
+
             // @see docs in the API section below
             function handleMessage(event) {
                 if (!inited)
@@ -706,12 +732,21 @@ define(function(require, module, exports) {
                     break;
                 case "SYNC_COMMIT":
                     state = "IDLE";
-                    // updating it here means the commited operation could sometimes not be
-                    // transformed against the previous operation
+                    var isOtErr = false;
                     if (data.reason.indexOf("OT Error") !== -1) {
-                        console.error("[OT] SYNC_COMMIT server OT error");
+                        isOtErr = true;
+                        console.error("[OT] SYNC_COMMIT", data.reason);
                     }
-                    scheduleSend();
+                    latestRevNum = data.revNum;
+                    if (isOtErr || commitTrials > MAX_COMMIT_TRIALS) {
+                        revertMyPendingChanges();
+                        commitTrials = 0;
+                        if (pendingSave)
+                            doSave(pendingSave.silent);
+                    }
+                    else {
+                        scheduleSend();
+                    }
                     break;
                 case "CURSOR_UPDATE":
                     cursorLayer && cursorLayer.updateSelection(data);
@@ -724,24 +759,10 @@ define(function(require, module, exports) {
                         break;
                     }
 
-                    var rev = revisions[data.revNum];
-                    var star = data.star;
-                    var clean = !outgoing.length || latestRevNum === data.revNum;
-                    emit("saved", {
-                        star: star,
-                        revision: rev,
-                        clean: clean
-                    });
-                    if (star) {
-                        starRevNums.push(data.revNum);
-                        if (isActiveTimesliderDocument())
-                            timeslider.addSavedRevision(rev);
-                    }
-                    if (clean) {
-                        lang.delayedCall(function() {
-                            c9Document.undoManager.bookmark();
-                        }).schedule();
-                    }
+                    var revision = revisions[data.revNum];
+                    var isStar = data.star;
+                    var isClean = !outgoing.length || latestRevNum === data.revNum;
+                    flagFileSaved(revision, isStar, isClean);
                     break;
                 case "GET_REVISIONS":
                    receiveRevisions(data);
@@ -751,7 +772,25 @@ define(function(require, module, exports) {
                }
             }
 
-            function receiveRevisions (data) {
+            function flagFileSaved(revision, isStar, isClean) {
+                emit("saved", {
+                    star: isStar,
+                    revision: revision,
+                    clean: isClean
+                });
+                if (isStar) {
+                    starRevNums.push(revision.revNum);
+                    if (isActiveTimesliderDocument())
+                        timeslider.addSavedRevision(rev);
+                }
+                if (isClean) {
+                    lang.delayedCall(function() {
+                        c9Document.undoManager.bookmark();
+                    }).schedule();
+                }
+            }
+
+            function receiveRevisions(data) {
                if (data.chunkNum === 1)
                     revStream = "";
 
