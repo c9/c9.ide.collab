@@ -31,7 +31,7 @@ define(function(require, exports, module) {
         var staticPrefix = options.staticPrefix;
 
         var plugin = new Panel("Ajax.org", main.consumes, {
-            index: 10,
+            index: 45,
             width: 250,
             caption: "Collaborate",
             className: "collab",
