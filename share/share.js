@@ -50,6 +50,11 @@ define(function(require, module, exports) {
                 // "width"   : 80,
                 "command" : "sharedialog"
             });
+            
+            menus.addItemByPath("Window/~", new ui.divider(), 35, plugin);
+            menus.addItemByPath("Window/Share", new ui.item({
+                command: "sharedialog"
+            }), 36, plugin);
 
             ui.insertByIndex(layout.findParent({
                 name: "preferences"
