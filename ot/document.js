@@ -500,7 +500,7 @@ define(function(require, module, exports) {
                     addRevision(msg);
                     state = "IDLE";
                     if (pendingSave && --pendingSave.outLen === 0)
-                        doSave(pendingSave.silent);
+                        doSaveFile(pendingSave.silent);
                     scheduleSend();
                 } else {
                     addRevision(msg);
@@ -731,18 +731,15 @@ define(function(require, module, exports) {
                     handleIncomingEdit(data);
                     break;
                 case "SYNC_COMMIT":
+                    console.error("[OT] SYNC_COMMIT", data.reason, data.code);
                     state = "IDLE";
-                    var isOtErr = false;
-                    if (data.reason.indexOf("OT Error") !== -1) {
-                        isOtErr = true;
-                        console.error("[OT] SYNC_COMMIT", data.reason);
-                    }
-                    latestRevNum = data.revNum;
-                    if (isOtErr || commitTrials > MAX_COMMIT_TRIALS) {
+                    if (data.code == "VERSION_E")
+                        latestRevNum = data.revNum;
+                    if (data.code == "OT_E" || commitTrials > MAX_COMMIT_TRIALS) {
                         revertMyPendingChanges();
                         commitTrials = 0;
                         if (pendingSave)
-                            doSave(pendingSave.silent);
+                            doSaveFile(pendingSave.silent);
                     }
                     else {
                         scheduleSend();
@@ -842,7 +839,7 @@ define(function(require, module, exports) {
             function save(silent) {
                 var isUnity = isPackedUnity();
                 if (state === "IDLE" && isUnity)
-                    return doSave(silent);
+                    return doSaveFile(silent);
                 if (!isUnity)
                     addOutgoingEdit();
                 pendingSave = {silent: silent, outLen: outgoing.length};
@@ -853,7 +850,7 @@ define(function(require, module, exports) {
                 }
             }
 
-            function doSave(silent) {
+            function doSaveFile(silent) {
                 connect.send("SAVE_FILE", {
                     docId: docId,
                     silent: !!silent
