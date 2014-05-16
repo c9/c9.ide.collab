@@ -756,10 +756,8 @@ define(function(require, module, exports) {
                         break;
                     }
 
-                    var revision = revisions[data.revNum];
-                    var isStar = data.star;
                     var isClean = !outgoing.length || latestRevNum === data.revNum;
-                    flagFileSaved(revision, isStar, isClean);
+                    flagFileSaved(revisions[data.revNum], data.star, isClean);
                     break;
                 case "GET_REVISIONS":
                    receiveRevisions(data);
