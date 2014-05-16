@@ -1,7 +1,8 @@
 define(function(require, module, exports) {
     main.consumes = [
         "Plugin", "c9", "commands", "menus", "ui", "layout", "dialog.alert",
-        "MembersPanel", "info", "collab.workspace",
+        "MembersPanel", "info", "collab.workspace", "Menu", "MenuItem",
+        "clipboard"
     ];
     main.provides = ["dialog.share"];
     return main;
@@ -12,10 +13,13 @@ define(function(require, module, exports) {
         var MembersPanel = imports.MembersPanel;
         var commands = imports.commands;
         var menus = imports.menus;
+        var clipboard = imports.clipboard;
         var ui = imports.ui;
         var alert = imports["dialog.alert"].show;
         var layout = imports.layout;
         var workspace = imports["collab.workspace"];
+        var Menu = imports.Menu;
+        var MenuItem = imports.MenuItem;
 
         var markup = require("text!./share.xml");
         var css = require("text!./share.css");
@@ -92,13 +96,37 @@ define(function(require, module, exports) {
             membersParent = plugin.getElement("members");
             accessButton = plugin.getElement("access").$int;
 
-            var l = location;
+            var mnuLink = new Menu({
+                items: [
+                    new MenuItem({ caption: "Open", onclick: function(){
+                        window.open(mnuLink.meta.linkText);
+                    }}),
+                    new MenuItem({ caption: "Copy", onclick: function(){
+                        clipboard.copy(false, mnuLink.meta.linkText);
+                    }})
+                ]
+            }, plugin);
+
             var port = (options.local ? ":" + (c9.port || "8080") : "");
-            shareLinkEditor.value = l.protocol + "//" + l.host + l.pathname;
-            shareLinkApp.value = (c9.hostname 
+            if (c9.local) {
+                var l = location;
+                shareLinkEditor.innerHTML = l.protocol + "//" + l.host + l.pathname;
+            }
+            else {
+                shareLinkEditor.innerHTML = "https://ide.c9.io/" + c9.workspaceId;
+            }
+            
+            shareLinkApp.innerHTML = (c9.hostname 
                 ? "https://" + c9.hostname
                 : "http://localhost") + port;
-            shareLinkPreview.value = options.previewUrl;
+            shareLinkPreview.innerHTML = options.previewUrl;
+            
+            [shareLinkEditor, shareLinkApp, shareLinkPreview].forEach(function(div){
+                div.addEventListener("click", function(e){
+                    mnuLink.meta.linkText = this.innerHTML;
+                    mnuLink.show(e.x, e.y);
+                });
+            });
 
             accessButton.addEventListener("click", function () {
                 var className = accessButton.classList;
