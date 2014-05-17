@@ -47,7 +47,7 @@ define(function(require, module, exports) {
 
             var latestRevNum, lastSel;
             var commitTrials = 0;
-            var sendTimer, cursorTimer, delaysDisabled;
+            var sendTimer, cursorTimer;
 
             var incoming = [];
             var outgoing = [];
@@ -246,9 +246,6 @@ define(function(require, module, exports) {
              * joined to a document and thier latest updated cursor positions
              */
             function calculateDelay() {
-                if (delaysDisabled)
-                    return MIN_DELAY;
-
                 var selections = cursorLayer ? cursorLayer.selections : {};
                 var aceEditor = c9Document.editor.ace;
                 var config = aceEditor.renderer.layerConfig;
@@ -1033,10 +1030,6 @@ define(function(require, module, exports) {
                  */
                 get pendingUpdates() { return packedCs.length > 1; },
                 /**
-                 * Set to disable delays when sending changes to the server.
-                 */
-                set delaysDisabled(value) { delaysDisabled = value; },
-                /**
                  * Load/Join the document from the collab server
                  * loaded = false
                  * loading = true
@@ -1069,6 +1062,10 @@ define(function(require, module, exports) {
                  * Load the document's revisions from the collab server
                  */
                 loadRevisions: loadRevisions,
+                /**
+                 * Send any pending updates immediately.
+                 */
+                sendNow: doSend,
                 /**
                  * Update the document to its state on a certain revision number
                  * Only works if the revisions were previously loaded
