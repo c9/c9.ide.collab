@@ -307,6 +307,7 @@ define(function(require, module, exports) {
                     top.revNum = latestRevNum + 1;
                     top.selection = lastSel = CursorLayer.selectionToData(session.selection);
                     connect.send("EDIT_UPDATE", top);
+                    emit("send", { revNum: top.revNum });
                 }
                 else {
                     onCursorChange();
@@ -942,6 +943,13 @@ define(function(require, module, exports) {
                      * @param [{Number}]   e.stars        the star/saved revision numbers
                      */
                     "revisions",
+                    /**
+                     * Fires when a revision is sent to the server
+                     * @event send
+                     * @param {Object}   e
+                     * @param {Number    e.revNum    the revision sent
+                     */
+                    "send",
                 ],
 
                 /**
