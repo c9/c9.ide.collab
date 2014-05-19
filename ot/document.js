@@ -76,7 +76,7 @@ define(function(require, module, exports) {
                 if (loaded)
                     joinWithSession();
 
-                incoming.map(handleMessage);
+                incoming.forEach(handleMessage);
                 incoming = [];
 
                 session.on("change", handleUserChanges);
@@ -757,7 +757,7 @@ define(function(require, module, exports) {
                     }
 
                     var isClean = !outgoing.length || latestRevNum === data.revNum;
-                    flagFileSaved(revisions[data.revNum], data.star, isClean);
+                    data.revNum && flagFileSaved(revisions[data.revNum], data.star, isClean);
                     break;
                 case "GET_REVISIONS":
                    receiveRevisions(data);
@@ -773,15 +773,15 @@ define(function(require, module, exports) {
                     revision: revision,
                     clean: isClean
                 });
-                if (isStar) {
-                    starRevNums.push(revision.revNum);
-                    if (isActiveTimesliderDocument())
-                        timeslider.addSavedRevision(rev);
-                }
                 if (isClean) {
                     lang.delayedCall(function() {
                         c9Document.undoManager.bookmark();
                     }).schedule();
+                }
+                if (isStar && revision) {
+                    starRevNums.push(revision.revNum);
+                    if (isActiveTimesliderDocument())
+                        timeslider.addSavedRevision(rev);
                 }
             }
 
