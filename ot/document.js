@@ -371,7 +371,7 @@ define(function(require, module, exports) {
                 outgoing = [];
                 incoming = [];
                 if (pendingSave) {
-                    emit("saved", {err: "Couldn't save: document rejoined - please try again now"});
+                    emit("saved", {err: "Couldn't save: document rejoined - please try again"});
                     pendingSave = null;
                 }
 
