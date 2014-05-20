@@ -76,7 +76,7 @@ define(function(require, module, exports) {
                 if (loaded)
                     joinWithSession();
 
-                incoming.map(handleMessage);
+                incoming.forEach(handleMessage);
                 incoming = [];
 
                 session.on("change", handleUserChanges);
@@ -372,7 +372,7 @@ define(function(require, module, exports) {
                 outgoing = [];
                 incoming = [];
                 if (pendingSave) {
-                    emit("saved", {err: "Couldn't save: document rejoined - please try again now"});
+                    emit("saved", {err: "Couldn't save: document rejoined - please try again"});
                     pendingSave = null;
                 }
 
@@ -526,8 +526,10 @@ define(function(require, module, exports) {
                     sel.anchor.$insertRight = sel.lead.$insertRight = false;
                     // reset the right cursor/selection behaviour
                     cursorLayer.setInsertRight(msg.clientId, true);
-                    if (msg.sync)
+                    if (msg.sync) {
                         flagFileSaved(msg, true, true);
+                        clearCs(session.getValue().length);
+                    }
                 }
                 latestRevNum = msg.revNum;
                 if (msg.selection)
@@ -718,7 +720,6 @@ define(function(require, module, exports) {
                     applyEdit({op: operations.inverse(myEdit.op), userId: userId}, session.doc);
                 });
                 ignoreChanges = false;
-                clearCs(session.getValue().length);
             }
 
             // @see docs in the API section below
@@ -738,6 +739,7 @@ define(function(require, module, exports) {
                         latestRevNum = data.revNum;
                     if (data.code == "OT_E" || commitTrials > MAX_COMMIT_TRIALS) {
                         revertMyPendingChanges();
+                        clearCs(session.getValue().length);
                         commitTrials = 0;
                         if (pendingSave)
                             doSaveFile(pendingSave.silent);
@@ -758,7 +760,7 @@ define(function(require, module, exports) {
                     }
 
                     var isClean = !outgoing.length || latestRevNum === data.revNum;
-                    flagFileSaved(revisions[data.revNum], data.star, isClean);
+                    data.revNum && flagFileSaved(revisions[data.revNum], data.star, isClean);
                     break;
                 case "GET_REVISIONS":
                    receiveRevisions(data);
@@ -774,15 +776,15 @@ define(function(require, module, exports) {
                     revision: revision,
                     clean: isClean
                 });
-                if (isStar) {
-                    starRevNums.push(revision.revNum);
-                    if (isActiveTimesliderDocument())
-                        timeslider.addSavedRevision(rev);
-                }
                 if (isClean) {
                     lang.delayedCall(function() {
                         c9Document.undoManager.bookmark();
                     }).schedule();
+                }
+                if (isStar && revision) {
+                    starRevNums.push(revision.revNum);
+                    if (isActiveTimesliderDocument())
+                        timeslider.addSavedRevision(rev);
                 }
             }
 
