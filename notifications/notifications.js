@@ -124,11 +124,9 @@ define(function(require, exports, module) {
         }
 
         function postLoadedNotifications() {
-            if (!bubble) {
-                if (!cachedNotifications.length) 
-                    return;
-                else // Make sure collab panel is enabled
-                    panels.enablePanel("collab");
+            if (!bubble && cachedNotifications.length) {
+                // Make sure collab panel is enabled
+                panels.enablePanel("collab");
                 
                 // Notification Bubble
                 panelButton = document.querySelector(".panelsbutton.collab");
@@ -141,14 +139,17 @@ define(function(require, exports, module) {
                     notificationsDataProvider.emptyMessage = "No pending notifications";
                     frame.setHeight(50);
                 }
-                bubble.style.display = "none";
+                if (bubble) 
+                    bubble.style.display = "none";
             }
             else {
                 if (drawn)
                     frame.setHeight(Math.min(cachedNotifications.length, 3) * 50 + 22);
-                bubble.innerHTML = cachedNotifications.length;
-                bubble.style.display = "block";
-                bubble.className = "newnotifs size" + String(cachedNotifications.length).length;
+                if (bubble) {
+                    bubble.innerHTML = cachedNotifications.length;
+                    bubble.style.display = "block";
+                    bubble.className = "newnotifs size" + String(cachedNotifications.length).length;
+                }
             }
             
             if (!drawn)
