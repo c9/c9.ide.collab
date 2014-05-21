@@ -2,9 +2,7 @@
 define(function(require, exports, module) {
 "use strict";
 
-    main.consumes = [
-        "CollabPanel", "ui", "api", "info", "dialog.alert", "c9"
-    ];
+    main.consumes = ["CollabPanel", "ui", "api", "dialog.alert", "c9", "panels"];
     main.provides = ["notifications"];
     return main;
 
@@ -13,6 +11,7 @@ define(function(require, exports, module) {
         var c9 = imports.c9;
         var ui = imports.ui;
         var api = imports.api;
+        var panels = imports.panels;
         var alert = imports["dialog.alert"].show;
 
         var css = require("text!./notifications.css");
@@ -126,6 +125,11 @@ define(function(require, exports, module) {
 
         function postLoadedNotifications() {
             if (!bubble) {
+                if (!cachedNotifications.length) 
+                    return;
+                else // Make sure collab panel is enabled
+                    panels.enablePanel("collab");
+                
                 // Notification Bubble
                 panelButton = document.querySelector(".panelsbutton.collab");
                 bubble = panelButton.appendChild(document.createElement("div"));
