@@ -49,6 +49,9 @@ define(function(require, exports, module) {
         function popup(message) {
             draw();
             
+            if (ntNotifications.showing > 4)
+                return;
+            
             if (menus.minimized)
                 ntNotifications.setAttribute("start-padding", 25);
             else
