@@ -759,7 +759,8 @@ define(function(require, module, exports) {
                     }
 
                     var isClean = !outgoing.length || latestRevNum === data.revNum;
-                    data.revNum && flagFileSaved(revisions[data.revNum], data.star, isClean);
+                    var rev = revisions[data.revNum] || {revNum: data.revNum, updated_at: Date.now()};
+                    flagFileSaved(rev, data.star, isClean);
                     break;
                 case "GET_REVISIONS":
                    receiveRevisions(data);
@@ -770,20 +771,16 @@ define(function(require, module, exports) {
             }
 
             function flagFileSaved(revision, isStar, isClean) {
-                emit("saved", {
-                    star: isStar,
-                    revision: revision,
-                    clean: isClean
-                });
+                emit("saved", {});
                 if (isClean) {
                     lang.delayedCall(function() {
                         c9Document.undoManager.bookmark();
                     }).schedule();
                 }
-                if (isStar && revision) {
+                if (isStar) {
                     starRevNums.push(revision.revNum);
                     if (isActiveTimesliderDocument())
-                        timeslider.addSavedRevision(rev);
+                        timeslider.addSavedRevision(revision);
                 }
             }
 
