@@ -108,7 +108,7 @@ define(function(require, module, exports) {
             }, plugin);
 
             var port = (options.local ? ":" + (c9.port || "8080") : "");
-            if (c9.local) {
+            if (!options.local) {
                 var l = location;
                 shareLinkEditor.innerHTML = l.protocol + "//" + l.host + l.pathname;
             }
