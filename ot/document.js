@@ -355,8 +355,6 @@ define(function(require, module, exports) {
 
                 doc = JSON.parse(docStream);
                 docStream = null;
-                if (typeof doc.contents !== "string" || !doc.wasString)
-                    console.log("COLLAB-DEBUG: was expecting a string!!")
 
                 if (docId !== data.docId)
                     console.error("docId mismatch", docId, data.docId);
