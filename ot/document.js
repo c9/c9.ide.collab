@@ -710,6 +710,8 @@ define(function(require, module, exports) {
             }
 
             function revertMyPendingChanges(userId) {
+                if (outgoing.length === 0)
+                    return;
                 console.warn("[OT] Reverting my changes to recover sync or inconsistent state");
                 userId = userId || workspace.myUserId;
                 if (!isPackedUnity())
