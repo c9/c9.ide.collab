@@ -14,11 +14,11 @@
         <blockquote class="links">
           <label>Links to share</label>
           <label class="subhead">Editor:</label>
-          <input id="shareLinkEditor" type="text" readonly="true" class="link"></input>
+          <div id="shareLinkEditor" type="text" readonly="true" class="link"></div>
           <label class="subhead">Running Application:</label>
-          <input id="shareLinkApp" type="text" readonly="true" class="link"></input>
+          <div id="shareLinkApp" type="text" readonly="true" class="link"></div>
           <label class="subhead">Preview:</label>
-          <input id="shareLinkPreview" type="text" readonly="true" class="link"></input>
+          <div id="shareLinkPreview" type="text" readonly="true" class="link"></div>
           <a:checkbox id="cbPreview" skin="checkbox_black" style='margin-top:6px; margin-left:130px; width: 200px;' checked="true">Make Preview Publicly Available</a:checkbox>
         </blockquote>
         

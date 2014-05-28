@@ -2,9 +2,7 @@
 define(function(require, exports, module) {
 "use strict";
 
-    main.consumes = [
-        "CollabPanel", "ui", "api", "info", "dialog.alert", "c9"
-    ];
+    main.consumes = ["CollabPanel", "ui", "api", "dialog.alert", "c9", "panels"];
     main.provides = ["notifications"];
     return main;
 
@@ -13,6 +11,7 @@ define(function(require, exports, module) {
         var c9 = imports.c9;
         var ui = imports.ui;
         var api = imports.api;
+        var panels = imports.panels;
         var alert = imports["dialog.alert"].show;
 
         var css = require("text!./notifications.css");
@@ -125,7 +124,10 @@ define(function(require, exports, module) {
         }
 
         function postLoadedNotifications() {
-            if (!bubble) {
+            if (!bubble && cachedNotifications.length) {
+                // Make sure collab panel is enabled
+                panels.enablePanel("collab");
+                
                 // Notification Bubble
                 panelButton = document.querySelector(".panelsbutton.collab");
                 bubble = panelButton.appendChild(document.createElement("div"));
@@ -137,14 +139,17 @@ define(function(require, exports, module) {
                     notificationsDataProvider.emptyMessage = "No pending notifications";
                     frame.setHeight(50);
                 }
-                bubble.style.display = "none";
+                if (bubble) 
+                    bubble.style.display = "none";
             }
             else {
                 if (drawn)
                     frame.setHeight(Math.min(cachedNotifications.length, 3) * 50 + 22);
-                bubble.innerHTML = cachedNotifications.length;
-                bubble.style.display = "block";
-                bubble.className = "newnotifs size" + String(cachedNotifications.length).length;
+                if (bubble) {
+                    bubble.innerHTML = cachedNotifications.length;
+                    bubble.style.display = "block";
+                    bubble.className = "newnotifs size" + String(cachedNotifications.length).length;
+                }
             }
             
             if (!drawn)
