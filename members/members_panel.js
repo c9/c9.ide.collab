@@ -4,7 +4,7 @@ define(function(require, exports, module) {
     main.consumes = [
         "Plugin", "ui", "apf", "Menu", "MenuItem",
         "collab.workspace", "info", "dialog.alert", "dialog.confirm",
-        "access_control"
+        "accessControl"
     ];
     main.provides = ["MembersPanel"];
     return main;
@@ -18,7 +18,7 @@ define(function(require, exports, module) {
         var info = imports.info;
         var alert = imports["dialog.alert"].show;
         var confirm = imports["dialog.confirm"].show;
-        var accessControl = imports.access_control;
+        var accessControl = imports.accessControl;
 
         var Tree = require("ace_tree/tree");
         var TreeData = require("./membersdp");
