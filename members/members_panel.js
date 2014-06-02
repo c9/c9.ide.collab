@@ -195,6 +195,18 @@ define(function(require, exports, module) {
                 var myRow = {};
 
                 var cachedMembers = workspace.members;
+                
+                if (!cachedMembers.length) { // We're visiting a public workspace
+                    cachedMembers = [{
+                        acl: "r",
+                        name: "You",
+                        pending: false,
+                        role: "v",
+                        uid: me.id,
+                        email: me.email
+                    }];
+                }
+                
                 cachedMembers.forEach(function (m) {
                     m.isAdmin = m.role == ROLE_ADMIN;
                     m.color = m.color || workspace.getUserColor(m.uid);
@@ -219,14 +231,23 @@ define(function(require, exports, module) {
                 members.rw.sort(memberCompartor);
                 myRow.name = "You";
 
-                if (!members.r.length)
+                if (!members.rw.length) {
+                    membersDataProvider.setRoot([{
+                        name: "Read",
+                        items: members.r,
+                        noSelect: true,
+                        className: "heading"
+                    }]);
+                }
+                else if (!members.r.length) {
                     membersDataProvider.setRoot([{
                         name: "Read+Write",
                         items: members.rw,
                         noSelect: true,
                         className: "heading"
                     }]);
-                else
+                }
+                else {
                     membersDataProvider.setRoot([
                         {
                             name: "Read+Write",
@@ -241,6 +262,7 @@ define(function(require, exports, module) {
                             className: "heading"
                         }
                     ]);
+                }
                 
                 update();
             }
