@@ -4,7 +4,7 @@ define(function(require, exports, module) {
     main.consumes = [
         "Plugin", "ui", "apf", "Menu", "MenuItem",
         "collab.workspace", "info", "dialog.alert", "dialog.confirm",
-        "accessControl"
+        "accessControl", "c9"
     ];
     main.provides = ["MembersPanel"];
     return main;
@@ -19,6 +19,7 @@ define(function(require, exports, module) {
         var alert = imports["dialog.alert"].show;
         var confirm = imports["dialog.confirm"].show;
         var accessControl = imports.accessControl;
+        var c9 = imports.c9;
 
         var Tree = require("ace_tree/tree");
         var TreeData = require("./membersdp");
@@ -290,7 +291,8 @@ define(function(require, exports, module) {
                 else
                     parent.setAttribute("contextmenu", mnuCtxTreePublicEl);
                     
-                if (!askedAboutAccess && !workspace.accessInfo.member && !workspace.accessInfo.pending) {
+                if (!askedAboutAccess && !c9.standalone
+                    && !workspace.accessInfo.member&& !workspace.accessInfo.pending) {
                     accessControl.showRequestAccessDialog();
                     askedAboutAccess = true;
                 }
