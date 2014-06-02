@@ -60,7 +60,7 @@ define(function(require, exports, module) {
         var cachedInfo;
         function loadMembers(callback) {
             if (!options.hosted || cachedMembers) {
-                return setCachedMembers(cachedMembers || [
+                return done(cachedMembers || [
                     { name: "Mostafa Eweda", uid: -1, acl: "rw", role: "a", email: "mostafa@c9.io" },
                     { name: "Lennart Kats", uid: 5, acl: "r", color: "yellow", onlineStatus: "online", email: "lennart@c9.io" },
                     { name: "Ruben Daniels", uid: 2, acl: "rw", color: "blue", onlineStatus: "idle", email: "ruben@ajax.org" },
@@ -69,13 +69,16 @@ define(function(require, exports, module) {
             }
             api.collab.get("access_info", function (err, info) {
                 if (err) return callback(err);
+                if (!info.member)
+                    return done([], info);
+                    
                 api.collab.get("members/list?pending=0", function (err, data) {
                     if (err && err.code !== 403) return callback(err);
-                    setCachedMembers(!err && data || [], info);
+                    done(!err && data || [], info);
                 });
             });
 
-            function setCachedMembers(members, info) {
+            function done(members, info) {
                 cachedMembers = members;
                 cachedInfo = info;
                 callback();
