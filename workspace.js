@@ -67,7 +67,7 @@ define(function(require, exports, module) {
                 ]);
             }
             api.collab.get("members/list?pending=0", function (err, data) {
-                if (err) return callback(err);
+                if (err && err.code !== 403) return callback(err);
                 setCachedMembers(data);
             });
 
