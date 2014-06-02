@@ -24,6 +24,7 @@ define(function(require, exports, module) {
         var TreeData = require("./membersdp");
         var mnuCtxTreeEl;
         var mnuCtxTreePublicEl;
+        var askedAboutAccess = false;
 
         var ROLE_ADMIN = "a";
 
@@ -288,6 +289,11 @@ define(function(require, exports, module) {
                     parent.setAttribute("contextmenu", mnuCtxTreeEl);
                 else
                     parent.setAttribute("contextmenu", mnuCtxTreePublicEl);
+                    
+                if (!askedAboutAccess && !workspace.accessInfo.member && !workspace.accessInfo.pending) {
+                    accessControl.showRequestAccessDialog();
+                    askedAboutAccess = true;
+                }
                 
                 update();
             }
