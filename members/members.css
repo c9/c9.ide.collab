@@ -112,28 +112,28 @@
     pointer-events: none;
 }
 
-.access_control.r .readbutton, .access_control.rw .writebutton {
+.access_control.rw .readbutton, .access_control.r .writebutton {
     width: 24px;
     height : 16px;
     border-radius: 3px;
-    box-shadow: 0 1px rgba(255,255,255,0.3) inset, 0 0 2px rgba(0, 0, 0, 1);
+    box-shadow: 0 1px rgba(255,255,255,0.2) inset, 0 0 2px rgba(0, 0, 0, 1);
     .gradient(~"linear-gradient(top, #5F5F5F 0%, #333333 100%)");
 
-    text-shadow: 0 1px rgba(0,0,0,0.5);
-    color : #f1f1f1;
+    /*text-shadow: 0 1px rgba(0,0,0,0.5);*/
+    color : transparent;
     display : inline-block;
     text-align: center;
     box-sizing: border-box;
     padding-top : 2px;
     vertical-align : top;
 }
-.memberstree.ace_tree_focus .selected .access_control.r .readbutton,
-.memberstree.ace_tree_focus .selected .access_control.rw .writebutton{
+.memberstree.ace_tree_focus .selected .access_control.rw .readbutton,
+.memberstree.ace_tree_focus .selected .access_control.r .writebutton{
     .gradient(~"linear-gradient(top, #80883e 0%, #677018 100%)");
 }
 
-.access_control.r .writebutton,
-.access_control.rw .readbutton,
+.access_control.rw .writebutton,
+.access_control.r .readbutton,
 .access_control.disabled .readbutton,
 .access_control.disabled .writebutton {
     width: 24px;
@@ -145,8 +145,8 @@
     vertical-align : top;
     color : #B3B3B3;
 }
-.memberstree.ace_tree_focus .selected .access_control.r .writebutton,
-.memberstree.ace_tree_focus .selected .access_control.rw .readbutton,
+.memberstree.ace_tree_focus .selected .access_control.rw .writebutton,
+.memberstree.ace_tree_focus .selected .access_control.r .readbutton,
 .memberstree.ace_tree_focus .selected .access_control.disabled .readbutton,
 .memberstree.ace_tree_focus .selected .access_control.disabled .writebutton {
     color : #BDCE63;
