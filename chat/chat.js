@@ -73,14 +73,14 @@ define(function(require, exports, module) {
             plugin.addElement(chatInput);
 
             function onWorkspaceSync() {
-                if (!/r/.test(workspace.fs))
+                if (!/r/.test(workspace.fs) && workspace.accessInfo.private)
                     return console.warn("Don't have read access - You can't use chat");
                 var chatHistory = workspace.chatHistory;
-                chatHistory.forEach(function(msg) {
+                (chatHistory || []).forEach(function(msg) {
                     addMessage(msg, msg.increment);
                 });
                 scrollDown();
-                chatCounter.innerHTML = chatHistory.length;
+                chatCounter.innerHTML = (chatHistory || []).length;
             }
 
             chatInput.ace.setOption("wrap", "free");

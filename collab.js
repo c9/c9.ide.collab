@@ -154,6 +154,8 @@ define(function(require, exports, module) {
                     break;
                 case "USER_JOIN":
                     user = data.user;
+                    if (!user)
+                        break;
                     workspace.joinClient(user);
                     bubbleNotification("came online", user);
                     break;

@@ -57,22 +57,30 @@ define(function(require, exports, module) {
         }
 
         var cachedMembers;
+        var cachedInfo;
         function loadMembers(callback) {
             if (!options.hosted || cachedMembers) {
-                return setCachedMembers(cachedMembers || [
+                return done(cachedMembers || [
                     { name: "Mostafa Eweda", uid: -1, acl: "rw", role: "a", email: "mostafa@c9.io" },
                     { name: "Lennart Kats", uid: 5, acl: "r", color: "yellow", onlineStatus: "online", email: "lennart@c9.io" },
                     { name: "Ruben Daniels", uid: 2, acl: "rw", color: "blue", onlineStatus: "idle", email: "ruben@ajax.org" },
                     { name: "Bas de Wachter", uid: 8, acl: "rw", color: "purple", email: "bas@c9.io" }
                 ]);
             }
-            api.collab.get("members/list?pending=0", function (err, data) {
+            api.collab.get("access_info", function (err, info) {
                 if (err) return callback(err);
-                setCachedMembers(data);
+                if (!info.member)
+                    return done([], info);
+                    
+                api.collab.get("members/list?pending=0", function (err, data) {
+                    if (err && err.code !== 403) return callback(err);
+                    done(!err && data || [], info);
+                });
             });
 
-            function setCachedMembers(members) {
+            function done(members, info) {
                 cachedMembers = members;
+                cachedInfo = info;
                 callback();
                 emit("sync");
             }
@@ -247,6 +255,11 @@ define(function(require, exports, module) {
              * @property [{Object}] members
              */
             get members() { return cachedMembers || []; },
+            /**
+             * Gets the cached previously-loaded acccess information
+             * @property {Object} info
+             */
+            get accessInfo() { return cachedInfo || {}; },
             /**
              * Gets the chat history being a list of messages (max. the most recent 100 messages)
              */

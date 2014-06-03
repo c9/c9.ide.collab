@@ -3,7 +3,8 @@ define(function(require, exports, module) {
 
     main.consumes = [
         "Plugin", "ui", "apf", "Menu", "MenuItem",
-        "collab.workspace", "info", "dialog.alert", "dialog.confirm"
+        "collab.workspace", "info", "dialog.alert", "dialog.confirm",
+        "accessControl", "c9"
     ];
     main.provides = ["MembersPanel"];
     return main;
@@ -17,9 +18,12 @@ define(function(require, exports, module) {
         var info = imports.info;
         var alert = imports["dialog.alert"].show;
         var confirm = imports["dialog.confirm"].show;
+        var accessControl = imports.accessControl;
 
         var Tree = require("ace_tree/tree");
         var TreeData = require("./membersdp");
+        var mnuCtxTreeEl;
+        var mnuCtxTreePublicEl;
 
         var ROLE_ADMIN = "a";
 
@@ -103,7 +107,19 @@ define(function(require, exports, module) {
                     ]
                 }, plugin);
 
-                var mnuCtxTreeEl = mnuCtxTree.aml;
+                var mnuCtxTreePublic = new Menu({
+                    id: "mnuMembers",
+                    items: [
+                        new MenuItem({
+                            caption: "Request Read+Write Access",
+                            match: "r",
+                            onclick: accessControl.requestAccess
+                        })
+                    ]
+                }, plugin);
+
+                mnuCtxTreeEl = mnuCtxTree.aml;
+                mnuCtxTreePublicEl = mnuCtxTreePublic.aml;
 
                 mnuCtxTree.on("show", function() {
                     var node = getSelectedMember() || {};
@@ -117,7 +133,11 @@ define(function(require, exports, module) {
                         item.setAttribute("disabled", disabled);
                     });
                 });
-                parent.setAttribute("contextmenu", mnuCtxTreeEl);
+                if (workspace.accessInfo.member)
+                    parent.setAttribute("contextmenu", mnuCtxTreeEl);
+                else
+                    parent.setAttribute("contextmenu", mnuCtxTreePublicEl);
+                
                 window.addEventListener('resize', resize, true);
                 
                 parent.on("afterstatechange", function () {
@@ -195,6 +215,18 @@ define(function(require, exports, module) {
                 var myRow = {};
 
                 var cachedMembers = workspace.members;
+                
+                if (!cachedMembers.length) { // We're visiting a public workspace
+                    cachedMembers = [{
+                        acl: "r",
+                        name: "You",
+                        pending: false,
+                        role: "v",
+                        uid: me.id,
+                        email: me.email
+                    }];
+                }
+                
                 cachedMembers.forEach(function (m) {
                     m.isAdmin = m.role == ROLE_ADMIN;
                     m.color = m.color || workspace.getUserColor(m.uid);
@@ -219,14 +251,23 @@ define(function(require, exports, module) {
                 members.rw.sort(memberCompartor);
                 myRow.name = "You";
 
-                if (!members.r.length)
+                if (!members.rw.length) {
+                    membersDataProvider.setRoot([{
+                        name: "Read",
+                        items: members.r,
+                        noSelect: true,
+                        className: "heading"
+                    }]);
+                }
+                else if (!members.r.length) {
                     membersDataProvider.setRoot([{
                         name: "Read+Write",
                         items: members.rw,
                         noSelect: true,
                         className: "heading"
                     }]);
-                else
+                }
+                else {
                     membersDataProvider.setRoot([
                         {
                             name: "Read+Write",
@@ -241,6 +282,12 @@ define(function(require, exports, module) {
                             className: "heading"
                         }
                     ]);
+                }
+                
+                if (workspace.accessInfo.member)
+                    parent.setAttribute("contextmenu", mnuCtxTreeEl);
+                else
+                    parent.setAttribute("contextmenu", mnuCtxTreePublicEl);
                 
                 update();
             }
