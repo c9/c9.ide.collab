@@ -116,7 +116,7 @@
     width: 24px;
     height : 16px;
     border-radius: 3px;
-    box-shadow: 0 1px rgba(255,255,255,0.3) inset, 0 0 2px rgba(0, 0, 0, 1);
+    box-shadow: 0 1px rgba(255,255,255,0.2) inset, 0 0 2px rgba(0, 0, 0, 1);
     .gradient(~"linear-gradient(top, #5F5F5F 0%, #333333 100%)");
 
     /*text-shadow: 0 1px rgba(0,0,0,0.5);*/
