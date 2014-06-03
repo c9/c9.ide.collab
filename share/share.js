@@ -46,17 +46,17 @@ define(function(require, module, exports) {
                 exec: show
             }, plugin);
 
-            var btn =  new ui.button({
+            var btn = new ui.button({
                 "skin"    : "c9-menu-btn",
                 "caption" : "Share",
                 // "class"   : "share",
-                "tooltip" : "Share Workspace",
+                "tooltip" : "Share this workspace",
                 // "width"   : 80,
                 "command" : "sharedialog"
             });
             
             menus.addItemByPath("Window/~", new ui.divider(), 35, plugin);
-            menus.addItemByPath("Window/Share", new ui.item({
+            menus.addItemByPath("Window/Share...", new ui.item({
                 command: "sharedialog"
             }), 36, plugin);
 

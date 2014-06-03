@@ -19,13 +19,11 @@ define(function(require, exports, module) {
         var alert = imports["dialog.alert"].show;
         var confirm = imports["dialog.confirm"].show;
         var accessControl = imports.accessControl;
-        var c9 = imports.c9;
 
         var Tree = require("ace_tree/tree");
         var TreeData = require("./membersdp");
         var mnuCtxTreeEl;
         var mnuCtxTreePublicEl;
-        var askedAboutAccess = false;
 
         var ROLE_ADMIN = "a";
 
@@ -290,12 +288,6 @@ define(function(require, exports, module) {
                     parent.setAttribute("contextmenu", mnuCtxTreeEl);
                 else
                     parent.setAttribute("contextmenu", mnuCtxTreePublicEl);
-                    
-                if (!askedAboutAccess && !c9.standalone
-                    && !workspace.accessInfo.member&& !workspace.accessInfo.pending) {
-                    accessControl.showRequestAccessDialog();
-                    askedAboutAccess = true;
-                }
                 
                 update();
             }
