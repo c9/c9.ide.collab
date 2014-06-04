@@ -711,12 +711,12 @@ define(function(require, module, exports) {
             }
 
             function revertMyPendingChanges(userId) {
-                if (outgoing.length === 0)
+                if (!isPackedUnity())
+                    outgoing.push({op: packedCs});
+                if (!outgoing.length)
                     return;
                 console.warn("[OT] Reverting my changes to recover sync or inconsistent state");
                 userId = userId || workspace.myUserId;
-                if (!isPackedUnity())
-                    outgoing.push({op: packedCs});
                 ignoreChanges = true;
                 outgoing.splice(0, outgoing.length).forEach(function (myEdit) {
                     applyEdit({op: operations.inverse(myEdit.op), userId: userId}, session.doc);
