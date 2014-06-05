@@ -624,7 +624,7 @@ define(function(require, exports, module) {
                 aceEditor.setReadOnly(!!c9.readonly);
                 aceEditor.renderer.onResize(true);
                 
-                var doc = activeDocument.original.meta
+                var doc = activeDocument.original;
                 delete doc.meta.$storedState0;
                 delete doc.meta.$storedState1;
                 doc.off("getState", useStoredState);
