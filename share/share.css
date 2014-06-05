@@ -6,8 +6,9 @@
     font-family : Arial;
     font-size : 12px;
     color: #f1f1f1;
-    margin : 5px 5px 5px 0;
+    margin : 0 5px 0 0;
     display: block;
+    vertical-align: bottom;
 }
 
 .share .members{
@@ -42,7 +43,7 @@
 .share .access_control.standalone{
     position: absolute;
     right: 100px;
-    top: 68px;
+    top: 55px;
 }
 
 .share .link{
@@ -57,6 +58,8 @@
     cursor: text;
     display: inline-block;
     cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
 }
 .share .link:hover{
     text-decoration: underline;
