@@ -1,6 +1,6 @@
 define(function(require, exports, module) {
     main.consumes = [
-        "Plugin", "ui", "layout", "menus"
+        "Plugin", "ui", "layout", "menus", "preferences", "settings"
     ];
     main.provides = ["notification.bubble"];
     return main;
@@ -10,6 +10,8 @@ define(function(require, exports, module) {
         var ui = imports.ui;
         var menus = imports.menus;
         var layout = imports.layout;
+        var settings = imports.settings;
+        var prefs = imports.preferences;
 
         /***** Initialization *****/
 
@@ -25,6 +27,22 @@ define(function(require, exports, module) {
         function load() {
             if (loaded) return false;
             loaded = true;
+            
+            settings.on("read", function(){
+                settings.setDefaults("user/collab", [["showbubbles", "true"]]);
+            })
+            
+            prefs.add({
+                "General" : {
+                    "Collaboration" : {
+                        "Show Notification Bubbles" : {
+                            type: "checkbox",
+                            position: 1000,
+                            path: "user/collab/@showbubbles"
+                        }
+                    }
+                }
+            }, plugin);
         }
         
         var drawn = false;
@@ -47,6 +65,9 @@ define(function(require, exports, module) {
         /***** Methods *****/
 
         function popup(message) {
+            if (!settings.getBool("user/collab/@showbubbles"))
+                return;
+            
             draw();
             
             if (ntNotifications.showing > 4)
