@@ -21,7 +21,7 @@ define(function(require, exports, module) {
 
         var plugin = new Plugin("Ajax.org", main.consumes);
         var emit = plugin.getEmitter();
-        var localSeverFile = options.localSeverFile;
+        var localServerFile = options.localServerFile;
 
         var clientId;
 
@@ -100,7 +100,7 @@ define(function(require, exports, module) {
                 return plugin.once("available", callback);
             extended = true;
             
-            if (localSeverFile)
+            if (localServerFile)
                 return extend();
             
             require(["text!./server/collab-server.js"], function(code) {
