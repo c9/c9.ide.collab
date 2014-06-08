@@ -855,6 +855,7 @@ define(function(require, module, exports) {
             }
 
             function doSaveFile(silent) {
+                clearTimeout(saveTimer);
                 saveTimer = setTimeout(function() {
                     saveTimer = pendingSave = null;
                     emit("saved", {err: "File save timeout", code: "ETIMEOUT"});
