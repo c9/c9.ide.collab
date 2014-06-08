@@ -31,6 +31,7 @@ define(function(require, module, exports) {
         // happens when I'm editing alone
         var MAX_DELAY = options.maxDelay;
         var MAX_COMMIT_TRIALS = 3;
+        var SAVE_FILE_TIMEOUT = 10000;
 
         function OTDocument(docId, c9Document) {
 
@@ -47,7 +48,7 @@ define(function(require, module, exports) {
 
             var latestRevNum, lastSel;
             var commitTrials = 0;
-            var sendTimer, cursorTimer;
+            var sendTimer, cursorTimer, saveTimer;
 
             var incoming = [];
             var outgoing = [];
@@ -372,7 +373,7 @@ define(function(require, module, exports) {
                 outgoing = [];
                 incoming = [];
                 if (pendingSave) {
-                    emit("saved", {err: "Couldn't save: document rejoined - please try again"});
+                    emit("saved", {err: "Couldn't save file, document rejoined - please try again", code: "EREJOINED"});
                     pendingSave = null;
                 }
 
@@ -754,6 +755,9 @@ define(function(require, module, exports) {
                     cursorLayer && cursorLayer.updateSelection(data);
                     break;
                 case "FILE_SAVED":
+                    clearTimeout(saveTimer);
+                    saveTimer = null;
+
                     var err = data.err;
                     if (err) {
                         console.error("[OT] Failed saving file!", err, docId);
@@ -851,6 +855,10 @@ define(function(require, module, exports) {
             }
 
             function doSaveFile(silent) {
+                saveTimer = setTimeout(function() {
+                    saveTimer = pendingSave = null;
+                    emit("saved", {err: "File save timeout", code: "ETIMEOUT"});
+                }, SAVE_FILE_TIMEOUT);
                 connect.send("SAVE_FILE", {
                     docId: docId,
                     silent: !!silent

@@ -247,9 +247,14 @@ define(function(require, exports, module) {
             delete documents[docId];
         }
 
-        function saveDocument (docId, callback) {
+        function saveDocument(docId, fallbackFn, fallbackArgs, callback) {
             var doc = documents[docId];
             doc.once("saved", function(e) {
+                if (e.code == "ETIMEOUT" && fallbackFn) {
+                    // The vfs socket is probably dead ot stale
+                    console.warn("[OT] collab timed out trying to save file", docId, "- you probably need to refresh your IDE");
+                    return fallbackFn.apply(null, fallbackArgs);
+                }
                 callback(e.err);
             });
             doc.save();
@@ -330,7 +335,7 @@ define(function(require, exports, module) {
             var args = e.args.slice();
             var progress = args.pop();
             var callback = args.pop();
-            saveDocument(path, callback);
+            saveDocument(path, e.fn, e.args, callback);
             return false;
         }
 
