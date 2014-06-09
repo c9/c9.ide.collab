@@ -2,7 +2,7 @@ define(function(require, module, exports) {
     main.consumes = [
         "Plugin", "c9", "commands", "menus", "ui", "layout", "dialog.alert",
         "MembersPanel", "info", "collab.workspace", "Menu", "MenuItem",
-        "clipboard"
+        "clipboard", "settings"
     ];
     main.provides = ["dialog.share"];
     return main;
@@ -12,6 +12,7 @@ define(function(require, module, exports) {
         var c9 = imports.c9;
         var MembersPanel = imports.MembersPanel;
         var commands = imports.commands;
+        var settings = imports.settings;
         var menus = imports.menus;
         var clipboard = imports.clipboard;
         var ui = imports.ui;
@@ -29,7 +30,6 @@ define(function(require, module, exports) {
 
         var dialog, btnInvite, btnDone, txtUsername, membersParent, accessButton;
         var membersPanel, shareLinkEditor, shareLinkApp, shareLinkPreview;
-        var cbPreview;
 
         var loaded = false;
         function load() {
@@ -63,6 +63,13 @@ define(function(require, module, exports) {
             ui.insertByIndex(layout.findParent({
                 name: "preferences"
             }), btn, 600, plugin);
+            
+            settings.on("read", function(){
+                settings.setDefaults("project/share", [
+                    ["preview", false],
+                    ["app", false]
+                ]);
+            });
         }
 
         var drawn = false;
@@ -88,7 +95,6 @@ define(function(require, module, exports) {
             dialog = plugin.getElement("window");
             btnInvite = plugin.getElement("btnInvite");
             btnDone = plugin.getElement("btnDone");
-            cbPreview = plugin.getElement("cbPreview");
             txtUsername = plugin.getElement("txtUsername");
             shareLinkEditor = plugin.getElement("shareLinkEditor").$int;
             shareLinkApp = plugin.getElement("shareLinkApp").$int;
@@ -135,10 +141,6 @@ define(function(require, module, exports) {
                 className.add(actionArr[1]);
             });
             
-            cbPreview.on("afterchange", function(){
-                // @fjakobs, @lennartcl, please add your call to the server here
-            })
-
             btnDone.on("click", hide);
             btnInvite.on("click", inviteUser);
 

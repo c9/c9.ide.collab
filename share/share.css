@@ -50,7 +50,7 @@
     background : rgba(255,255,255,0.05);
     padding : 3px 3px 3px 4px;
     border-radius: 3px;
-    width: 231px;
+    width: 221px;
     margin-bottom: 4px;
     border: 1px solid rgb(27, 27, 27);
     box-shadow: 0 1px rgba(255, 255, 255, 0.09);
@@ -67,6 +67,6 @@
 
 .share .subhead {
     display: inline-block;
-    width: 120px;
+    width: 70px;
     color: gray;
 }
