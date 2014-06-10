@@ -373,7 +373,7 @@ define(function(require, module, exports) {
                 outgoing = [];
                 incoming = [];
                 if (pendingSave) {
-                    emit("saved", {err: "Couldn't save file, document rejoined - please try again", code: "EREJOINED"});
+                    emit("saved", {err: "Document `" + docId + "` updated to latest state on disk, please try saving again", code: "EREJOINED"});
                     pendingSave = null;
                 }
 
