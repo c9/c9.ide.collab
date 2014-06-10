@@ -563,7 +563,7 @@ define(function(require, module, exports) {
                     docId: docId,
                     selection: lastSel
                 });
-                if (cursorLayer.tooltipIsOpen)
+                if (cursorLayer && cursorLayer.tooltipIsOpen)
                     cursorLayer.hideAllTooltips();
             }
 
