@@ -421,7 +421,7 @@ define(function(require, module, exports) {
                 }
 
                 var clientId, tooltipIsOpen;
-                var selections = cursorLayer.selections;
+                var selections = cursorLayer && cursorLayer.selections;
                 for (clientId in selections) {
                     var selection = selections[clientId];
                     var user = workspace.users[selection.uid];
