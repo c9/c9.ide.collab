@@ -561,7 +561,7 @@ define(function(require, module, exports) {
 
             // send a selection update to the collab server if not an exact match of the previous sent selection
             function changedSelection() {
-                if (!session) return;
+                if (!session || !session.selection) return;
                 
                 cursorTimer = null;
                 var currentSel = CursorLayer.selectionToData(session.selection);
