@@ -5,7 +5,7 @@
  * @license GPLv3 <http://www.gnu.org/licenses/gpl.txt>
  */
 define(function(require, exports, module) {
-    main.consumes = ["c9", "Plugin", "ext", "ui", "proc", "vfs"];
+    main.consumes = ["c9", "Plugin", "ext", "ui", "proc", "vfs", "dialog.question", "installer"];
     main.provides = ["collab.connect"];
     return main;
 
@@ -16,6 +16,8 @@ define(function(require, exports, module) {
         var ui = imports.ui;
         var proc = imports.proc;
         var vfs = imports.vfs;
+        var installer = imports.installer;
+        var question = imports["dialog.question"];
 
         /***** Initialization *****/
 
@@ -198,7 +200,10 @@ define(function(require, exports, module) {
             }, function (err, meta) {
                 if (err) {
                     fatalError = err.code === "EFATAL";
-                    return console.error("COLLAB connect failed", err);
+                    console.error("COLLAB connect failed", err);
+                    if (fatalError)
+                        promptInstaller(err);
+                    return;
                 }
 
                 stream = meta.stream;
@@ -257,93 +262,19 @@ define(function(require, exports, module) {
             collab.send(clientId, msg);
         }
 
-        /*
-        // SSH UI Elements
-        var winCollabInstall, collabInstallTitle, collabInstallMsg, btnCollabInstall, btnCollabDisable;
-
-        var SSH_CHECKS = [
-            'echo "`command -v sqlite3`"',
-            'NODE_PATH=' + options.nodePath + ' ' + options.nodeBin +' -e ' +
-             '"try { require(\'sqlite3\'); require(\'sequelize\'); console.log(true); } catch (e) { console.log(false); }"',
-            '',
-            'BIN_DIR=$(dirname `which '  + options.nodeBin + '`)',
-            'export PATH=$BIN_DIR:$PATH', // hack on nvm installed node versions
-            'NPM_BIN=$(which npm) || npm',
-            'echo "mkdir -p ' + options.nodePath + '"', // result[2]
-            'echo "$NPM_BIN --prefix ' + options.nodePath + ' install sequelize@2.0.0-beta.0"', // result[3]
-            'echo "$NPM_BIN --prefix ' + options.nodePath + ' install sqlite3@2.1.18"', // result[4]
-            // result[5]
-            'case `uname` in',
-            '  Linux )',
-            '     command -v apt-get >/dev/null && { echo "sudo apt-get -y install sqlite3"; exit; }',
-            '     command -v yum >/dev/null && { echo "sudo yum install sqlite3"; exit; }',
-            '     command -v zypper >/dev/null && { echo "sudo zypper in sqlite3"; exit; }',
-            '     ;;',
-            '  Darwin )',
-            '     echo "sudo port install sqlite3"',
-            '     ;;',
-            'esac'
-        ].join("\n");
-
-        function sshCheckInstall() {
-            console.log("COLLAB CHECKS", SSH_CHECKS);
-            proc.execFile("bash", {args: ["-c",
-                SSH_CHECKS
-            ]}, function (err, stdout, stderr) {
-                if (err)
-                    return console.log("COLLAB-PLUGIN SSH check install failed:", err, stderr);
-
-                var result = stdout.split("\n");
-
-                var missingSqlite = !result[0];
-                var missingModules = result[1] === "false";
-                if (missingSqlite || missingModules) {
-                    draw();
-                    var title = "Missing SQLite and/or dependency modules";
-                    var installationSteps = [];
-                    if (missingModules)
-                        installationSteps.push(result[2], result[3], result[4]);
-                    if (missingSqlite)
-                        installationSteps.push(result[5]);
-                    var body = "Cloud9 collaboration features need <b>sqlite3</b> to be available on your workspace.</br></br>" +
-                        "Please install them and reload:</br>" +
-                        "<p style='font-familt: monospace;'>&nbsp;&nbsp;$ " + installationSteps.join("<br/>&nbsp;&nbsp;$ ") + "</p>" +
-                        "<b>Please note that your files won't be accessible during that 1-minute installation</b>";
-                    var cmds = installationSteps.join(";\n") + "\n";
-                    c9console.showConsoleTerminal();
-                    showCollabInstall(title, body);
-
-                    btnCollabInstall.addEventListener("click", function installerClick() {
-                        btnCollabInstall.removeEventListener("click", installerClick);
-                        var consoleCmdInterv = setInterval(function () {
-                            var term = c9console.terminal;
-                            if (!term || !term.fd || term.reconnecting || term.restoringState || term.terminated)
-                                return console.warn("[OT] Waiting terminal to connect -- cmd:", msg.console);
-                            term.send(msg.console + " ; \n"); // execute the command
-                            winCollabInstall.hide();
-                            clearInterval(consoleCmdInterv);
-
-                            var npmBinaryDelay = msg.console.indexOf("npm") !== -1;
-
-                            setTimeout(function() {
-                                util.alert("Collaboration Features", "Install finished?!", "Done installation? - Please reload to enjoy Collaboration features!");
-                            }, npmBinaryDelay ? 90000 : 30000);
-                        }, 300);
-                    });
+        function promptInstaller(err) {
+            question.show("Missing collab dependencies",
+                err.message,
+                "Cloud9 detected you are missing one or more collab dependencies." +
+                " Would you like to open the installer to update to the latest version?",
+                function(){ // Yes
+                    installer.show();
+                },
+                function(){ // No
+                    // Do nothing
                 }
-                else {
-                    collabInstalled = true;
-                    doConnect();
-                }
-            });
+            );
         }
-
-        function showCollabInstall(title, body) {
-            winCollabInstall.show();
-            collabInstallTitle.$ext.innerHTML = title;
-            collabInstallMsg.$ext.innerHTML = body;
-        }
-        */
 
         /***** Lifecycle *****/
         plugin.on("load", function(){
