@@ -355,8 +355,15 @@ define(function(require, module, exports) {
                 if (!complete)
                     return;
 
-                doc = JSON.parse(docStream);
-                docStream = null;
+                try {
+                    doc = JSON.parse(docStream);
+                } catch(e) {
+                    console.error(e, "Stream:", docStream);
+                    // try reload
+                    return load();
+                } finally {
+                    docStream = null;
+                }
 
                 if (docId !== data.docId)
                     console.error("docId mismatch", docId, data.docId);
