@@ -31,7 +31,7 @@ define(function(require, module, exports) {
         // happens when I'm editing alone
         var MAX_DELAY = options.maxDelay;
         var MAX_COMMIT_TRIALS = 3;
-        var SAVE_FILE_TIMEOUT = 10000;
+        var SAVE_FILE_TIMEOUT = 5000;
 
         function OTDocument(docId, c9Document) {
 
@@ -355,8 +355,15 @@ define(function(require, module, exports) {
                 if (!complete)
                     return;
 
-                doc = JSON.parse(docStream);
-                docStream = null;
+                try {
+                    doc = JSON.parse(docStream);
+                } catch(e) {
+                    console.error(e, "Stream:", docStream);
+                    // try reload
+                    return load();
+                } finally {
+                    docStream = null;
+                }
 
                 if (docId !== data.docId)
                     console.error("docId mismatch", docId, data.docId);
@@ -373,7 +380,7 @@ define(function(require, module, exports) {
                 outgoing = [];
                 incoming = [];
                 if (pendingSave) {
-                    emit("saved", {err: "Couldn't save file, document rejoined - please try again", code: "EREJOINED"});
+                    emit("saved", {err: "Document `" + docId + "` updated to latest state on disk, please try saving again", code: "EREJOINED"});
                     pendingSave = null;
                 }
 
@@ -554,6 +561,8 @@ define(function(require, module, exports) {
 
             // send a selection update to the collab server if not an exact match of the previous sent selection
             function changedSelection() {
+                if (!session || !session.selection) return;
+                
                 cursorTimer = null;
                 var currentSel = CursorLayer.selectionToData(session.selection);
                 if (lastSel && lastSel.join('') === currentSel.join(''))
@@ -563,7 +572,7 @@ define(function(require, module, exports) {
                     docId: docId,
                     selection: lastSel
                 });
-                if (cursorLayer.tooltipIsOpen)
+                if (cursorLayer && cursorLayer.tooltipIsOpen)
                     cursorLayer.hideAllTooltips();
             }
 

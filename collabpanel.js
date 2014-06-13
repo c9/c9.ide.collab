@@ -22,7 +22,7 @@ define(function(require, module, exports) {
 
             plugin.on("load", function(){
                 // Draw panel when collab panel is drawn
-                collab.on("drawPanels", draw, plugin);
+                collab.once("drawPanels", draw, plugin);
             });
 
             function draw(e) {

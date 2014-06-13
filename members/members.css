@@ -33,6 +33,7 @@
     color: #f1f1f1;
     right: 93px;
     overflow: hidden;
+    height: 16px;
     text-overflow: ellipsis;
 }
 

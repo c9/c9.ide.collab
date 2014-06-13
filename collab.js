@@ -168,10 +168,11 @@ define(function(require, exports, module) {
                     // bubbleNotification("closed file: " + docId, user);
                     break;
                 case "JOIN_DOC":
-                    if (workspace.myClientId !== data.clientId) {
+                    if (workspace.myClientId !== data.clientId)
                         // bubbleNotification("opened file: " + docId, user);
-                        break;
-                    }
+                        return;
+                    if (!doc)
+                        return console.warn("[OT] JOIN_DOC no document match ! - docId:", docId, "open docs:", Object.keys(documents));
                     doc.joinData(data);
                     break;
                 case "USER_STATE":
@@ -195,6 +196,7 @@ define(function(require, exports, module) {
          * @param {Function} callback
          */
         function joinDocument(docId, doc, progress, callback) {
+            console.log("[OT] Join", docId);
             var docSession = doc.getSession();
             var aceSession = docSession && docSession.session;
             if (!aceSession)
