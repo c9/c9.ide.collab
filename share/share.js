@@ -147,10 +147,10 @@ define(function(require, module, exports) {
             
             publicApp.on("afterchange", function(e){
                 publicApp.disable();
-                api.put("app/" + (e.value ? "public" : "private"), function(err){
+                api.project.put("app/" + (e.value ? "public" : "private"), function(err){
                     if (err) {
                         publicApp.enable();
-                        publicApp.setValue(!e.value);
+                        publicApp[e.value ? "uncheck" : "check"]();
                         
                         alert("Failed updating public status",
                             "The server returned an error",
@@ -160,10 +160,10 @@ define(function(require, module, exports) {
             });
             publicPreview.on("afterchange", function(e){
                 publicPreview.disable();
-                api.put("app/" + (e.value ? "public" : "private"), function(err){
+                api.project.put("app/" + (e.value ? "public" : "private"), function(err){
                     if (err) {
                         publicPreview.enable();
-                        publicPreview.setValue(!e.value);
+                        publicPreview[e.value ? "uncheck" : "check"]();
                         
                         alert("Failed updating public status",
                             "The server returned an error",
@@ -188,6 +188,18 @@ define(function(require, module, exports) {
 
             membersPanel = new MembersPanel("Ajax.org", main.consumes, {});
             membersPanel.draw({ aml: membersParent });
+            
+            api.collab.get("access_info", function (err, info) {
+                if (err) return;
+                
+                publicApp[info.private ? "uncheck" : "check"]();
+                publicPreview[info.private ? "uncheck" : "check"]();
+                
+                if (!info.private) {
+                    publicApp.disable();
+                    publicPreview.disable();
+                }
+            });
 
             emit.sticky("draw");
         }

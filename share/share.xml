@@ -12,15 +12,15 @@
       class     = "share dark"
       draggable = "true">
         <blockquote class="links">
-          <label>Links to share</label>
+          <label style="margin-bottom:6px">Links to share</label>
           <label class="subhead">Editor:</label>
           <div id="shareLinkEditor" type="text" readonly="true" class="link"></div>
           <label class="subhead">Application:</label>
           <div id="shareLinkApp" type="text" readonly="true" class="link"></div>
-          <a:checkbox id="publicApp" skin="checkbox_black" style='margin-left:5px; display:inline-block'>Public</a:checkbox>
+          <a:checkbox id="publicApp" skin="checkbox_black" class="sharecb">Public</a:checkbox>
           <label class="subhead">Preview:</label>
           <div id="shareLinkPreview" type="text" readonly="true" class="link"></div>
-          <a:checkbox id="publicPreview" skin="checkbox_black" style='margin-left:5px; display:inline-block'>Public</a:checkbox>
+          <a:checkbox id="publicPreview" skin="checkbox_black" class="sharecb">Public</a:checkbox>
         </blockquote>
         
         <label style="margin-top:10px">Who has access</label>

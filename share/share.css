@@ -6,9 +6,35 @@
     font-family : Arial;
     font-size : 12px;
     color: #f1f1f1;
-    margin : 0 5px 0 0;
+    margin : 0 5px 2px 0;
     display: block;
-    vertical-align: bottom;
+    vertical-align: middle;
+}
+
+.share .sharecb{
+    margin-left:5px; 
+    display:inline-block;
+    vertical-align: middle;
+}
+
+.share .link{
+    background : rgba(255,255,255,0.05);
+    padding : 3px 3px 3px 4px;
+    border-radius: 3px;
+    width: 221px;
+    margin-bottom: 4px;
+    border: 1px solid rgb(27, 27, 27);
+    box-shadow: 0 1px rgba(255, 255, 255, 0.09);
+    color: #AAA;
+    cursor: text;
+    display: inline-block;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    vertical-align: top;
+}
+.share .link:hover{
+    text-decoration: underline;
 }
 
 .share .members{
@@ -46,27 +72,9 @@
     top: 55px;
 }
 
-.share .link{
-    background : rgba(255,255,255,0.05);
-    padding : 3px 3px 3px 4px;
-    border-radius: 3px;
-    width: 221px;
-    margin-bottom: 4px;
-    border: 1px solid rgb(27, 27, 27);
-    box-shadow: 0 1px rgba(255, 255, 255, 0.09);
-    color: #AAA;
-    cursor: text;
-    display: inline-block;
-    cursor: pointer;
-    white-space: nowrap;
-    overflow: hidden;
-}
-.share .link:hover{
-    text-decoration: underline;
-}
-
 .share .subhead {
     display: inline-block;
     width: 70px;
     color: gray;
+    margin-top: 4px;
 }
