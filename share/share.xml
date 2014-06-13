@@ -15,6 +15,7 @@
           <label style="margin-bottom:6px">Links to share</label>
           <label class="subhead">Editor:</label>
           <div id="shareLinkEditor" type="text" readonly="true" class="link"></div>
+          <a:checkbox id="publicEditor" skin="checkbox_black" class="sharecb">Public</a:checkbox>
           <label class="subhead">Application:</label>
           <div id="shareLinkApp" type="text" readonly="true" class="link"></div>
           <a:checkbox id="publicApp" skin="checkbox_black" class="sharecb">Public</a:checkbox>

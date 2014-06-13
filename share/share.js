@@ -31,7 +31,7 @@ define(function(require, module, exports) {
 
         var dialog, btnInvite, btnDone, txtUsername, membersParent, accessButton;
         var membersPanel, shareLinkEditor, shareLinkApp, shareLinkPreview;
-        var publicApp, publicPreview;
+        var publicApp, publicPreview, publicEditor;
 
         var loaded = false;
         function load() {
@@ -104,6 +104,7 @@ define(function(require, module, exports) {
             membersParent = plugin.getElement("members");
             publicApp = plugin.getElement("publicApp");
             publicPreview = plugin.getElement("publicPreview");
+            publicEditor = plugin.getElement("publicEditor");
             accessButton = plugin.getElement("access").$int;
 
             var mnuLink = new Menu({
@@ -145,31 +146,28 @@ define(function(require, module, exports) {
                 className.add(actionArr[1]);
             });
             
-            publicApp.on("afterchange", function(e){
-                publicApp.disable();
-                api.project.put("app/" + (e.value ? "public" : "private"), function(err){
+            function updateAccess(field, value, cb){
+                cb.disable();
+                api.project.put(field + "/" + (value ? "public" : "private"), function(err){
                     if (err) {
-                        publicApp.enable();
-                        publicApp[e.value ? "uncheck" : "check"]();
+                        cb.enable();
+                        cb[value ? "uncheck" : "check"]();
                         
                         alert("Failed updating public status",
                             "The server returned an error",
                             "Please try again later.");
                     }
                 });
+            }
+            
+            publicEditor.on("afterchange", function(e){
+                updateAccess("visibility", e.value, publicEditor);
+            });
+            publicApp.on("afterchange", function(e){
+                updateAccess("app", e.value, publicApp);
             });
             publicPreview.on("afterchange", function(e){
-                publicPreview.disable();
-                api.project.put("app/" + (e.value ? "public" : "private"), function(err){
-                    if (err) {
-                        publicPreview.enable();
-                        publicPreview[e.value ? "uncheck" : "check"]();
-                        
-                        alert("Failed updating public status",
-                            "The server returned an error",
-                            "Please try again later.");
-                    }
-                });
+                updateAccess("preview", e.value, publicPreview);
             });
             
             btnDone.on("click", hide);
@@ -192,10 +190,12 @@ define(function(require, module, exports) {
             api.collab.get("access_info", function (err, info) {
                 if (err) return;
                 
+                publicEditor[info.private ? "uncheck" : "check"]();
                 publicApp[info.private ? "uncheck" : "check"]();
                 publicPreview[info.private ? "uncheck" : "check"]();
                 
                 if (!info.private) {
+                    publicEditor.disable();
                     publicApp.disable();
                     publicPreview.disable();
                 }
