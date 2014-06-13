@@ -148,7 +148,7 @@ define(function(require, module, exports) {
             
             function updateAccess(field, value, cb){
                 cb.disable();
-                api.projects.put(field + "/" + (value ? "public" : "private"), function(err){
+                api.project.put(field + "/" + (value ? "public" : "private"), function(err){
                     if (err) {
                         cb.enable();
                         cb[value ? "uncheck" : "check"]();
