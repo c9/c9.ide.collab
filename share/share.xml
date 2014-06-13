@@ -17,10 +17,10 @@
           <div id="shareLinkEditor" type="text" readonly="true" class="link"></div>
           <label class="subhead">Application:</label>
           <div id="shareLinkApp" type="text" readonly="true" class="link"></div>
-          <a:checkbox skin="checkbox_black" value="project/share/app" style='margin-left:5px; display:inline-block'>Public</a:checkbox>
+          <a:checkbox id="publicApp" skin="checkbox_black" style='margin-left:5px; display:inline-block'>Public</a:checkbox>
           <label class="subhead">Preview:</label>
           <div id="shareLinkPreview" type="text" readonly="true" class="link"></div>
-          <a:checkbox skin="checkbox_black" value="project/share/preview" style='margin-left:5px; display:inline-block'>Public</a:checkbox>
+          <a:checkbox id="publicPreview" skin="checkbox_black" style='margin-left:5px; display:inline-block'>Public</a:checkbox>
         </blockquote>
         
         <label style="margin-top:10px">Who has access</label>

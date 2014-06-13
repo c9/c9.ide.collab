@@ -2,7 +2,7 @@ define(function(require, module, exports) {
     main.consumes = [
         "Plugin", "c9", "commands", "menus", "ui", "layout", "dialog.alert",
         "MembersPanel", "info", "collab.workspace", "Menu", "MenuItem",
-        "clipboard", "settings"
+        "clipboard", "settings", "api"
     ];
     main.provides = ["dialog.share"];
     return main;
@@ -16,6 +16,7 @@ define(function(require, module, exports) {
         var menus = imports.menus;
         var clipboard = imports.clipboard;
         var ui = imports.ui;
+        var api = imports.api;
         var alert = imports["dialog.alert"].show;
         var layout = imports.layout;
         var workspace = imports["collab.workspace"];
@@ -30,6 +31,7 @@ define(function(require, module, exports) {
 
         var dialog, btnInvite, btnDone, txtUsername, membersParent, accessButton;
         var membersPanel, shareLinkEditor, shareLinkApp, shareLinkPreview;
+        var publicApp, publicPreview;
 
         var loaded = false;
         function load() {
@@ -100,6 +102,8 @@ define(function(require, module, exports) {
             shareLinkApp = plugin.getElement("shareLinkApp").$int;
             shareLinkPreview = plugin.getElement("shareLinkPreview").$int;
             membersParent = plugin.getElement("members");
+            publicApp = plugin.getElement("publicApp");
+            publicPreview = plugin.getElement("publicPreview");
             accessButton = plugin.getElement("access").$int;
 
             var mnuLink = new Menu({
@@ -139,6 +143,33 @@ define(function(require, module, exports) {
                 var actionArr = className.contains("rw") ? ["rw", "r"] : ["r", "rw"];
                 className.remove(actionArr[0]);
                 className.add(actionArr[1]);
+            });
+            
+            publicApp.on("afterchange", function(e){
+                publicApp.disable();
+                api.put("app/" + (e.value ? "public" : "private"), function(err){
+                    if (err) {
+                        publicApp.enable();
+                        publicApp.setValue(!e.value);
+                        
+                        alert("Failed updating public status",
+                            "The server returned an error",
+                            "Please try again later.");
+                    }
+                });
+            });
+            publicPreview.on("afterchange", function(e){
+                publicPreview.disable();
+                api.put("app/" + (e.value ? "public" : "private"), function(err){
+                    if (err) {
+                        publicPreview.enable();
+                        publicPreview.setValue(!e.value);
+                        
+                        alert("Failed updating public status",
+                            "The server returned an error",
+                            "Please try again later.");
+                    }
+                });
             });
             
             btnDone.on("click", hide);
