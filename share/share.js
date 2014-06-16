@@ -148,14 +148,33 @@ define(function(require, module, exports) {
             
             function updateAccess(field, value, cb){
                 cb.disable();
-                api.project.put(field + "/" + (value ? "public" : "private"), function(err){
+                api.project.put("access/" + field + "/" + (value ? "public" : "private"), function(err){
                     if (err) {
                         cb.enable();
                         cb[value ? "uncheck" : "check"]();
                         
-                        alert("Failed updating public status",
-                            "The server returned an error",
-                            "Please try again later.");
+                        // Forbidden
+                        if (err.code == 401) {
+                            alert("Forbidden",
+                                "You are not allowed to change this setting.",
+                                "Only the owner of this workspace can change "
+                                  + "this setting. Please contact the owner "
+                                  + "about this.");
+                        }
+                        // Payment Required
+                        else if (err.code == 402) {
+                            alert("Maximum Private Workspaces Reached",
+                                "It seems you have reached the maximum number "
+                                  + "of workspaces under your account",
+                                "Please go to the dashboard or contact support "
+                                  + "to increase the number of private workspaces.");
+                        }
+                        // Other Errors
+                        else {
+                            alert("Failed updating public status",
+                                "The server returned an error",
+                                "Please try again later.");
+                        }
                     }
                 });
             }
@@ -191,14 +210,8 @@ define(function(require, module, exports) {
                 if (err) return;
                 
                 publicEditor[info.private ? "uncheck" : "check"]();
-                publicApp[info.private ? "uncheck" : "check"]();
-                publicPreview[info.private ? "uncheck" : "check"]();
-                
-                if (!info.private) {
-                    publicEditor.disable();
-                    publicApp.disable();
-                    publicPreview.disable();
-                }
+                publicApp[!info.publicApp ? "uncheck" : "check"]();
+                publicPreview[!info.publicPreview ? "uncheck" : "check"]();
             });
 
             emit.sticky("draw");
