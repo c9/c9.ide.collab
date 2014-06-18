@@ -5,7 +5,10 @@
  * @license GPLv3 <http://www.gnu.org/licenses/gpl.txt>
  */
 define(function(require, exports, module) {
-    main.consumes = ["c9", "Plugin", "ext", "ui", "proc", "vfs", "dialog.question", "installer"];
+    main.consumes = [
+        "c9", "Plugin", "ext", "ui", "proc", "vfs", "dialog.question", 
+        "installer"
+    ];
     main.provides = ["collab.connect"];
     return main;
 
