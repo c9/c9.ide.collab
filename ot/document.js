@@ -61,6 +61,8 @@ define(function(require, module, exports) {
 
             // @see docs in the API section below
             function setSession(aceSession) {
+                if (!aceSession)
+                    return console.warn("[OT] setSession null aceSession!");
                 if (session)
                     return console.warn("[OT] Ace's session previously set!");
 

@@ -67,6 +67,13 @@ define(function(require, exports, module) {
                     otDoc.setSession(doc.getSession().session);
             });
 
+            tabs.on("focusSync", function(e){
+                var tab = e.tab;
+                var otDoc = documents[tab.path];
+                if (otDoc && !otDoc.session)
+                    otDoc.setSession(tab.document.getSession().session);
+            });
+
             ui.insertCss(css, staticPrefix, plugin);
 
             window.addEventListener("unload", function() {
