@@ -70,8 +70,11 @@ define(function(require, exports, module) {
             tabs.on("focusSync", function(e){
                 var tab = e.tab;
                 var otDoc = documents[tab.path];
-                if (otDoc && !otDoc.session)
-                    otDoc.setSession(tab.document.getSession().session);
+                if (otDoc && !otDoc.session) {
+                    var doc = tab.document;
+                    var docSession = doc.getSession();
+                    docSession && otDoc.setSession(docSession.session);
+                }
             });
 
             ui.insertCss(css, staticPrefix, plugin);
