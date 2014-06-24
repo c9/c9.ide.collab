@@ -59,6 +59,14 @@ define(function(require, exports, module) {
             fs.on("beforeWriteFile", beforeWriteFile, plugin);
             fs.on("beforeRename", beforeRename, plugin);
 
+            ace.on("initAceSession", function(e) {
+                var doc = e.doc;
+                var path = doc.tab.path;
+                var otDoc = documents[path];
+                if (otDoc && !otDoc.session)
+                    otDoc.setSession(doc.getSession().session);
+            });
+
             ui.insertCss(css, staticPrefix, plugin);
 
             window.addEventListener("unload", function() {
@@ -206,12 +214,6 @@ define(function(require, exports, module) {
 
             if (aceSession)
                 otDoc.setSession(aceSession);
-            else {
-                ace.on("initAceSession", function(e) {
-                    if (e.doc == doc)
-                        otDoc.setSession(doc.getSession().session);
-                });
-            }
 
             if (callback)
                 setupJoinAndProgressCallbacks(otDoc, progress, callback);
