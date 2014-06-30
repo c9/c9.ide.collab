@@ -197,7 +197,7 @@ define(function(require, module, exports) {
                         });
                     },
                     function(){ // No
-                        // Do nothing
+                        cb[value ? "uncheck" : "check"]();
                     }
                 );
             }
