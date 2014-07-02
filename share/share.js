@@ -2,7 +2,7 @@ define(function(require, module, exports) {
     main.consumes = [
         "Plugin", "c9", "commands", "menus", "ui", "layout", "dialog.alert",
         "MembersPanel", "info", "collab.workspace", "Menu", "MenuItem",
-        "clipboard", "settings", "api"
+        "clipboard", "settings", "api", "dialog.question"
     ];
     main.provides = ["dialog.share"];
     return main;
@@ -20,6 +20,7 @@ define(function(require, module, exports) {
         var alert = imports["dialog.alert"].show;
         var layout = imports.layout;
         var workspace = imports["collab.workspace"];
+        var question = imports["dialog.question"];
         var Menu = imports.Menu;
         var MenuItem = imports.MenuItem;
 
@@ -146,37 +147,59 @@ define(function(require, module, exports) {
                 className.add(actionArr[1]);
             });
             
+            var words = {
+                "visibility": ["this workspace"],
+                "app": ["the running application"],
+                "preview": ["the preview of workspace files"],
+                
+            }
+            
             function updateAccess(field, value, cb){
-                cb.disable();
-                api.project.put("access/" + field + "/" + (value ? "public" : "private"), function(err){
-                    if (err) {
-                        cb.enable();
+                var to = value ? "public" : "private";
+                
+                question.show(
+                    "Change Access To " + to.uCaseFirst(),
+                    (field == "visibility"
+                        ? "Make this workspace available to the whole world?"
+                        : "Make " + words[field][0] + " available to anyone with the url?"),
+                    "Are you sure you want to make this change? Anyone with "
+                        + "the url will be able to access " + words[field] + ".",
+                    function(){ // Yes
+                        cb.disable();
+                        api.project.put("access/" + field + "/" + to, function(err){
+                            if (err) {
+                                cb.enable();
+                                cb[value ? "uncheck" : "check"]();
+                                
+                                // Forbidden
+                                if (err.code == 401) {
+                                    alert("Forbidden",
+                                        "You are not allowed to change this setting.",
+                                        "Only the owner of this workspace can change "
+                                          + "this setting. Please contact the owner "
+                                          + "about this.");
+                                }
+                                // Payment Required
+                                else if (err.code == 402) {
+                                    alert("Maximum Private Workspaces Reached",
+                                        "It seems you have reached the maximum number "
+                                          + "of workspaces under your account",
+                                        "Please go to the dashboard or contact support "
+                                          + "to increase the number of private workspaces.");
+                                }
+                                // Other Errors
+                                else {
+                                    alert("Failed updating public status",
+                                        "The server returned an error",
+                                        "Please try again later.");
+                                }
+                            }
+                        });
+                    },
+                    function(){ // No
                         cb[value ? "uncheck" : "check"]();
-                        
-                        // Forbidden
-                        if (err.code == 401) {
-                            alert("Forbidden",
-                                "You are not allowed to change this setting.",
-                                "Only the owner of this workspace can change "
-                                  + "this setting. Please contact the owner "
-                                  + "about this.");
-                        }
-                        // Payment Required
-                        else if (err.code == 402) {
-                            alert("Maximum Private Workspaces Reached",
-                                "It seems you have reached the maximum number "
-                                  + "of workspaces under your account",
-                                "Please go to the dashboard or contact support "
-                                  + "to increase the number of private workspaces.");
-                        }
-                        // Other Errors
-                        else {
-                            alert("Failed updating public status",
-                                "The server returned an error",
-                                "Please try again later.");
-                        }
                     }
-                });
+                );
             }
             
             publicEditor.on("afterchange", function(e){
