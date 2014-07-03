@@ -78,11 +78,12 @@ define(function(require, module, exports) {
             
             prefs.add({
                 "Project" : {
+                    position: 10,
                     "Collaboration" : {
                         position: 1000,
-                        "Show IDE State of Owner for Collaborators" : {
+                        "Always Load IDE State of Owner to Collaborators" : {
                             type: "checkbox",
-                            position: 1000,
+                            position: 100,
                             path: "project/share/@useOwnerSettings"
                         }
                     }
