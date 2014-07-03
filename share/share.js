@@ -72,7 +72,7 @@ define(function(require, module, exports) {
                 settings.setDefaults("project/share", [
                     ["preview", false],
                     ["app", false],
-                    ["useOwnerSettings", true],
+                    ["useOwnerSettings", false],
                 ]);
             }, plugin);
             
