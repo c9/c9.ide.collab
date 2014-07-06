@@ -121,7 +121,7 @@
     .gradient(~"linear-gradient(top, #5F5F5F 0%, #333333 100%)");
 
     /*text-shadow: 0 1px rgba(0,0,0,0.5);*/
-    color : white;
+    color : transparent;
     display : inline-block;
     text-align: center;
     box-sizing: border-box;

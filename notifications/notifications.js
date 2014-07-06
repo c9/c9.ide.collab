@@ -171,7 +171,7 @@ define(function(require, exports, module) {
         function addNotifications(notifs) {
             if (!Array.isArray(notifs))
                 notifs = [notifs];
-            notifs.forEeach(function(notif) {
+            notifs.forEach(function(notif) {
                 var NotifConstructor = NOTIFICATION_TYPES[notif.type];
                 if (!NotifConstructor)
                     console.error("Invalid notification type:", notif.type);
