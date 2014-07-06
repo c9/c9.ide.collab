@@ -45,15 +45,15 @@ define(function(require, exports, module) {
                         if (myUserId == uid) {
                             showAlert("Workspace Access", (body.acl == "rw" ? "You have been granted read/write access to the workspace."
                                     : "You workspace access has been limited to read-only." )
-                                + "\n Reloading now to apply new access rights ...");
+                                + " Reloading now to apply new access rights ...");
                             reloadWorkspace(3000);
                         }
                         break;
                     case "remove_member":
                         removeCachedMember(uid);
                         if (body.uid == myUserId) {
-                            showAlert("Workspace Access", "You have been removed from the workspace by the workspace owner/admin"
-                                + "\n Reloading now to enforce new access rights ...");
+                            showAlert("Workspace Access", "You have been removed from the workspace by the workspace owner/admin."
+                                + " Reloading now to apply your new access rights ...");
                             reloadWorkspace(3000);
                         }
                         break;
@@ -105,7 +105,12 @@ define(function(require, exports, module) {
         }
 
         function joinClient(user) {
-            users[user.uid] = user;
+            var uid = user.uid;
+            var authorId = user.author;
+            users[uid] = user;
+            authorPool[uid] = authorId;
+            reversedAuthorPool[authorId] = uid;
+            colorPool[uid] = user.color;
             emit("sync");
         }
 

@@ -60,6 +60,7 @@ define(function(require, exports, module) {
             
             workspace.on("notification", function(notif) {
                 addNotifications(notif);
+                postLoadedNotifications();
             });
         }
 
