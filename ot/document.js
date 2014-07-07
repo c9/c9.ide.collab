@@ -1,5 +1,5 @@
 define(function(require, module, exports) {
-    main.consumes = ["Plugin", "ace", "util",
+    main.consumes = ["Plugin", "ace", "util", "apf",
         "collab.connect", "collab.util", "collab.workspace",
         "timeslider", "CursorLayer", "AuthorLayer"];
     main.provides = ["OTDocument"];
@@ -9,6 +9,7 @@ define(function(require, module, exports) {
         var Plugin = imports.Plugin;
         var connect = imports["collab.connect"];
         var c9util = imports.util;
+        var apf = imports.apf;
         var workspace = imports["collab.workspace"];
         var timeslider = imports.timeslider;
         var CursorLayer = imports.CursorLayer;
@@ -553,12 +554,22 @@ define(function(require, module, exports) {
             function applyEdit(msg, aceDoc) {
                 if (timeslider.visible)
                     return;
+                var err;
                 ignoreChanges = true;
-                applyAce(msg.op, aceDoc);
-                applyAuthorAttributes(doc.authAttribs, msg.op, workspace.authorPool[msg.userId]);
-                authorLayer.refresh();
-                doc.revNum = msg.revNum;
-                ignoreChanges = false;
+                try {
+                    applyAce(msg.op, aceDoc);
+                    applyAuthorAttributes(doc.authAttribs, msg.op, workspace.authorPool[msg.userId]);
+                } catch(e) {
+                    err = e;
+                } finally {
+                    authorLayer.refresh();
+                    doc.revNum = msg.revNum;
+                    ignoreChanges = false;
+
+                    // try reload
+                    if (err)
+                        load();
+                }
             }
 
             // send a selection update to the collab server if not an exact match of the previous sent selection
@@ -747,38 +758,13 @@ define(function(require, module, exports) {
                     handleIncomingEdit(data);
                     break;
                 case "SYNC_COMMIT":
-                    console.error("[OT] SYNC_COMMIT", data.reason, data.code);
-                    state = "IDLE";
-                    if (data.code == "VERSION_E")
-                        latestRevNum = data.revNum;
-                    if (data.code == "OT_E" || commitTrials > MAX_COMMIT_TRIALS) {
-                        revertMyPendingChanges();
-                        clearCs(session.getValue().length);
-                        commitTrials = 0;
-                        if (pendingSave)
-                            doSaveFile(pendingSave.silent);
-                    }
-                    else {
-                        scheduleSend();
-                    }
+                    handleSyncCommit(data);
                     break;
                 case "CURSOR_UPDATE":
                     cursorLayer && cursorLayer.updateSelection(data);
                     break;
                 case "FILE_SAVED":
-                    clearTimeout(saveTimer);
-                    saveTimer = null;
-
-                    var err = data.err;
-                    if (err) {
-                        console.error("[OT] Failed saving file!", err, docId);
-                        emit("saved", {err: err});
-                        break;
-                    }
-
-                    var isClean = !outgoing.length || latestRevNum === data.revNum;
-                    var rev = revisions[data.revNum] || {revNum: data.revNum, updated_at: Date.now()};
-                    flagFileSaved(rev, data.star, isClean);
+                    handleFileSaved(data);
                     break;
                 case "GET_REVISIONS":
                    receiveRevisions(data);
@@ -786,6 +772,47 @@ define(function(require, module, exports) {
                  default:
                    console.error("[OT] Unkown document event type:", event.type, docId, event);
                }
+            }
+            
+            function handleSyncCommit(data) {
+                console.error("[OT] SYNC_COMMIT", data.reason, data.code);
+                state = "IDLE";
+                if (data.code == "VERSION_E")
+                    latestRevNum = data.revNum;
+                if (data.code == "OT_E" || commitTrials > MAX_COMMIT_TRIALS) {
+                    revertMyPendingChanges();
+                    clearCs(session.getValue().length);
+                    commitTrials = 0;
+                    if (pendingSave)
+                        doSaveFile(pendingSave.silent);
+                }
+                else {
+                    scheduleSend();
+                }
+            }
+
+            function handleFileSaved(data) {
+                clearTimeout(saveTimer);
+                saveTimer = null;
+
+                var err = data.err;
+                if (err) {
+                    console.error("[OT] Failed saving file!", err, docId);
+                    return emit("saved", {err: err});
+                }
+
+                if (!pendingSave)
+                    return console.warn("[OT] No pending save found! - ignoring collab save");
+
+                if (pendingSave.fsHash !== data.fsHash) {
+                    console.error("[OT] Failed saving file!", err, docId);
+                    return emit("saved", {err: "Save content mismatch", code: "EMISMATCH"});
+                }
+
+                var isClean = !outgoing.length || latestRevNum === data.revNum;
+                var rev = revisions[data.revNum] || {revNum: data.revNum, updated_at: Date.now()};
+                flagFileSaved(rev, data.star, isClean);
+                pendingSave = null;
             }
 
             function flagFileSaved(revision, isStar, isClean) {
@@ -857,7 +884,9 @@ define(function(require, module, exports) {
                     return doSaveFile(silent);
                 if (!isUnity)
                     addOutgoingEdit();
-                pendingSave = {silent: silent, outLen: outgoing.length};
+                var saveStr = session.getValue();
+                var fsHash = apf.crypto.MD5.hex_md5(saveStr);
+                pendingSave = {silent: silent, outLen: outgoing.length, fsHash: fsHash};
                 if (sendTimer) {
                     clearTimeout(sendTimer);
                     sendTimer = null;
