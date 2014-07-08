@@ -251,9 +251,9 @@ define(function(require, exports, module) {
                     // stream.destroy();
                     isClosed = true;
 
-                    onDisconnect();
-                    if (c9.connected)
-                        connect();
+                    setTimeout(function () {
+                        c9.connected && connect();
+                    }, 3000);
                 }
             });
         }
