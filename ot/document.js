@@ -45,20 +45,44 @@ define(function(require, module, exports) {
             var docStream, revStream;
             var cursorLayer, authorLayer;
             var revCache, rev0Cache;
-            var revisions = [], starRevNums = [];
+            var revisions, starRevNums;
 
             var latestRevNum, lastSel;
-            var commitTrials = 0;
+            var commitTrials;
             var sendTimer, cursorTimer, saveTimer;
 
-            var incoming = [];
-            var outgoing = [];
-            var ignoreChanges = false;
-            var packedCs = [];
-            var loaded = false;
-            var loading = false;
-            var inited = false;
-            var state = "IDLE";
+            var incoming, outgoing;
+            var ignoreChanges;
+            var packedCs;
+            var loaded, loading, inited;
+            var state;
+            
+            resetState();
+            
+            function resetState() {
+                if (session) {
+                    session.off("change", handleUserChanges);
+                    session.selection.off("changeCursor", onCursorChange);
+                    session.selection.off("changeSelection", onCursorChange);
+                    session.selection.off("addRange", onCursorChange);
+                }
+                if (inited) {
+                    cursorLayer.dispose();
+                    authorLayer.dispose();
+                }
+                doc = session = docStream = revStream = undefined;
+                revCache = rev0Cache = latestRevNum = lastSel = undefined;
+                clearTimeout(sendTimer); clearTimeout(cursorTimer); clearTimeout(saveTimer);
+                sendTimer = cursorTimer = saveTimer = undefined;
+                commitTrials = 0;
+                incoming = [];
+                outgoing = [];
+                packedCs = [];
+                revisions = [];
+                starRevNums = [];
+                loaded = loading = inited = ignoreChanges = false;
+                state = "IDLE";
+            }
 
             // @see docs in the API section below
             function setSession(aceSession) {
@@ -87,9 +111,6 @@ define(function(require, module, exports) {
                 session.selection.addEventListener("changeCursor", onCursorChange);
                 session.selection.addEventListener("changeSelection", onCursorChange);
                 session.selection.addEventListener("addRange", onCursorChange);
-
-                // needed to provide immediate feedback for remote selection changes caused by local edits
-                session.on("change", function(e) { session._emit("changeBackMarker"); });
             }
 
             /**
@@ -147,6 +168,8 @@ define(function(require, module, exports) {
              * to the collab server as EDIT_UPDATE
              */
             function handleUserChanges (e) {
+                // needed to provide immediate feedback for remote selection changes caused by local edits
+                session._emit("changeBackMarker");
                 if (!loaded || ignoreChanges)
                     return;
                 try {
@@ -155,6 +178,7 @@ define(function(require, module, exports) {
                     scheduleSend();
                 } catch (ex) {
                     console.error("[OT] handleUserChanges", ex);
+                    reload();
                 }
             }
 
@@ -363,7 +387,7 @@ define(function(require, module, exports) {
                 } catch(e) {
                     console.error(e, "Stream:", docStream);
                     // try reload
-                    return load();
+                    return reload();
                 } finally {
                     docStream = null;
                 }
@@ -388,6 +412,7 @@ define(function(require, module, exports) {
                 }
 
                 delete doc.selections[workspace.myOldClientId]; // in case of being away
+                delete doc.selections[workspace.myClientId]; // in case of a rejoin (can also be restored, if existing)
 
                 if (session)
                     joinWithSession();
@@ -560,6 +585,7 @@ define(function(require, module, exports) {
                     applyAce(msg.op, aceDoc);
                     applyAuthorAttributes(doc.authAttribs, msg.op, workspace.authorPool[msg.userId]);
                 } catch(e) {
+                    console.error("[OT] applyEdit error:", e);
                     err = e;
                 } finally {
                     authorLayer.refresh();
@@ -568,7 +594,7 @@ define(function(require, module, exports) {
 
                     // try reload
                     if (err)
-                        load();
+                        reload();
                 }
             }
 
@@ -801,12 +827,16 @@ define(function(require, module, exports) {
                     return emit("saved", {err: err});
                 }
 
-                if (!pendingSave)
-                    return console.warn("[OT] No pending save found! - ignoring collab save");
-
-                if (pendingSave.fsHash !== data.fsHash) {
-                    console.error("[OT] Failed saving file!", err, docId);
-                    return emit("saved", {err: "Save content mismatch", code: "EMISMATCH"});
+                // pendingSave exists: save triggered by me
+                // otherwise: other collaborator save
+                if (pendingSave) {
+                    if (pendingSave.fsHash !== data.fsHash) {
+                        console.error("[OT] Failed saving file!", err, docId);
+                        return emit("saved", {err: "Save content mismatch", code: "EMISMATCH"});
+                    }
+                    else {
+                        console.log("File saved and md5 checksum matched", docId);
+                    }
                 }
 
                 var isClean = !outgoing.length || latestRevNum === data.revNum;
@@ -879,14 +909,14 @@ define(function(require, module, exports) {
 
             // @see docs in the API section below
             function save(silent) {
+                var saveStr = session.getValue();
+                var fsHash = apf.crypto.MD5.hex_md5(saveStr);
+                pendingSave = {silent: silent, outLen: outgoing.length, fsHash: fsHash};
                 var isUnity = isPackedUnity();
                 if (state === "IDLE" && isUnity)
                     return doSaveFile(silent);
                 if (!isUnity)
                     addOutgoingEdit();
-                var saveStr = session.getValue();
-                var fsHash = apf.crypto.MD5.hex_md5(saveStr);
-                pendingSave = {silent: silent, outLen: outgoing.length, fsHash: fsHash};
                 if (sendTimer) {
                     clearTimeout(sendTimer);
                     sendTimer = null;
@@ -906,23 +936,11 @@ define(function(require, module, exports) {
                 });
             }
 
-            // @see docs in the API section below
-            function dispose() {
-                if (!loaded)
-                    return;
-                state = "IDLE";
-                if (session) {
-                    session.removeListener("change", handleUserChanges);
-                    session.selection.removeEventListener("changeCursor", onCursorChange);
-                    session.selection.removeEventListener("changeSelection", onCursorChange);
-                    session.selection.removeEventListener("addRange", onCursorChange);
-                }
-                clearTimeout(sendTimer);
-                clearTimeout(cursorTimer);
-                if (inited) {
-                    cursorLayer.dispose();
-                    authorLayer.dispose();
-                }
+            function reload() {
+                var sameSession = session;
+                resetState();
+                setSession(sameSession);
+                load();
             }
 
             // @see docs in the API section below
@@ -935,8 +953,7 @@ define(function(require, module, exports) {
             // @see docs in the API section below
             function leave() {
                 connect.send("LEAVE_DOC", { docId: docId });
-                dispose();
-                loaded = loading = false;
+                resetState();
             }
 
             // @see docs in the API section below
@@ -1099,7 +1116,7 @@ define(function(require, module, exports) {
                 /**
                  * Dispose the resources used by the document like the cursorLayer and authorLayer and reset its state
                  */
-                dispose: dispose,
+                dispose: resetState,
                 /**
                  * Disconnect the document and it will need to reload when the client comes back online
                  */

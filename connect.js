@@ -134,7 +134,7 @@ define(function(require, exports, module) {
             if (connected || connecting)
                 emit("disconnect");
             else
-                console.error("[OT] Already disconnected!");
+                console.log("Collab already disconnected");
             connecting = connected = extended = false;
             emit.unsticky("available");
             collab = null;
@@ -250,7 +250,10 @@ define(function(require, exports, module) {
                     stream.off("data", onData);
                     // stream.destroy();
                     isClosed = true;
-                    // onDisconnect();
+
+                    onDisconnect();
+                    if (c9.connected)
+                        connect();
                 }
             });
         }
@@ -259,7 +262,7 @@ define(function(require, exports, module) {
             if (typeof arguments[0] !== "object")
                 msg = {type: arguments[0], data: arguments[1]};
             if (!connected)
-                return console.log("[OT] Collab not connected - SKIPPING ", msg);
+                return console.log("Collab not connected - SKIPPING ", msg);
             if (debug)
                 console.log("[OT] SENDING TO SERVER", msg);
             collab.send(clientId, msg);

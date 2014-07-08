@@ -44,6 +44,7 @@ define(function(require, exports, module) {
         // open collab documents
         var documents = {};
         var openFallbackTimeouts = {};
+        var OPEN_FILESYSTEM_FALLBACK_TIMEOUT = 5000;
 
         var loaded = false;
         function load() {
@@ -248,6 +249,7 @@ define(function(require, exports, module) {
             };
             otDoc.on("joinProgress", progressListener);
             otDoc.once("joined", function(e) {
+                console.log("[OT] Joined", otDoc.id);
                 otDoc.off("joinProgress", progressListener);
                 callback(e.err, e.contents, e.metadata);
             });
@@ -324,7 +326,6 @@ define(function(require, exports, module) {
                 setupJoinAndProgressCallbacks(otDoc, progress, callback);
 
             function fsOpenFallback() {
-                clearTimeout(openFallbackTimeouts[path]);
                 var xhr = fs.readFileWithMetadata(path, "utf8", callback, progress);
                 fallbackXhrAbort = xhr.abort.bind(xhr);
             }
@@ -333,11 +334,13 @@ define(function(require, exports, module) {
                 console.warn("[OT] JOIN_DOC timed out - fallback to filesystem, but don't abort");
                 fsOpenFallback();
                 otDoc.off("joined", onJoinErrorFallback);
-            }, 5000);
+            }, OPEN_FILESYSTEM_FALLBACK_TIMEOUT);
 
-            otDoc.once("joined", onJoinErrorFallback);
-            
+            otDoc.on("joined", onJoinErrorFallback);
+
             function onJoinErrorFallback(e) {
+                otDoc.off("joined", onJoinErrorFallback);
+                clearTimeout(openFallbackTimeouts[path]);
                 if (e.err) {
                     console.warn("[OT] JOIN_DOC failed - fallback to filesystem");
                     fsOpenFallback();
@@ -345,15 +348,18 @@ define(function(require, exports, module) {
             }
 
             var fallbackXhrAbort;
-            if (connect.connected)
+            if (connect.connected) {
                 return { abort: function() {
                     if (fallbackXhrAbort)
                         fallbackXhrAbort();
                     else
                         console.log("TODO: [OT] abort joining a document");
                 } };
-            else
-                return; // load through the metadata plugin (fs.xhr.js) while collab not connected
+            }
+            else {
+                // load through the metadata plugin (fs.xhr.js) while collab not connected
+                return null;
+            }
         }
 
         function afterReadFile(e) {
