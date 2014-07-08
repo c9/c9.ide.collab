@@ -1,5 +1,5 @@
 define(function(require, module, exports) {
-    main.consumes = ["Plugin", "ace", "util",
+    main.consumes = ["Plugin", "ace", "util", "apf",
         "collab.connect", "collab.util", "collab.workspace",
         "timeslider", "CursorLayer", "AuthorLayer"];
     main.provides = ["OTDocument"];
@@ -9,6 +9,7 @@ define(function(require, module, exports) {
         var Plugin = imports.Plugin;
         var connect = imports["collab.connect"];
         var c9util = imports.util;
+        var apf = imports.apf;
         var workspace = imports["collab.workspace"];
         var timeslider = imports.timeslider;
         var CursorLayer = imports.CursorLayer;
@@ -44,20 +45,44 @@ define(function(require, module, exports) {
             var docStream, revStream;
             var cursorLayer, authorLayer;
             var revCache, rev0Cache;
-            var revisions = [], starRevNums = [];
+            var revisions, starRevNums;
 
             var latestRevNum, lastSel;
-            var commitTrials = 0;
+            var commitTrials;
             var sendTimer, cursorTimer, saveTimer;
 
-            var incoming = [];
-            var outgoing = [];
-            var ignoreChanges = false;
-            var packedCs = [];
-            var loaded = false;
-            var loading = false;
-            var inited = false;
-            var state = "IDLE";
+            var incoming, outgoing;
+            var ignoreChanges;
+            var packedCs;
+            var loaded, loading, inited;
+            var state;
+            
+            resetState();
+            
+            function resetState() {
+                if (session) {
+                    session.off("change", handleUserChanges);
+                    session.selection.off("changeCursor", onCursorChange);
+                    session.selection.off("changeSelection", onCursorChange);
+                    session.selection.off("addRange", onCursorChange);
+                }
+                if (inited) {
+                    cursorLayer.dispose();
+                    authorLayer.dispose();
+                }
+                doc = session = docStream = revStream = undefined;
+                revCache = rev0Cache = latestRevNum = lastSel = undefined;
+                clearTimeout(sendTimer); clearTimeout(cursorTimer); clearTimeout(saveTimer);
+                sendTimer = cursorTimer = saveTimer = undefined;
+                commitTrials = 0;
+                incoming = [];
+                outgoing = [];
+                packedCs = [];
+                revisions = [];
+                starRevNums = [];
+                loaded = loading = inited = ignoreChanges = false;
+                state = "IDLE";
+            }
 
             // @see docs in the API section below
             function setSession(aceSession) {
@@ -86,9 +111,6 @@ define(function(require, module, exports) {
                 session.selection.addEventListener("changeCursor", onCursorChange);
                 session.selection.addEventListener("changeSelection", onCursorChange);
                 session.selection.addEventListener("addRange", onCursorChange);
-
-                // needed to provide immediate feedback for remote selection changes caused by local edits
-                session.on("change", function(e) { session._emit("changeBackMarker"); });
             }
 
             /**
@@ -146,6 +168,8 @@ define(function(require, module, exports) {
              * to the collab server as EDIT_UPDATE
              */
             function handleUserChanges (e) {
+                // needed to provide immediate feedback for remote selection changes caused by local edits
+                session._emit("changeBackMarker");
                 if (!loaded || ignoreChanges)
                     return;
                 try {
@@ -154,6 +178,7 @@ define(function(require, module, exports) {
                     scheduleSend();
                 } catch (ex) {
                     console.error("[OT] handleUserChanges", ex);
+                    reload();
                 }
             }
 
@@ -362,7 +387,7 @@ define(function(require, module, exports) {
                 } catch(e) {
                     console.error(e, "Stream:", docStream);
                     // try reload
-                    return load();
+                    return reload();
                 } finally {
                     docStream = null;
                 }
@@ -387,6 +412,7 @@ define(function(require, module, exports) {
                 }
 
                 delete doc.selections[workspace.myOldClientId]; // in case of being away
+                delete doc.selections[workspace.myClientId]; // in case of a rejoin (can also be restored, if existing)
 
                 if (session)
                     joinWithSession();
@@ -553,12 +579,23 @@ define(function(require, module, exports) {
             function applyEdit(msg, aceDoc) {
                 if (timeslider.visible)
                     return;
+                var err;
                 ignoreChanges = true;
-                applyAce(msg.op, aceDoc);
-                applyAuthorAttributes(doc.authAttribs, msg.op, workspace.authorPool[msg.userId]);
-                authorLayer.refresh();
-                doc.revNum = msg.revNum;
-                ignoreChanges = false;
+                try {
+                    applyAce(msg.op, aceDoc);
+                    applyAuthorAttributes(doc.authAttribs, msg.op, workspace.authorPool[msg.userId]);
+                } catch(e) {
+                    console.error("[OT] applyEdit error:", e);
+                    err = e;
+                } finally {
+                    authorLayer.refresh();
+                    doc.revNum = msg.revNum;
+                    ignoreChanges = false;
+
+                    // try reload
+                    if (err)
+                        reload();
+                }
             }
 
             // send a selection update to the collab server if not an exact match of the previous sent selection
@@ -747,38 +784,13 @@ define(function(require, module, exports) {
                     handleIncomingEdit(data);
                     break;
                 case "SYNC_COMMIT":
-                    console.error("[OT] SYNC_COMMIT", data.reason, data.code);
-                    state = "IDLE";
-                    if (data.code == "VERSION_E")
-                        latestRevNum = data.revNum;
-                    if (data.code == "OT_E" || commitTrials > MAX_COMMIT_TRIALS) {
-                        revertMyPendingChanges();
-                        clearCs(session.getValue().length);
-                        commitTrials = 0;
-                        if (pendingSave)
-                            doSaveFile(pendingSave.silent);
-                    }
-                    else {
-                        scheduleSend();
-                    }
+                    handleSyncCommit(data);
                     break;
                 case "CURSOR_UPDATE":
                     cursorLayer && cursorLayer.updateSelection(data);
                     break;
                 case "FILE_SAVED":
-                    clearTimeout(saveTimer);
-                    saveTimer = null;
-
-                    var err = data.err;
-                    if (err) {
-                        console.error("[OT] Failed saving file!", err, docId);
-                        emit("saved", {err: err});
-                        break;
-                    }
-
-                    var isClean = !outgoing.length || latestRevNum === data.revNum;
-                    var rev = revisions[data.revNum] || {revNum: data.revNum, updated_at: Date.now()};
-                    flagFileSaved(rev, data.star, isClean);
+                    handleFileSaved(data);
                     break;
                 case "GET_REVISIONS":
                    receiveRevisions(data);
@@ -786,6 +798,51 @@ define(function(require, module, exports) {
                  default:
                    console.error("[OT] Unkown document event type:", event.type, docId, event);
                }
+            }
+            
+            function handleSyncCommit(data) {
+                console.error("[OT] SYNC_COMMIT", data.reason, data.code);
+                state = "IDLE";
+                if (data.code == "VERSION_E")
+                    latestRevNum = data.revNum;
+                if (data.code == "OT_E" || commitTrials > MAX_COMMIT_TRIALS) {
+                    revertMyPendingChanges();
+                    clearCs(session.getValue().length);
+                    commitTrials = 0;
+                    if (pendingSave)
+                        doSaveFile(pendingSave.silent);
+                }
+                else {
+                    scheduleSend();
+                }
+            }
+
+            function handleFileSaved(data) {
+                clearTimeout(saveTimer);
+                saveTimer = null;
+
+                var err = data.err;
+                if (err) {
+                    console.error("[OT] Failed saving file!", err, docId);
+                    return emit("saved", {err: err});
+                }
+
+                // pendingSave exists: save triggered by me
+                // otherwise: other collaborator save
+                if (pendingSave) {
+                    if (pendingSave.fsHash !== data.fsHash) {
+                        console.error("[OT] Failed saving file!", err, docId);
+                        return emit("saved", {err: "Save content mismatch", code: "EMISMATCH"});
+                    }
+                    else {
+                        console.log("File saved and md5 checksum matched", docId);
+                    }
+                }
+
+                var isClean = !outgoing.length || latestRevNum === data.revNum;
+                var rev = revisions[data.revNum] || {revNum: data.revNum, updated_at: Date.now()};
+                flagFileSaved(rev, data.star, isClean);
+                pendingSave = null;
             }
 
             function flagFileSaved(revision, isStar, isClean) {
@@ -852,12 +909,14 @@ define(function(require, module, exports) {
 
             // @see docs in the API section below
             function save(silent) {
+                var saveStr = session.getValue();
+                var fsHash = apf.crypto.MD5.hex_md5(saveStr);
+                pendingSave = {silent: silent, outLen: outgoing.length, fsHash: fsHash};
                 var isUnity = isPackedUnity();
                 if (state === "IDLE" && isUnity)
                     return doSaveFile(silent);
                 if (!isUnity)
                     addOutgoingEdit();
-                pendingSave = {silent: silent, outLen: outgoing.length};
                 if (sendTimer) {
                     clearTimeout(sendTimer);
                     sendTimer = null;
@@ -877,23 +936,11 @@ define(function(require, module, exports) {
                 });
             }
 
-            // @see docs in the API section below
-            function dispose() {
-                if (!loaded)
-                    return;
-                state = "IDLE";
-                if (session) {
-                    session.removeListener("change", handleUserChanges);
-                    session.selection.removeEventListener("changeCursor", onCursorChange);
-                    session.selection.removeEventListener("changeSelection", onCursorChange);
-                    session.selection.removeEventListener("addRange", onCursorChange);
-                }
-                clearTimeout(sendTimer);
-                clearTimeout(cursorTimer);
-                if (inited) {
-                    cursorLayer.dispose();
-                    authorLayer.dispose();
-                }
+            function reload() {
+                var sameSession = session;
+                resetState();
+                setSession(sameSession);
+                load();
             }
 
             // @see docs in the API section below
@@ -906,8 +953,7 @@ define(function(require, module, exports) {
             // @see docs in the API section below
             function leave() {
                 connect.send("LEAVE_DOC", { docId: docId });
-                dispose();
-                loaded = loading = false;
+                resetState();
             }
 
             // @see docs in the API section below
@@ -1070,7 +1116,7 @@ define(function(require, module, exports) {
                 /**
                  * Dispose the resources used by the document like the cursorLayer and authorLayer and reset its state
                  */
-                dispose: dispose,
+                dispose: resetState,
                 /**
                  * Disconnect the document and it will need to reload when the client comes back online
                  */
