@@ -2,7 +2,7 @@
 define(function(require, exports, module) {
 "use strict";
 
-    main.consumes = ["CollabPanel", "ui", "api", "dialog.alert", "c9", "panels", "collab.workspace"];
+    main.consumes = ["CollabPanel", "ui", "api", "dialog.alert", "c9", "panels"];
     main.provides = ["notifications"];
     return main;
 
@@ -13,7 +13,6 @@ define(function(require, exports, module) {
         var api = imports.api;
         var panels = imports.panels;
         var alert = imports["dialog.alert"].show;
-        var workspace = imports["collab.workspace"];
 
         var css = require("text!./notifications.css");
         var staticPrefix = options.staticPrefix;
@@ -27,11 +26,11 @@ define(function(require, exports, module) {
             caption: "Notifications",
             height: "20%"
         });
-        
-        // var emit = plugin.getEmitter();
 
         // added notification types as classes below
         var NOTIFICATION_TYPES = {};
+
+        // var emit = plugin.getEmitter();
 
         var notificationsParent, notificationsTree, notificationsDataProvider;
         var frame, panelButton, bubble;
@@ -49,7 +48,7 @@ define(function(require, exports, module) {
 
             if (!options.hosted && c9.debug) {
                 // standalone version test
-                addNotifications([
+                cachedNotifications = createNotifications([
                     { name: "Bas de Wachter", uid: 8, email: "bas@c9.io", type: "access_request" },
                     { name: "Mostafa Eweda", uid: 1, email: "mostafa@c9.io", type: "access_request" },
                     { name: "Lennart Kats", uid: 5,  email: "lennart@c9.io", type: "access_request" },
@@ -57,11 +56,6 @@ define(function(require, exports, module) {
                     { name: "Fabian Jakobs", uid: 4, email: "fabian@ajax.org", type: "access_request" }
                 ]);
             }
-            
-            workspace.on("notification", function(notif) {
-                addNotifications(notif);
-                postLoadedNotifications();
-            });
         }
 
         var drawn = false;
@@ -120,12 +114,10 @@ define(function(require, exports, module) {
                 if (err) return alert(err);
 
                 if (Array.isArray(members)) {
-                    var notifs = members.map(function(m) {
+                    members.forEach(function(m) {
                         m.type = "access_request";
-                        return m;
                     });
-                    cachedNotifications = [];
-                    addNotifications(notifs);
+                    cachedNotifications = createNotifications(members);
                     postLoadedNotifications();
                 }
             });
@@ -169,14 +161,10 @@ define(function(require, exports, module) {
             onNotificationsLoaded();
         }
 
-        function addNotifications(notifs) {
-            if (!Array.isArray(notifs))
-                notifs = [notifs];
-            notifs.forEach(function(notif) {
+        function createNotifications(notifs) {
+            return notifs.map(function(notif) {
                 var NotifConstructor = NOTIFICATION_TYPES[notif.type];
-                if (!NotifConstructor)
-                    console.error("Invalid notification type:", notif.type);
-                cachedNotifications.push(new NotifConstructor(notif));
+                return new NotifConstructor(notif);
             });
         }
 
@@ -246,8 +234,7 @@ define(function(require, exports, module) {
                 if (!options.hosted)
                     return requestAccepted();
                     
-                var datarow = this.datarow;
-                var uid = datarow.uid;
+                var uid = this.datarow.uid;
                 api.collab.post("accept_request", {
                     body: {
                         uid: uid,
@@ -258,8 +245,6 @@ define(function(require, exports, module) {
                     requestAccepted();
                 });
                 function requestAccepted() {
-                    datarow.acl = access;
-                    workspace.addMemberNonPubSub(datarow);
                     _self.remove();
                 }
             };
@@ -335,6 +320,7 @@ define(function(require, exports, module) {
          * @singleton
          **/
         plugin.freezePublicAPI({
+            
         });
 
         register(null, {

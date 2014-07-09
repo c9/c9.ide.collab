@@ -6,7 +6,7 @@
  */
 define(function(require, exports, module) {
     main.consumes = [
-        "c9", "Plugin", "ext", "vfs", "dialog.question", 
+        "c9", "Plugin", "ext", "ui", "proc", "vfs", "dialog.question", 
         "installer"
     ];
     main.provides = ["collab.connect"];
@@ -16,6 +16,8 @@ define(function(require, exports, module) {
         var Plugin = imports.Plugin;
         var c9 = imports.c9;
         var ext = imports.ext;
+        var ui = imports.ui;
+        var proc = imports.proc;
         var vfs = imports.vfs;
         var installer = imports.installer;
         var question = imports["dialog.question"];
@@ -24,9 +26,7 @@ define(function(require, exports, module) {
 
         var plugin = new Plugin("Ajax.org", main.consumes);
         var emit = plugin.getEmitter();
-
         var localServerFile = options.localServerFile;
-        var extendToken = options.extendToken;
 
         var clientId;
 
@@ -115,9 +115,8 @@ define(function(require, exports, module) {
             function extend(code) {
                 ext.loadRemotePlugin("collab", {
                     file: !code && "collab-server.js",
-                    code: code,
-                    extendToken: extendToken,
-                    redefine: true
+                    redefine: true,
+                    code: code
                 }, function(err, api) {
                     if (err) {
                         extended = false;
@@ -144,6 +143,18 @@ define(function(require, exports, module) {
                 stream = null;
             }
             clearTimeout(connectTimeout);
+        }
+
+        var drawn = false;
+        function draw() {
+            if (drawn) return;
+            drawn = true;
+
+            // ui.insertMarkup(markup);
+            // btnCollabDisable.on("click". function(){
+            //    destroy();
+            //    winCollabInstall.hide();
+            //}
         }
         
         /***** Methods *****/
