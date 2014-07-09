@@ -240,9 +240,9 @@ define(function(require, exports, module) {
                     // stream.destroy();
                     isClosed = true;
 
-                    setTimeout(function () {
-                        c9.connected && connect();
-                    }, 3000);
+                    // setTimeout(function () {
+                    //     c9.connected && connect();
+                    // }, 3000);
                 }
             });
         }

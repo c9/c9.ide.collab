@@ -911,12 +911,12 @@ define(function(require, module, exports) {
             function save(silent) {
                 var saveStr = session.getValue();
                 var fsHash = apf.crypto.MD5.hex_md5(saveStr);
-                pendingSave = {silent: silent, outLen: outgoing.length, fsHash: fsHash};
                 var isUnity = isPackedUnity();
-                if (state === "IDLE" && isUnity)
-                    return doSaveFile(silent);
                 if (!isUnity)
                     addOutgoingEdit();
+                pendingSave = {silent: !!silent, outLen: outgoing.length, fsHash: fsHash};
+                if (state === "IDLE" && isUnity)
+                    return doSaveFile(silent);
                 if (sendTimer) {
                     clearTimeout(sendTimer);
                     sendTimer = null;
