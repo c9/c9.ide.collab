@@ -344,12 +344,17 @@ define(function(require, exports, module) {
             var path = e.path;
             var tab = tabs.findTab(path);
             var doc = documents[path];
+
+            // Fall back to default writeFile if we can't handle it
             if (!tab || timeslider.visible || !connect.connected || !doc || !doc.loaded)
                 return;
+
+            // Override default writeFile
             var args = e.args.slice();
             var progress = args.pop();
             var callback = args.pop();
-            saveDocument(path, e.fn, e.args, callback);
+            var defaultWriteFile = e.fn;
+            saveDocument(path, defaultWriteFile, e.args, callback);
             return false;
         }
 
