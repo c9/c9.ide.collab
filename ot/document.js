@@ -852,6 +852,7 @@ define(function(require, module, exports) {
 
             // @see docs in the API section below
             function save(silent) {
+                safeGuardSave();
                 var isUnity = isPackedUnity();
                 if (state === "IDLE" && isUnity)
                     return doSaveFile(silent);
@@ -866,15 +867,20 @@ define(function(require, module, exports) {
             }
 
             function doSaveFile(silent) {
-                clearTimeout(saveTimer);
-                saveTimer = setTimeout(function() {
-                    saveTimer = pendingSave = null;
-                    emit("saved", {err: "File save timeout", code: "ETIMEOUT"});
-                }, SAVE_FILE_TIMEOUT);
+                safeGuardSave();
                 connect.send("SAVE_FILE", {
                     docId: docId,
                     silent: !!silent
                 });
+            }
+            
+            function safeGuardSave() {
+                if (saveTimer)
+                    return;
+                saveTimer = setTimeout(function() {
+                    saveTimer = pendingSave = null;
+                    emit("saved", {err: "File save timeout", code: "ETIMEOUT"});
+                }, SAVE_FILE_TIMEOUT);
             }
 
             // @see docs in the API section below
