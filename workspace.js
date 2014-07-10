@@ -1,5 +1,5 @@
 define(function(require, exports, module) {
-    main.consumes = ["Plugin", "collab.util", "api"];
+    main.consumes = ["Plugin", "collab.util", "api", "pubsub", "info", "dialog.alert"];
     main.provides = ["collab.workspace"];
     return main;
 
@@ -7,6 +7,9 @@ define(function(require, exports, module) {
         var Plugin = imports.Plugin;
         var util = imports["collab.util"];
         var api = imports.api;
+        var pubsub = imports.pubsub;
+        var info = imports["info"];
+        var showAlert = imports["dialog.alert"].show;
 
         /***** Initialization *****/
 
@@ -16,9 +19,65 @@ define(function(require, exports, module) {
         var authorPool = {};
         var colorPool = {};
         var users = {};
-        var loaded = false;
-        var myClientId, myOldClientId, myUserId, fs;
+
+        var myUserId = info.getUser().id;
+        var loadedWorkspace = false;
+        var myClientId, myOldClientId, fs;
         var reversedAuthorPool, chatHistory;
+        
+        var loaded = false;
+        function load() {
+            if (loaded) return;
+            loaded = true;
+            pubsub.on("message", function(message) {
+                if (message.type != "collab")
+                    return;
+                console.log("PubSub collab API message", message);
+                var action = message.action;
+                var body = message.body;
+                var uid = body.uid;
+                switch (action) {
+                    case "add_member":
+                        addCachedMember(body);
+                        break;
+                    case "update_member_access":
+                        updateCachedAccess(uid, body.acl);
+                        if (myUserId == uid) {
+                            showAlert("Workspace Access", (body.acl == "rw" ? "You have been granted read/write access to the workspace."
+                                    : "You workspace access has been limited to read-only." )
+                                + " Reloading now to apply new access rights ...");
+                            reloadWorkspace(3000);
+                        }
+                        break;
+                    case "remove_member":
+                        removeCachedMember(uid);
+                        if (body.uid == myUserId) {
+                            showAlert("Workspace Access", "You have been removed from the workspace by the workspace owner/admin."
+                                + " Reloading now to apply your new access rights ...");
+                            reloadWorkspace(3000);
+                        }
+                        break;
+                    case "request_access":
+                        var notif = { type: "access_request", name: body.name, uid: body.uid, email: body.email };
+                        emit("notification", notif);
+                        break;
+                    case "accept_request":
+                        reloadWorkspace();
+                        break;
+                    case "deny_request":
+                        reloadWorkspace();
+                        break;
+                    default:
+                        console.warn("Unhandled pubsub collab action:", action, message);
+                }
+            });
+        }
+        
+        function reloadWorkspace(afterTimeout) {
+            setTimeout(function() {
+                window.location.reload();
+            }, afterTimeout || 10);
+        }
 
         /***** Register and define API *****/
 
@@ -29,14 +88,13 @@ define(function(require, exports, module) {
                 myOldClientId = null;
 
             myClientId = data.myClientId;
-            myUserId = data.myUserId;
             fs = data.fs;
             authorPool = data.authorPool;
             reversedAuthorPool = util.reverseObject(authorPool);
             colorPool = data.colorPool;
             users = data.users;
             chatHistory = data.chatHistory;
-            loaded = true;
+            loadedWorkspace = true;
             emit("sync");
         }
 
@@ -47,7 +105,12 @@ define(function(require, exports, module) {
         }
 
         function joinClient(user) {
-            users[user.uid] = user;
+            var uid = user.uid;
+            var authorId = user.author;
+            users[uid] = user;
+            authorPool[uid] = authorId;
+            reversedAuthorPool[authorId] = uid;
+            colorPool[uid] = user.color;
             emit("sync");
         }
 
@@ -93,7 +156,7 @@ define(function(require, exports, module) {
                     name: username,
                     acl: access,
                     email: "s@a.a"
-                });
+                }, callback);
             }
             api.collab.post("members/add", {
                 body: {
@@ -102,39 +165,50 @@ define(function(require, exports, module) {
                 }
             }, function (err, data, res) {
                 if (err) return callback(err);
-                addCachedMember(data);
+                if (!pubsub.connected) // pubsub not working
+                    addCachedMember(data, callback);
+                // normally, pubsub will handle it for all clients
             });
+        }
 
-            function addCachedMember(member) {
-                cachedMembers && cachedMembers.push(member);
-                callback(null, member);
-                emit("sync");
-            }
+        function addCachedMember(member, next) {
+            if (!cachedMembers)
+                return console.warn("addCachedMember() - cachedMembers = null !");
+            cachedMembers = cachedMembers.filter(function (m) {
+                return m.uid  != member.uid;
+            });
+            cachedMembers.push(member);
+            emit("sync");
+            next && next(null, member);
         }
 
         function removeMember(uid, callback) {
             if (!options.hosted)
-                return removeCachedMember();
+                return removeCachedMember(uid, callback);
 
             api.collab.delete("members/remove", {
                 body: { uid : uid }
             }, function (err, data, res) {
                 if (err) return callback(err);
-                removeCachedMember();
+                if (!pubsub.connected) // pubsub not working
+                    removeCachedMember(uid, callback);
+                // normally, pubsub will handle it for all clients
             });
-
-            function removeCachedMember() {
-                cachedMembers = cachedMembers.filter(function (member) {
-                    return member.uid  != uid;
-                });
-                callback();
-                emit("sync");
-            }
+        }
+        
+        function removeCachedMember(uid, next) {
+            if (!cachedMembers)
+                return console.warn("removeCachedMember() - cachedMembers = null !");
+            cachedMembers = cachedMembers.filter(function (member) {
+                return member.uid  != uid;
+            });
+            emit("sync");
+            next && next();
         }
 
         function updateAccess(uid, acl, callback) {
             if (!options.hosted)
-                return updateCachedAccess();
+                return updateCachedAccess(uid, acl, callback);
 
             api.collab.put("members/update_access", {
                 body: {
@@ -143,16 +217,20 @@ define(function(require, exports, module) {
                 }
             }, function (err, data, res) {
                 if (err) return callback(err);
-                updateCachedAccess();
+                if (!pubsub.connected) // pubsub not working
+                    updateCachedAccess(uid, acl, callback);
+                // normally, pubsub will handle it for all clients
             });
-
-            function updateCachedAccess() {
-                (cachedMembers.filter(function (member) {
-                    return member.uid  == uid;
-                })[0] || {}).acl = acl;
-                callback();
-                emit("sync");
-            }
+        }
+        
+        function updateCachedAccess(uid, acl, next) {
+            if (!cachedMembers)
+                return console.warn("updateCachedAccess() - cachedMembers = null !");
+            (cachedMembers.filter(function (member) {
+                return member.uid  == uid;
+            })[0] || {}).acl = acl;
+            emit("sync");
+            next && next();
         }
 
         function getUserState(uid) {
@@ -161,9 +239,21 @@ define(function(require, exports, module) {
                 return "offline";
             return user.state || "online";
         }
+        
+        function addMemberNonPubSub(member) {
+            if (!pubsub.connected) // pubsub not working
+                addCachedMember(member);
+            // normally, pubsub will handle it for all clients
+        }
+
+        /***** Lifecycle *****/
+
+        plugin.on("load", function(){
+            load();
+        });
 
         plugin.on("newListener", function(event, listener) {
-            if (event == "sync" && loaded)
+            if (event == "sync" && loadedWorkspace)
                  listener();
         });
 
@@ -230,7 +320,7 @@ define(function(require, exports, module) {
             get myOldClientId() { return myOldClientId; },
             /**
              * Get my user id - similar to:
-             * info.getUser().uid
+             * info.getUser().id
              * @property {Number} myUserId
              */
             get myUserId()      { return myUserId; },
@@ -238,7 +328,7 @@ define(function(require, exports, module) {
              * Specifies wether the collab workspace was previously loaded and collab was connected - or not
              * @property {Boolean} loaded
              */
-            get loaded()        { return loaded;  },
+            get loaded()        { return loadedWorkspace;  },
             /**
              * Gets my filesystem access to this workspace:
              * Values can be either "r" or "rw"
@@ -335,7 +425,12 @@ define(function(require, exports, module) {
              * @param {String}   access   - the access right to the workspace ( read-only ("r") or read+write ("rw") )
              * @param {Function} callback
              */
-            addMember: addMember
+            addMember: addMember,
+            /*
+             * Adds a member to the workspace UI if pubsub isn't enabled
+             * @param {Object} member
+             */
+            addMemberNonPubSub: addMemberNonPubSub,
         });
         
         register(null, {
