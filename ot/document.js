@@ -295,6 +295,12 @@ define(function(require, module, exports) {
             function doSend() {
                 if (state !== "IDLE")
                     return;
+                
+                if (sendTimer) {
+                    clearTimeout(sendTimer);
+                    sendTimer = null;
+                }
+                        
 
                 var st = new Date();
                 if (!outgoing.length && !isPackedUnity())
@@ -859,11 +865,7 @@ define(function(require, module, exports) {
                 if (!isUnity)
                     addOutgoingEdit();
                 pendingSave = {silent: silent, outLen: outgoing.length};
-                if (sendTimer) {
-                    clearTimeout(sendTimer);
-                    sendTimer = null;
-                    scheduleSend();
-                }
+                doSend();
             }
 
             function doSaveFile(silent) {
