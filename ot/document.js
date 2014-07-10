@@ -56,6 +56,7 @@ define(function(require, module, exports) {
             var packedCs;
             var loaded, loading, inited;
             var state;
+            var pendingSave;
             
             resetState();
             
@@ -551,6 +552,7 @@ define(function(require, module, exports) {
                         // revert & discard all my uncommited changesets because:
                         // a- a file watcher caused this document sync on (overriding my changes)
                         // b- my changes may lead to inconsist state or can fail to be applied to the new synced document state
+                        console.log("Received new document, discarding any pending changes");
                         revertMyPendingChanges(msg.userId);
                         pendingSave = null;
                     }
@@ -911,8 +913,6 @@ define(function(require, module, exports) {
                 authorLayer.refresh();
             }
 
-            var pendingSave;
-
             // @see docs in the API section below
             function save(silent) {
                 safeGuardSave();
@@ -931,6 +931,7 @@ define(function(require, module, exports) {
 
             function doSaveFile(silent) {
                 safeGuardSave();
+                
                 connect.send("SAVE_FILE", {
                     docId: docId,
                     silent: !!silent
