@@ -380,14 +380,14 @@ define(function(require, module, exports) {
                     return emit.sticky("joined", {err: err});
                 }
 
-                if (data.chunkNum === 1)
+                if (data.chunkNum === 0)
                     docStream = "";
                 docStream += data.chunk;
 
-                var complete = data.chunkNum === data.chunksLength;
+                var complete = data.chunkNum === data.chunksLength - 1;
                 if (!c9Document.hasValue())
                     emit("joinProgress", {
-                        loaded: data.chunkNum,
+                        loaded: data.chunkNum + 1,
                         total: data.chunksLength,
                         complete: complete
                     });
@@ -881,12 +881,12 @@ define(function(require, module, exports) {
             }
 
             function receiveRevisions(data) {
-               if (data.chunkNum === 1)
+               if (data.chunkNum === 0)
                     revStream = "";
 
                 revStream += data.chunk;
 
-                if (data.chunkNum !== data.chunksLength)
+                if (data.chunkNum < data.chunksLength - 1)
                     return;
 
                 var revisionsObj = JSON.parse(revStream);
