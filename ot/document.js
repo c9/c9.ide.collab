@@ -1,7 +1,10 @@
 define(function(require, module, exports) {
-    main.consumes = ["Plugin", "ace", "util", "apf",
+    main.consumes = [
+        "Plugin", "ace", "util", "apf",
         "collab.connect", "collab.util", "collab.workspace",
-        "timeslider", "CursorLayer", "AuthorLayer"];
+        "timeslider", "CursorLayer", "AuthorLayer",
+        "collab.connect"
+    ];
     main.provides = ["OTDocument"];
     return main;
 
@@ -14,6 +17,7 @@ define(function(require, module, exports) {
         var timeslider = imports.timeslider;
         var CursorLayer = imports.CursorLayer;
         var AuthorLayer = imports.AuthorLayer;
+        var connect = imports["collab.connect"];
 
         var lang = require("ace/lib/lang");
         // var Range = require("ace/range").Range;
@@ -58,6 +62,8 @@ define(function(require, module, exports) {
             var state;
             var pendingSave;
             
+            connect.on("disconnect", saveWatchDogDisconnect);
+            
             resetState();
             
             function resetState() {
@@ -73,8 +79,8 @@ define(function(require, module, exports) {
                 }
                 doc = session = docStream = revStream = undefined;
                 revCache = rev0Cache = latestRevNum = lastSel = undefined;
-                clearTimeout(sendTimer); clearTimeout(cursorTimer); clearTimeout(saveTimer);
-                sendTimer = cursorTimer = saveTimer = undefined;
+                clearTimeout(sendTimer); clearTimeout(cursorTimer); endSaveWatchDog();
+                sendTimer = cursorTimer = undefined;
                 commitTrials = 0;
                 incoming = [];
                 outgoing = [];
@@ -417,7 +423,7 @@ define(function(require, module, exports) {
                     // Document was updated to latest state on disk,
                     // but that information won't really help users,
                     // so we're just going to save the state as it is now.
-                    safeGuardSave(true);
+                    saveWatchDog(true);
                     save(pendingSave.silent);
                 }
 
@@ -829,8 +835,7 @@ define(function(require, module, exports) {
             }
 
             function handleFileSaved(data) {
-                clearTimeout(saveTimer);
-                saveTimer = null;
+                endSaveWatchDog();
 
                 var err = data.err;
                 if (err) {
@@ -918,7 +923,7 @@ define(function(require, module, exports) {
 
             // @see docs in the API section below
             function save(silent) {
-                safeGuardSave();
+                saveWatchDog();
 
                 var saveStr = session.getValue();
                 var fsHash = apf.crypto.MD5.hex_md5(saveStr);
@@ -933,7 +938,7 @@ define(function(require, module, exports) {
             }
 
             function doSaveFile(silent) {
-                safeGuardSave();
+                saveWatchDog();
                 
                 connect.send("SAVE_FILE", {
                     docId: docId,
@@ -941,14 +946,29 @@ define(function(require, module, exports) {
                 });
             }
             
-            function safeGuardSave(restart) {
+            function saveWatchDog(restart) {
                 if (saveTimer && !restart)
                     return;
-                clearTimeout(saveTimer);
-                saveTimer = setTimeout(function() {
+                endSaveWatchDog();
+                
+                saveTimer = setTimeout(function onSaveTimeout() {
                     saveTimer = pendingSave = null;
                     emit("saved", {err: "File save timeout", code: "ETIMEOUT"});
                 }, SAVE_FILE_TIMEOUT);
+            }
+            
+            function saveWatchDogDisconnect() {
+                if (!saveTimer)
+                    return;
+                endSaveWatchDog();
+                connect.once("connect", function() {
+                    saveWatchDog(true);
+                });
+            }
+            
+            function endSaveWatchDog() {
+                clearTimeout(saveTimer);
+                saveTimer = null;
             }
 
             function reload() {
