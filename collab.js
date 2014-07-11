@@ -45,7 +45,7 @@ define(function(require, exports, module) {
         var documents = {};
         var openFallbackTimeouts = {};
         var usersLeaving = {};
-        var OPEN_FILESYSTEM_FALLBACK_TIMEOUT = 5000;
+        var OPEN_FILESYSTEM_FALLBACK_TIMEOUT = 6000;
 
         var loaded = false;
         function load() {
@@ -335,6 +335,10 @@ define(function(require, exports, module) {
          * e.progress
          */
         function beforeReadFile(e) {
+            // Load using XHR while collab not connected
+            if (!connect.connected)
+                return;
+            
             var path = e.path;
             var progress = e.progress;
             var callback = e.callback;
@@ -344,40 +348,42 @@ define(function(require, exports, module) {
             else
                 setupJoinAndProgressCallbacks(otDoc, progress, callback);
 
-            function fsOpenFallback() {
-                var xhr = fs.readFileWithMetadata(path, "utf8", callback, progress);
-                fallbackXhrAbort = xhr.abort.bind(xhr);
+            otDoc.on("joined", onJoined);
+            otDoc.on("joinProgress", startWatchDog);
+            startWatchDog();
+
+            var fallbackXhrAbort;
+            return {
+                abort: function() {
+                    if (fallbackXhrAbort)
+                        fallbackXhrAbort();
+                    else
+                        console.log("TODO: [OT] abort joining a document");
+                }   
+            };
+
+            function startWatchDog() {
+                clearTimeout(openFallbackTimeouts[path]);
+                openFallbackTimeouts[path] = setTimeout(function() {
+                    console.warn("[OT] JOIN_DOC timed out - fallback to filesystem, but don't abort");
+                    fsOpenFallback();
+                    otDoc.off("joined", onJoined);
+                }, OPEN_FILESYSTEM_FALLBACK_TIMEOUT);
             }
 
-            openFallbackTimeouts[path] = setTimeout(function() {
-                console.warn("[OT] JOIN_DOC timed out - fallback to filesystem, but don't abort");
-                fsOpenFallback();
-                otDoc.off("joined", onJoinErrorFallback);
-            }, OPEN_FILESYSTEM_FALLBACK_TIMEOUT);
-
-            otDoc.on("joined", onJoinErrorFallback);
-
-            function onJoinErrorFallback(e) {
-                otDoc.off("joined", onJoinErrorFallback);
+            function onJoined(e) {
+                otDoc.off("joined", onJoined);
                 clearTimeout(openFallbackTimeouts[path]);
+                openFallbackTimeouts[path] = null;
                 if (e.err) {
                     console.warn("[OT] JOIN_DOC failed - fallback to filesystem");
                     fsOpenFallback();
                 }
             }
 
-            var fallbackXhrAbort;
-            if (connect.connected) {
-                return { abort: function() {
-                    if (fallbackXhrAbort)
-                        fallbackXhrAbort();
-                    else
-                        console.log("TODO: [OT] abort joining a document");
-                } };
-            }
-            else {
-                // load through the metadata plugin (fs.xhr.js) while collab not connected
-                return null;
+            function fsOpenFallback() {
+                var xhr = fs.readFileWithMetadata(path, "utf8", callback, progress);
+                fallbackXhrAbort = xhr.abort.bind(xhr);
             }
         }
 
