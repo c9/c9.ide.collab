@@ -695,6 +695,8 @@ define(function(require, module, exports) {
                     applyAuthorAttributes(authAttribs, revisions[i].operation, workspace.authorPool[revisions[i].author]);
                 }
                 var rev = cloneObject(revisions[revNum]);
+                if (!rev)
+                    return null;
                 rev.contents = contents;
                 rev.authAttribs = authAttribs;
 
@@ -848,9 +850,8 @@ define(function(require, module, exports) {
                 if (pendingSave) {
                     var rev = getDetailedRevision(data.revNum, true);
                     var value = rev && rev.contents;
-                    var myHash = apf.crypto.MD5.hex_md5(value);
                     
-                    if (myHash !== data.fsHash) {
+                    if (value && apf.crypto.MD5.hex_md5(value) !== data.fsHash) {
                         console.error("[OT] Failed saving file!", err, docId);
                         return emit("saved", {err: "Save content mismatch", code: "EMISMATCH"});
                     }
