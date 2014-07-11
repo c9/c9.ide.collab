@@ -44,6 +44,7 @@ define(function(require, exports, module) {
         // open collab documents
         var documents = {};
         var openFallbackTimeouts = {};
+        var usersLeaving = {};
         var OPEN_FILESYSTEM_FALLBACK_TIMEOUT = 5000;
 
         var loaded = false;
@@ -177,11 +178,11 @@ define(function(require, exports, module) {
                     if (!user)
                         break;
                     workspace.joinClient(user);
-                    bubbleNotification("came online", user);
+                    notifyUserOnline(user);
                     break;
                 case "USER_LEAVE":
                     workspace.leaveClient(data.userId);
-                    bubbleNotification("went offline", user);
+                    notifyUserOffline(user);
                     break;
                 case "LEAVE_DOC":
                     doc && doc.clientLeave(data.clientId);
@@ -206,6 +207,24 @@ define(function(require, exports, module) {
                     else
                         console.warn("[OT] Doc ", docId, " not yet inited - MSG:", msg);
             }
+        }
+        
+        function notifyUserOffline(user) {
+            clearTimeout(usersLeaving[user.fullname]);
+            usersLeaving[user.fullname] = setTimeout(function() {
+                bubbleNotification("went offline", user);
+                delete usersLeaving[user.fullname];
+            }, 4000);
+        }
+        
+        function notifyUserOnline(user) {
+            if (usersLeaving[user.fullname]) {
+                // User left for like 4 seconds, don't notify
+                clearTimeout(usersLeaving[user.fullname]);
+                return;
+            }
+            
+            bubbleNotification("came online", user);
         }
 
         /**
