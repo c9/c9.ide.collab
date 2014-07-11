@@ -414,8 +414,11 @@ define(function(require, module, exports) {
                 outgoing = [];
                 incoming = [];
                 if (pendingSave) {
-                    emit("saved", {err: "Document `" + docId + "` updated to latest state on disk, please try saving again", code: "EREJOINED"});
-                    pendingSave = null;
+                    // Document was updated to latest state on disk,
+                    // but that information won't really help users,
+                    // so we're just going to save the state as it is now.
+                    safeGuardSave(true);
+                    save(pendingSave.silent);
                 }
 
                 delete doc.selections[workspace.myOldClientId]; // in case of being away
@@ -938,9 +941,10 @@ define(function(require, module, exports) {
                 });
             }
             
-            function safeGuardSave() {
-                if (saveTimer)
+            function safeGuardSave(restart) {
+                if (saveTimer && !restart)
                     return;
+                clearTimeout(saveTimer);
                 saveTimer = setTimeout(function() {
                     saveTimer = pendingSave = null;
                     emit("saved", {err: "File save timeout", code: "ETIMEOUT"});
