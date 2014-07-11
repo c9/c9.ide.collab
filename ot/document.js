@@ -385,10 +385,11 @@ define(function(require, module, exports) {
                 docStream += data.chunk;
 
                 var complete = data.chunkNum === data.chunksLength - 1;
+                var firstChunkBonus = 1;
                 if (!c9Document.hasValue())
                     emit("joinProgress", {
-                        loaded: data.chunkNum + 1,
-                        total: data.chunksLength,
+                        loaded: data.chunkNum + firstChunkBonus + 1,
+                        total: data.chunksLength + firstChunkBonus,
                         complete: complete
                     });
 
