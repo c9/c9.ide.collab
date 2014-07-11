@@ -667,11 +667,11 @@ define(function(require, module, exports) {
              * Gets a revision with the contents and authorship attributes of the document at this revision
              * Only works if revisions were previously loaded
              */
-            function getDetailedRevision(revNum) {
+            function getDetailedRevision(revNum, contentsOnly) {
                 var i;
                 // authAttribs can only be edited in the forward way because
                 // The user who deleed some text isn't necessarily the one who inserted it
-                if (!rev0Cache) {
+                if (!rev0Cache && !contentsOnly) {
                     var rev0Contents = revCache.contents;
                     for (i = revCache.revNum; i > 0; i--) {
                         var op = operations.inverse(revisions[i].operation);
@@ -846,7 +846,11 @@ define(function(require, module, exports) {
                 // pendingSave exists: save triggered by me
                 // otherwise: other collaborator save
                 if (pendingSave) {
-                    if (pendingSave.fsHash !== data.fsHash) {
+                    var rev = getDetailedRevision(data.revNum, true);
+                    var value = rev && rev.contents;
+                    var myHash = apf.crypto.MD5.hex_md5(value);
+                    
+                    if (myHash !== data.fsHash) {
                         console.error("[OT] Failed saving file!", err, docId);
                         return emit("saved", {err: "Save content mismatch", code: "EMISMATCH"});
                     }
@@ -925,12 +929,10 @@ define(function(require, module, exports) {
             function save(silent) {
                 saveWatchDog();
 
-                var saveStr = session.getValue();
-                var fsHash = apf.crypto.MD5.hex_md5(saveStr);
                 var isUnity = isPackedUnity();
                 if (!isUnity)
                     addOutgoingEdit();
-                pendingSave = {silent: !!silent, outLen: outgoing.length, fsHash: fsHash};
+                pendingSave = {silent: !!silent, outLen: outgoing.length};
                 if (state === "IDLE" && isUnity)
                     return doSaveFile(silent);
 
@@ -939,6 +941,9 @@ define(function(require, module, exports) {
 
             function doSaveFile(silent) {
                 saveWatchDog();
+
+                if (!pendingSave)  // should be set, but let's make sure
+                   pendingSave = { silent: silent };
                 
                 connect.send("SAVE_FILE", {
                     docId: docId,
