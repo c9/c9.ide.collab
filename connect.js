@@ -241,7 +241,7 @@ define(function(require, exports, module) {
                     isClosed = true;
 
                     setTimeout(function () {
-                        c9.connected && connect();
+                        isClosed && c9.connected && connect();
                     }, 3000);
                 }
             });

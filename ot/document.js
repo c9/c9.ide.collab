@@ -32,7 +32,7 @@ define(function(require, module, exports) {
         // happens when I'm editing alone
         var MAX_DELAY = options.maxDelay;
         var MAX_COMMIT_TRIALS = 3;
-        var SAVE_FILE_TIMEOUT = 5000;
+        var SAVE_FILE_TIMEOUT = 9000;
 
         function OTDocument(docId, c9Document) {
 
