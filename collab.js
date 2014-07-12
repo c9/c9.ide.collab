@@ -329,6 +329,8 @@ define(function(require, exports, module) {
         }
 
         /**
+         * Start a Collab session with each metadata read.
+         *
          * e.path
          * e.tab
          * e.callback
@@ -340,7 +342,7 @@ define(function(require, exports, module) {
             var callback = e.callback;
             var otDoc = documents[path];
             if (!otDoc)
-                otDoc = joinDocument(path, e.tab.document, progress, callback);
+                otDoc = documents[path] = joinDocument(path, e.tab.document, progress, callback);
             else
                 setupJoinAndProgressCallbacks(otDoc, progress, callback);
             
@@ -387,6 +389,9 @@ define(function(require, exports, module) {
             }
         }
 
+        /**
+         * Normalize tab contents after file read.
+         */
         function afterReadFile(e) {
             var path = e.path;
             var tab = tabs.findTab(path);
@@ -399,6 +404,10 @@ define(function(require, exports, module) {
                 tab.document.value = normHttpValue;
         }
 
+        /**
+         * Save using collab server for OT-enabled documents.
+         * Overrides the normal file writing behavior.
+         */
         function beforeWriteFile(e) {
             var path = e.path;
             var tab = tabs.findTab(path);
