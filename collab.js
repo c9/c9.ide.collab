@@ -60,7 +60,6 @@ define(function(require, exports, module) {
             metadata.on("beforeReadFile", beforeReadFile, plugin);
             fs.on("afterReadFile", afterReadFile, plugin);
             fs.on("beforeWriteFile", beforeWriteFile, plugin);
-            fs.on("beforeRename", beforeRename, plugin);
 
             ace.on("initAceSession", function(e) {
                 var doc = e.doc;
@@ -85,6 +84,13 @@ define(function(require, exports, module) {
             window.addEventListener("unload", function() {
                 leaveAll();
             }, false);
+            
+            tabs.on("open", function(e) {
+                var tab = e.tab;
+                tab.on("setPath", function(e) {
+                    onSetPath(tab, e.oldpath, e.path);
+                })
+            });
 
             tabs.on("tabDestroy", function(e) {
                 leaveDocument(e.tab.path);
@@ -231,8 +237,8 @@ define(function(require, exports, module) {
          * Join a document and report progress and on-load contents
          * @param {String} docId
          * @param {Document} doc
-         * @param {Function} progress
-         * @param {Function} callback
+         * @param {Function} [progress]
+         * @param {Function} [callback]
          */
         function joinDocument(docId, doc, progress, callback) {
             console.log("[OT] Join", docId);
@@ -425,10 +431,11 @@ define(function(require, exports, module) {
             saveDocument(path, defaultWriteFile, e.args, callback);
             return false;
         }
-
-        function beforeRename(e) {
-            // do collab rename
-            // return false;
+        
+        function onSetPath(tab, oldpath, path) {
+            console.log("[OT] detected rename/save as from", oldpath, "to", path);
+            leaveDocument(oldpath);
+            joinDocument(path, tab.document);
         }
 
         function normalizeTextLT(text) {
