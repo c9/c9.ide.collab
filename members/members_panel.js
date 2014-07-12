@@ -3,7 +3,7 @@ define(function(require, exports, module) {
 
     main.consumes = [
         "Plugin", "ui", "apf", "Menu", "MenuItem",
-        "collab.workspace", "info", "dialog.alert", "dialog.confirm",
+        "collab.workspace", "info", "dialog.error", "dialog.confirm",
         "accessControl", "c9"
     ];
     main.provides = ["MembersPanel"];
@@ -16,7 +16,7 @@ define(function(require, exports, module) {
         var MenuItem = imports.MenuItem;
         var workspace = imports["collab.workspace"];
         var info = imports.info;
-        var alert = imports["dialog.alert"].show;
+        var showError = imports["dialog.error"].show;
         var confirm = imports["dialog.confirm"].show;
         var accessControl = imports.accessControl;
 
@@ -171,7 +171,7 @@ define(function(require, exports, module) {
             }
             
             function alertIfError(err) {
-               err && alert("Error", "Members Panel Error", err.message);
+               err && showError("Error", "Members Panel Error", err.message);
             }
 
             function show() {
