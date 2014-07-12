@@ -2,8 +2,7 @@ define(function(require, module, exports) {
     main.consumes = [
         "Plugin", "ace", "util", "apf",
         "collab.connect", "collab.util", "collab.workspace",
-        "timeslider", "CursorLayer", "AuthorLayer",
-        "collab.connect"
+        "timeslider", "CursorLayer", "AuthorLayer", "c9"
     ];
     main.provides = ["OTDocument"];
     return main;
@@ -12,12 +11,12 @@ define(function(require, module, exports) {
         var Plugin = imports.Plugin;
         var connect = imports["collab.connect"];
         var c9util = imports.util;
+        var c9 = imports.c9;
         var apf = imports.apf;
         var workspace = imports["collab.workspace"];
         var timeslider = imports.timeslider;
         var CursorLayer = imports.CursorLayer;
         var AuthorLayer = imports.AuthorLayer;
-        var connect = imports["collab.connect"];
 
         var lang = require("ace/lib/lang");
         // var Range = require("ace/range").Range;
@@ -36,7 +35,7 @@ define(function(require, module, exports) {
         // happens when I'm editing alone
         var MAX_DELAY = options.maxDelay;
         var MAX_COMMIT_TRIALS = 3;
-        var SAVE_FILE_TIMEOUT = 9000;
+        var SAVE_FILE_TIMEOUT = 5000;
 
         function OTDocument(docId, c9Document) {
 
@@ -62,7 +61,7 @@ define(function(require, module, exports) {
             var state;
             var pendingSave;
             
-            connect.on("disconnect", saveWatchDogDisconnect);
+            c9.on("disconnect", saveWatchDogDisconnect);
             
             resetState();
             
@@ -968,7 +967,7 @@ define(function(require, module, exports) {
                 if (!saveTimer)
                     return;
                 endSaveWatchDog();
-                connect.once("connect", function() {
+                c9.once("connect", function() {
                     saveWatchDog(true);
                 });
             }

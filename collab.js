@@ -335,10 +335,6 @@ define(function(require, exports, module) {
          * e.progress
          */
         function beforeReadFile(e) {
-            // Load using XHR while collab not connected
-            if (!connect.connected)
-                return;
-            
             var path = e.path;
             var progress = e.progress;
             var callback = e.callback;
@@ -347,6 +343,10 @@ define(function(require, exports, module) {
                 otDoc = joinDocument(path, e.tab.document, progress, callback);
             else
                 setupJoinAndProgressCallbacks(otDoc, progress, callback);
+            
+            // Load using XHR while collab not connected
+            if (!connect.connected)
+                return;
 
             otDoc.on("joined", onJoined);
             otDoc.on("joinProgress", startWatchDog);
