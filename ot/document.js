@@ -108,9 +108,9 @@ define(function(require, module, exports) {
                 incoming = [];
 
                 session.on("change", handleUserChanges);
-                session.selection.addEventListener("changeCursor", onCursorChange);
-                session.selection.addEventListener("changeSelection", onCursorChange);
-                session.selection.addEventListener("addRange", onCursorChange);
+                session.selection.on("changeCursor", onCursorChange);
+                session.selection.on("changeSelection", onCursorChange);
+                session.selection.on("addRange", onCursorChange);
             }
 
             /**
@@ -170,7 +170,7 @@ define(function(require, module, exports) {
             function handleUserChanges (e) {
                 // needed to provide immediate feedback for remote selection changes caused by local edits
                 session._emit("changeBackMarker");
-                if (!loaded || ignoreChanges)
+                if (!inited || ignoreChanges)
                     return;
                 try {
                     var aceDoc = session.doc;
@@ -766,11 +766,9 @@ define(function(require, module, exports) {
                     return;
                 console.warn("[OT] Reverting my changes to recover sync or inconsistent state");
                 userId = userId || workspace.myUserId;
-                ignoreChanges = true;
                 outgoing.splice(0, outgoing.length).forEach(function (myEdit) {
                     applyEdit({op: operations.inverse(myEdit.op), userId: userId}, session.doc);
                 });
-                ignoreChanges = false;
             }
 
             // @see docs in the API section below
