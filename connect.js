@@ -152,8 +152,10 @@ define(function(require, exports, module) {
             if (fatalError)
                 return;
             
-            if (connected)
-                onDisconnect();
+            if (connected) {
+                console.log("Collab already connected, ignoring reconnection attempt");
+                return;
+            }
 
             if (connecting)
                 return;
@@ -239,10 +241,10 @@ define(function(require, exports, module) {
                     stream.off("data", onData);
                     stream.destroy();
                     isClosed = true;
-
-                    setTimeout(function () {
-                        isClosed && c9.connected && connect();
-                    }, 3000);
+                    connected = false;
+                    setTimeout(function() {
+                        c9.connected && connect();
+                    }, 1000);
                 }
             });
         }

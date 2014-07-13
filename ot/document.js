@@ -375,7 +375,8 @@ define(function(require, module, exports) {
 
                 var err = data.err;
                 if (err) {
-                    console.error("JOIN_DOC Error:", docId, err);
+                    if (err.code != "ENOENT")
+                        console.error("JOIN_DOC Error:", docId, err);
                     return emit.sticky("joined", {err: err});
                 }
 
