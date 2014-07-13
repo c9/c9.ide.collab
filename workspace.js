@@ -148,6 +148,11 @@ define(function(require, exports, module) {
                 );
             }
             api.collab.get("access_info", function (err, info) {
+                if (err && err.code === 0) {
+                    // Server still starting or CORS error; retry
+                    return setTimeout(loadMembers.bind(null, callback), 20000);
+                }
+                
                 if (err) return callback(err);
                 if (!info.member)
                     return done([], info);

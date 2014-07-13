@@ -40,6 +40,7 @@ define(function(require, module, exports) {
         var MAX_DELAY = options.maxDelay;
         var MAX_COMMIT_TRIALS = 3;
         var SAVE_FILE_TIMEOUT = 5000;
+        var MAX_OP_SIZE = 1024 * 1024;
 
         function OTDocument(docId, c9Document) {
 
