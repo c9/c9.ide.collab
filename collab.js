@@ -4,7 +4,7 @@ define(function(require, exports, module) {
     main.consumes = [
         "Panel", "c9", "tabManager", "fs", "metadata", "ui", "apf", "settings", 
         "preferences", "ace", "util", "collab.connect", "collab.workspace", 
-        "timeslider", "OTDocument", "notification.bubble"
+        "timeslider", "OTDocument", "notification.bubble", "dialog.error"
     ];
     main.provides = ["collab"];
     return main;
@@ -201,6 +201,11 @@ define(function(require, exports, module) {
                     if (!doc)
                         return console.warn("[OT] JOIN_DOC no document match ! - docId:", docId, "open docs:", Object.keys(documents));
                     doc.joinData(data);
+                    break;
+                case "LARGE_DOC":
+                    doc && doc.leave();
+                    doc && doc.reportLargeDocument(true);
+                    delete documents[docId];
                     break;
                 case "USER_STATE":
                     workspace.updateUserState(data.userId, data.state);

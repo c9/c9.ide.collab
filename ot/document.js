@@ -2,7 +2,8 @@ define(function(require, module, exports) {
     main.consumes = [
         "Plugin", "ace", "util", "apf",
         "collab.connect", "collab.util", "collab.workspace",
-        "timeslider", "CursorLayer", "AuthorLayer", "c9"
+        "timeslider", "CursorLayer", "AuthorLayer", "c9",
+        "dialog.alert", "dialog.error", "tabManager"
     ];
     main.provides = ["OTDocument"];
     return main;
@@ -17,6 +18,9 @@ define(function(require, module, exports) {
         var timeslider = imports.timeslider;
         var CursorLayer = imports.CursorLayer;
         var AuthorLayer = imports.AuthorLayer;
+        var showAlert = imports["dialog.alert"].show;
+        var showError = imports["dialog.error"].show;
+        var tabs = imports.tabManager;
 
         var lang = require("ace/lib/lang");
         // var Range = require("ace/range").Range;
@@ -343,6 +347,13 @@ define(function(require, module, exports) {
                     var top = outgoing[0];
                     top.revNum = latestRevNum + 1;
                     top.selection = lastSel = CursorLayer.selectionToData(session.selection);
+                    if (top.op.filter(function(o) { return o.length > MAX_OP_SIZE; }).length) {
+                        connect.send("LARGE_DOC", { docId: top.docId });
+                        // TODO: rejoin when doc becomes ok again
+                        reportLargeDocument();
+                        return leave();
+                    }
+                    
                     connect.send("EDIT_UPDATE", top);
                     emit("send", { revNum: top.revNum });
                 }
@@ -375,8 +386,10 @@ define(function(require, module, exports) {
 
                 var err = data.err;
                 if (err) {
-                    if (err.code != "ENOENT")
+                    if (err.code != "ENOENT" && err.code != "ELARGE")
                         console.error("JOIN_DOC Error:", docId, err);
+                    if (err.code == "ELARGE")
+                        reportLargeDocument();
                     return emit.sticky("joined", {err: err});
                 }
 
@@ -440,6 +453,22 @@ define(function(require, module, exports) {
                 loaded = true;
                 loading = false;
                 emit.sticky("joined", {contents: doc.contents, metadata: doc.metadata});
+            }
+            
+            function reportLargeDocument(forceReadonly) {
+                workspace.loadMembers(function() {
+                    if (workspace.accessInfo.admin && !forceReadonly) {
+                        if (workspace.minOnlineCount === 1)
+                            return;
+                        return showError("File is very large, collaborative editing disabled: " + docId, 5000);
+                    }
+                    showError("File is very large. Collaborative editing disabled: " + docId, 5000);
+                    var tab = tabs.findTab(docId);
+                    if (!tab || !tab.editor)
+                        return;
+                    tab.editor.setOption("readOnly", true);
+                    tab.classList.add("error");
+                });
             }
 
             /**
@@ -1212,7 +1241,12 @@ define(function(require, module, exports) {
                  * "EDIT_UPDATE", "SYNC_COMMIT", "CURSOR_UPDATE", "FILE_SAVED", "GET_REVISIONS"
                  * @param {Object} data - a chunk of data received of the join data stream
                  */
-                handleMessage: handleMessage
+                handleMessage: handleMessage,
+                /**
+                 * Report an error about a document being very large.
+                 * May not show anything in a single-user/owner scenario.
+                 */
+                reportLargeDocument: reportLargeDocument
             });
 
             return plugin;

@@ -19,6 +19,7 @@ define(function(require, exports, module) {
         var authorPool = {};
         var colorPool = {};
         var users = {};
+        var minOnlineCount = 1;
 
         var myUserId = info.getUser().id;
         var loadedWorkspace = false;
@@ -109,6 +110,8 @@ define(function(require, exports, module) {
         function leaveClient(uid) {
             var user = users[uid];
             user.online = Math.max(user.online-1, 0);
+            if (user)
+                minOnlineCount--;
             emit("sync");
         }
 
@@ -119,6 +122,7 @@ define(function(require, exports, module) {
             authorPool[uid] = authorId;
             reversedAuthorPool[authorId] = uid;
             colorPool[uid] = user.color;
+            minOnlineCount++;
             emit("sync");
         }
 
@@ -131,12 +135,17 @@ define(function(require, exports, module) {
         var cachedInfo;
         function loadMembers(callback) {
             if (!options.hosted || cachedMembers) {
-                return done(cachedMembers || [
-                    { name: "Mostafa Eweda", uid: -1, acl: "rw", role: "a", email: "mostafa@c9.io" },
-                    { name: "Lennart Kats", uid: 5, acl: "r", color: "yellow", onlineStatus: "online", email: "lennart@c9.io" },
-                    { name: "Ruben Daniels", uid: 2, acl: "rw", color: "blue", onlineStatus: "idle", email: "ruben@ajax.org" },
-                    { name: "Bas de Wachter", uid: 8, acl: "rw", color: "purple", email: "bas@c9.io" }
-                ]);
+                // Use mock data
+                return done(
+                    cachedMembers || [
+                        { name: "John Doe", uid: -1, acl: "rw", role: "a", email: "johndoe@c9.io" },
+                        { name: "Mostafa Eweda", uid: -1, acl: "rw", color: "green", email: "mostafa@c9.io" },
+                        { name: "Lennart Kats", uid: 5, acl: "r", color: "yellow", onlineStatus: "online", email: "lennart@c9.io" },
+                        { name: "Ruben Daniels", uid: 2, acl: "rw", color: "blue", onlineStatus: "idle", email: "ruben@ajax.org" },
+                        { name: "Bas de Wachter", uid: 8, acl: "rw", color: "purple", email: "bas@c9.io" }
+                    ],
+                    cachedInfo || { admin: true, member: true, pending: false, private: false, appPublic: true, previewPublic: true }
+                );
             }
             api.collab.get("access_info", function (err, info) {
                 if (err) return callback(err);
@@ -353,6 +362,11 @@ define(function(require, exports, module) {
              * @property [{Object}] members
              */
             get members() { return cachedMembers || []; },
+            /**
+             * Gets the approximate number of users/browser tabs currently online on this workspace.
+             * Not fully accurate, but should reflect a lower bound for the number of users.
+             */
+            get minOnlineCount() { return minOnlineCount; },
             /**
              * Gets the cached previously-loaded acccess information
              * @property {Object} info
