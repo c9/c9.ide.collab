@@ -65,6 +65,7 @@ define(function(require, module, exports) {
             var loaded, loading, inited;
             var state;
             var pendingSave;
+            var readOnly;
             
             c9.on("disconnect", saveWatchDogDisconnect);
             
@@ -73,6 +74,7 @@ define(function(require, module, exports) {
             function resetState() {
                 if (session) {
                     session.off("change", handleUserChanges);
+                    session.off("changeEditor", onChangeEditor);
                     session.selection.off("changeCursor", onCursorChange);
                     session.selection.off("changeSelection", onCursorChange);
                     session.selection.off("addRange", onCursorChange);
@@ -122,6 +124,7 @@ define(function(require, module, exports) {
                 session.selection.addEventListener("changeCursor", onCursorChange);
                 session.selection.addEventListener("changeSelection", onCursorChange);
                 session.selection.addEventListener("addRange", onCursorChange);
+                session.on("changeEditor", onChangeEditor);
             }
 
             /**
@@ -467,8 +470,11 @@ define(function(require, module, exports) {
                     var tab = tabs.findTab(docId);
                     if (!tab || !tab.editor)
                         return;
-                    // TODO: make single tab readonly, not whole editor
                     tab.classList.add("error");
+                    if (isReadOnly())
+                        return;
+                    readOnly = true;
+                    tab.editor.setOption("readOnly", true);
                 });
             }
 
@@ -662,6 +668,18 @@ define(function(require, module, exports) {
                 if (cursorLayer && cursorLayer.tooltipIsOpen)
                     cursorLayer.hideAllTooltips();
             }
+            
+            function onChangeEditor(e, session) {
+                if (e.oldEditor) {
+                    console.log("old", e.oldEditor.session.$readonly)
+                    if (readOnly)
+                        e.oldEditor.setReadOnly(false);
+                }
+                if (e.editor && readOnly) {
+                    console.log("new", readOnly)
+                    e.editor.setReadOnly(true);
+                }
+            }
 
             // my cursor or selection changes, schedule an update message
             function onCursorChange() {
@@ -757,7 +775,7 @@ define(function(require, module, exports) {
             }
 
             function isReadOnly() {
-                return c9Document.editor.ace.getReadOnly();
+                return readOnly || c9Document.editor.ace.getReadOnly();
             }
 
             // @see docs in the API section below
