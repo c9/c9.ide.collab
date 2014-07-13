@@ -253,7 +253,7 @@ define(function(require, exports, module) {
                 otDoc.setSession(aceSession);
 
             if (callback)
-                setupJoinAndProgressCallbacks(otDoc, progress, callback);
+                setupProgressCallback(otDoc, progress, callback);
 
             if (documents[docId])
                 return console.warn("[OT] Document previously joined -", docId,
@@ -268,15 +268,9 @@ define(function(require, exports, module) {
             return otDoc;
         }
 
-        function setupJoinAndProgressCallbacks(otDoc, progress, callback) {
-            var progressListener = function(e) {
+        function setupProgressCallback(otDoc, progress) {
+            otDoc.on("joinProgress", function(e) {
                 progress && progress(e.loaded, e.total, e.complete);
-            };
-            otDoc.on("joinProgress", progressListener);
-            otDoc.once("joined", function(e) {
-                console.log("[OT] Joined", otDoc.id);
-                otDoc.off("joinProgress", progressListener);
-                callback(e.err, e.contents, e.metadata);
             });
         }
 
@@ -348,9 +342,9 @@ define(function(require, exports, module) {
             var callback = e.callback;
             var otDoc = documents[path];
             if (!otDoc)
-                otDoc = documents[path] = joinDocument(path, e.tab.document, progress, callback);
+                otDoc = documents[path] = joinDocument(path, e.tab.document, progress);
             else
-                setupJoinAndProgressCallbacks(otDoc, progress, callback);
+                setupProgressCallback(otDoc, progress);
             
             // Load using XHR while collab not connected
             if (!connect.connected)
@@ -385,8 +379,9 @@ define(function(require, exports, module) {
                 openFallbackTimeouts[path] = null;
                 if (e.err) {
                     console.warn("[OT] JOIN_DOC failed - fallback to filesystem");
-                    fsOpenFallback();
+                    return fsOpenFallback();
                 }
+                callback(e.err, e.contents, e.metadata);
             }
 
             function fsOpenFallback() {
