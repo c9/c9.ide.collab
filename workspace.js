@@ -39,22 +39,30 @@ define(function(require, exports, module) {
                 switch (action) {
                     case "add_member":
                         addCachedMember(body);
+                        if (myUserId == uid) {
+                            showAlert("Workspace Access Changed",
+                                body.acl == "rw"
+                                    ? "You have been granted read/write access to this workspace."
+                                    : "You have been granted readonly access to this workspace.",
+                                "To continue, Cloud9 will be reloaded.", function() { reloadWorkspace(1000); });
+                        }
                         break;
                     case "update_member_access":
                         updateCachedAccess(uid, body.acl);
                         if (myUserId == uid) {
-                            showAlert("Workspace Access", (body.acl == "rw" ? "You have been granted read/write access to the workspace."
-                                    : "You workspace access has been limited to read-only." )
-                                + " Reloading now to apply new access rights ...");
-                            reloadWorkspace(3000);
+                            showAlert("Workspace Access Changed",
+                                body.acl == "rw"
+                                    ? "You have been granted read/write access to the workspace."
+                                    : "You workspace access has been limited to read-only.",
+                                "To continue, Cloud9 will be reloaded.", function() { reloadWorkspace(1000); });
                         }
                         break;
                     case "remove_member":
                         removeCachedMember(uid);
                         if (body.uid == myUserId) {
-                            showAlert("Workspace Access", "You have been removed from the workspace by the workspace owner/admin."
-                                + " Reloading now to apply your new access rights ...");
-                            reloadWorkspace(3000);
+                            showAlert("Workspace Access Revoked",
+                                "You have been removed from the list of members of this workspace.",
+                                "To continue, Cloud9 will be reloaded.", function() { reloadWorkspace(1000); });
                         }
                         break;
                     case "request_access":
