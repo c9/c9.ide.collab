@@ -18,7 +18,6 @@ define(function(require, module, exports) {
         var timeslider = imports.timeslider;
         var CursorLayer = imports.CursorLayer;
         var AuthorLayer = imports.AuthorLayer;
-        var showAlert = imports["dialog.alert"].show;
         var showError = imports["dialog.error"].show;
         var tabs = imports.tabManager;
 
@@ -43,7 +42,6 @@ define(function(require, module, exports) {
         var MAX_OP_SIZE = 1024 * 1024;
 
         function OTDocument(docId, c9Document) {
-
             var plugin = new Plugin("Ajax.org", main.consumes);
             var emit = plugin.getEmitter();
             var cloneObject = c9util.cloneObject;
@@ -66,6 +64,7 @@ define(function(require, module, exports) {
             var state;
             var pendingSave;
             var readOnly;
+            var reqId;
             
             c9.on("disconnect", saveWatchDogDisconnect);
             
@@ -387,6 +386,8 @@ define(function(require, module, exports) {
             function joinData(data) {
                 var st = new Date();
                 loaded = false;
+                if (data.reqId && reqId !== data.reqId)
+                    return console.log("Ignored unrequested join data");
 
                 var err = data.err;
                 if (err) {
@@ -1037,7 +1038,8 @@ define(function(require, module, exports) {
             function load() {
                 loaded = false;
                 loading = true;
-                connect.send("JOIN_DOC", { docId: docId });
+                reqId = Math.floor(Math.random() * 9007199254740993);
+                connect.send("JOIN_DOC", { docId: docId, reqId: reqId });
             }
 
             // @see docs in the API section below
