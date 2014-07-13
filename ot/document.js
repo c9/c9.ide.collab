@@ -460,14 +460,14 @@ define(function(require, module, exports) {
                 workspace.loadMembers(function() {
                     if (workspace.accessInfo.admin && !forceReadonly) {
                         if (workspace.minOnlineCount === 1)
-                            return;
+                            return console.log("File is very large, collaborative editing disabled: " + docId);
                         return showError("File is very large, collaborative editing disabled: " + docId, 5000);
                     }
                     showError("File is very large. Collaborative editing disabled: " + docId, 5000);
                     var tab = tabs.findTab(docId);
                     if (!tab || !tab.editor)
                         return;
-                    tab.editor.setOption("readOnly", true);
+                    // TODO: make single tab readonly, not whole editor
                     tab.classList.add("error");
                 });
             }

@@ -204,7 +204,7 @@ define(function(require, exports, module) {
                     break;
                 case "LARGE_DOC":
                     doc && doc.leave();
-                    doc && doc.reportLargeDocument(true);
+                    doc && doc.reportLargeDocument(!msg.data.response);
                     delete documents[docId];
                     break;
                 case "USER_STATE":
@@ -383,7 +383,8 @@ define(function(require, exports, module) {
                 clearTimeout(openFallbackTimeouts[path]);
                 openFallbackTimeouts[path] = null;
                 if (e.err) {
-                    console.warn("[OT] JOIN_DOC failed - fallback to filesystem");
+                    if (e.err.code != "ENOENT" && e.err.code != "ELARGE")
+                        console.warn("[OT] JOIN_DOC failed - fallback to filesystem");
                     return fsOpenFallback();
                 }
                 callback(e.err, e.contents, e.metadata);
