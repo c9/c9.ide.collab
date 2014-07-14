@@ -216,7 +216,7 @@ define(function(require, module, exports) {
                 var authorI;
 
                 if (data.action === "insertText" || data.action === "insertLines") {
-                    var newText = data.text || (data.lines.join(nlCh) + nlCh);
+                    var newText = data.text || (data.lines && data.lines.join(nlCh) + nlCh) || "";
                     /*if (aceDoc.fromDelta && aceDoc.fromDelta.authAttribs) {
                         var undoAuthAttribs = aceDoc.fromDelta.authAttribs;
                         var reversedAuthorPool = workspace.reversedAuthorPool;
@@ -243,7 +243,7 @@ define(function(require, module, exports) {
                 }
 
                 else if (data.action === "removeText" || data.action === "removeLines") {
-                    var removedText = data.text || (data.lines.join(nlCh) + nlCh);
+                    var removedText = data.text || (data.lines && data.lines.join(nlCh) + nlCh) || "";
                     var remainingText = removedText;
                     var opIdx = opOff;
                     var nextOp = packedCs[opIdx];
