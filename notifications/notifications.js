@@ -46,7 +46,7 @@ define(function(require, exports, module) {
             ui.insertCss(css, staticPrefix, plugin);
 
             c9.once("ready", function() {
-                setTimeout(loadNotifications, 20000);
+                setTimeout(loadNotifications, 10000);
             });
 
             if (!options.hosted && c9.debug) {
