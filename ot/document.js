@@ -729,6 +729,15 @@ define(function(require, module, exports) {
                 revCache.revNum = revNum;
                 return rev;
             }
+            
+            /**
+             * Gets the contents of a particular revision. Returns null
+             * if the revision is not currently available locally.
+             */
+            function getRevisionContents(revNum) {
+                var rev = getDetailedRevision(revNum, true);
+                return rev && rev.contents;
+            }
 
             // @see docs in the API section below
             function historicalSearch(query) {
@@ -871,9 +880,7 @@ define(function(require, module, exports) {
                 // pendingSave exists: save triggered by me
                 // otherwise: other collaborator save
                 if (pendingSave) {
-                    var rev = getDetailedRevision(data.revNum, true);
-                    var value = rev && rev.contents;
-                    
+                    var value = getRevisionContents(data.revNum);
                     if (value && apf.crypto.MD5.hex_md5(value) !== data.fsHash) {
                         console.error("[OT] Failed saving file!", err, docId);
                         return emit("saved", {err: "Save content mismatch", code: "EMISMATCH"});
