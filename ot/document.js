@@ -388,20 +388,19 @@ define(function(require, module, exports) {
                     if (err.code != "ENOENT" && err.code != "ELARGE")
                         console.error("JOIN_DOC Error:", docId, err);
                     if (err.code == "ELARGE")
-                        reportLargeDocument();
+                        emit("largeDocument");
                     return emit.sticky("joined", {err: err});
                 }
 
-                if (data.chunkNum === 0)
+                if (data.chunkNum === 1)
                     docStream = "";
                 docStream += data.chunk;
 
-                var complete = data.chunkNum === data.chunksLength - 1;
-                var firstChunkBonus = 1;
+                var complete = data.chunkNum === data.chunksLength;
                 if (!c9Document.hasValue())
                     emit("joinProgress", {
-                        loaded: data.chunkNum + firstChunkBonus + 1,
-                        total: data.chunksLength + firstChunkBonus,
+                        loaded: data.chunkNum,
+                        total: data.chunksLength,
                         complete: complete
                     });
 
@@ -902,12 +901,12 @@ define(function(require, module, exports) {
             }
 
             function receiveRevisions(data) {
-               if (data.chunkNum === 0)
+               if (data.chunkNum === 1)
                     revStream = "";
 
                 revStream += data.chunk;
 
-                if (data.chunkNum < data.chunksLength - 1)
+                if (data.chunkNum < data.chunksLength)
                     return;
 
                 var revisionsObj = JSON.parse(revStream);
