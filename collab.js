@@ -346,10 +346,6 @@ define(function(require, exports, module) {
         };
         */
 
-        function isReadOnly() {
-            return !!(c9.readonly || timeslider.visible);
-        }
-
         /**
          * Start a Collab session with each metadata read.
          *

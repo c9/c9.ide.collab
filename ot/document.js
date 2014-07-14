@@ -870,8 +870,11 @@ define(function(require, module, exports) {
 
                 // pendingSave exists: save triggered by me
                 // otherwise: other collaborator save
-                if (pendingSave && pendingSave.fsHash && data.fsHash) {
-                    if (pendingSave.fsHash !== data.fsHash) {
+                if (pendingSave) {
+                    var rev = getDetailedRevision(data.revNum, true);
+                    var value = rev && rev.contents;
+                    
+                    if (value && apf.crypto.MD5.hex_md5(value) !== data.fsHash) {
                         console.error("[OT] Failed saving file!", err, docId);
                         return emit("saved", {err: "Save content mismatch", code: "EMISMATCH"});
                     }
@@ -953,9 +956,7 @@ define(function(require, module, exports) {
                 var isUnity = isPackedUnity();
                 if (!isUnity)
                     addOutgoingEdit();
-                var value = session.getValue();
-                var fsHash = apf.crypto.MD5.hex_md5(value);
-                pendingSave = { silent: !!silent, outLen: outgoing.length, fsHash: fsHash };
+                pendingSave = {silent: !!silent, outLen: outgoing.length};
                 if (state === "IDLE" && isUnity)
                     return doSaveFile(silent);
 
