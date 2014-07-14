@@ -2,8 +2,7 @@ define(function(require, module, exports) {
     main.consumes = [
         "Plugin", "ace", "util", "apf",
         "collab.connect", "collab.util", "collab.workspace",
-        "timeslider", "CursorLayer", "AuthorLayer", "c9",
-        "dialog.alert", "dialog.error", "tabManager"
+        "timeslider", "CursorLayer", "AuthorLayer"
     ];
     main.provides = ["OTDocument"];
     return main;
@@ -12,14 +11,11 @@ define(function(require, module, exports) {
         var Plugin = imports.Plugin;
         var connect = imports["collab.connect"];
         var c9util = imports.util;
-        var c9 = imports.c9;
         var apf = imports.apf;
         var workspace = imports["collab.workspace"];
         var timeslider = imports.timeslider;
         var CursorLayer = imports.CursorLayer;
         var AuthorLayer = imports.AuthorLayer;
-        var showError = imports["dialog.error"].show;
-        var tabs = imports.tabManager;
 
         var lang = require("ace/lib/lang");
         // var Range = require("ace/range").Range;
@@ -63,13 +59,11 @@ define(function(require, module, exports) {
             var loaded, loading, inited;
             var state;
             var pendingSave;
-            var readOnly;
+            var readonly;
             var reqId;
-            
-            c9.on("disconnect", saveWatchDogDisconnect);
-            
+
             resetState();
-            
+
             function resetState() {
                 if (session) {
                     session.off("change", handleUserChanges);
@@ -77,6 +71,7 @@ define(function(require, module, exports) {
                     session.selection.off("changeCursor", onCursorChange);
                     session.selection.off("changeSelection", onCursorChange);
                     session.selection.off("addRange", onCursorChange);
+                    session = null;
                 }
                 if (inited) {
                     cursorLayer.dispose();
@@ -120,10 +115,10 @@ define(function(require, module, exports) {
                 incoming = [];
 
                 session.on("change", handleUserChanges);
+                session.on("changeEditor", onChangeEditor);
                 session.selection.addEventListener("changeCursor", onCursorChange);
                 session.selection.addEventListener("changeSelection", onCursorChange);
                 session.selection.addEventListener("addRange", onCursorChange);
-                session.on("changeEditor", onChangeEditor);
             }
 
             /**
@@ -353,10 +348,9 @@ define(function(require, module, exports) {
                     if (top.op.filter(function(o) { return o.length > MAX_OP_SIZE; }).length) {
                         connect.send("LARGE_DOC", { docId: top.docId });
                         // TODO: rejoin when doc becomes ok again
-                        reportLargeDocument();
+                        emit("largeDocument");
                         return leave();
                     }
-                    
                     connect.send("EDIT_UPDATE", top);
                     emit("send", { revNum: top.revNum });
                 }
@@ -417,7 +411,7 @@ define(function(require, module, exports) {
                 try {
                     doc = JSON.parse(docStream);
                 } catch(e) {
-                    console.error(e, "Stream:", docStream);
+                    console.error("[OT] Stream:", docStream, e);
                     // try reload
                     return reload();
                 } finally {
@@ -458,25 +452,6 @@ define(function(require, module, exports) {
                 loaded = true;
                 loading = false;
                 emit.sticky("joined", {contents: doc.contents, metadata: doc.metadata});
-            }
-            
-            function reportLargeDocument(forceReadonly) {
-                workspace.loadMembers(function() {
-                    if (workspace.accessInfo.admin && !forceReadonly) {
-                        if (workspace.minOnlineCount === 1)
-                            return console.log("File is very large, collaborative editing disabled: " + docId);
-                        return showError("File is very large, collaborative editing disabled: " + docId, 5000);
-                    }
-                    showError("File is very large. Collaborative editing disabled: " + docId, 5000);
-                    var tab = tabs.findTab(docId);
-                    if (!tab || !tab.editor)
-                        return;
-                    tab.classList.add("error");
-                    if (isReadOnly())
-                        return;
-                    readOnly = true;
-                    tab.editor.setOption("readOnly", true);
-                });
             }
 
             /**
@@ -669,24 +644,23 @@ define(function(require, module, exports) {
                 if (cursorLayer && cursorLayer.tooltipIsOpen)
                     cursorLayer.hideAllTooltips();
             }
-            
-            function onChangeEditor(e, session) {
-                if (e.oldEditor) {
-                    console.log("old", e.oldEditor.session.$readonly)
-                    if (readOnly)
-                        e.oldEditor.setReadOnly(false);
+
+            function onChangeEditor(e) {
+                var oldEditor = e.oldEditor;
+                if (oldEditor) {
+                    // console.log("[OT] old editor readonly", oldEditor.getReadOnly());
+                    if (readonly)
+                        oldEditor.setReadOnly(false);
                 }
-                if (e.editor && readOnly) {
-                    console.log("new", readOnly)
+                if (e.editor && readonly) {
+                    // console.log("[OT] new editor readonly", readonly);
                     e.editor.setReadOnly(true);
                 }
             }
 
             // my cursor or selection changes, schedule an update message
             function onCursorChange() {
-                if (!loaded || ignoreChanges)
-                    return;
-                if (cursorTimer)
+                if (!loaded || ignoreChanges || cursorTimer)
                     return;
                 // Don't send too many cursor change messages
                 cursorTimer = setTimeout(changedSelection, 200);
@@ -703,7 +677,7 @@ define(function(require, module, exports) {
                     author: msg.userId,
                     updated_at: msg.updated_at || Date.now()
                 };
-         
+
                 if (isActiveTimesliderDocument())
                     timeslider.sliderLength = msg.revNum;
             }
@@ -776,7 +750,7 @@ define(function(require, module, exports) {
             }
 
             function isReadOnly() {
-                return readOnly || c9Document.editor.ace.getReadOnly();
+                return readonly || c9Document.editor.ace.getReadOnly();
             }
 
             // @see docs in the API section below
@@ -897,11 +871,8 @@ define(function(require, module, exports) {
 
                 // pendingSave exists: save triggered by me
                 // otherwise: other collaborator save
-                if (pendingSave) {
-                    var rev = getDetailedRevision(data.revNum, true);
-                    var value = rev && rev.contents;
-                    
-                    if (value && apf.crypto.MD5.hex_md5(value) !== data.fsHash) {
+                if (pendingSave && pendingSave.fsHash && data.fsHash) {
+                    if (pendingSave.fsHash !== data.fsHash) {
                         console.error("[OT] Failed saving file!", err, docId);
                         return emit("saved", {err: "Save content mismatch", code: "EMISMATCH"});
                     }
@@ -983,7 +954,9 @@ define(function(require, module, exports) {
                 var isUnity = isPackedUnity();
                 if (!isUnity)
                     addOutgoingEdit();
-                pendingSave = {silent: !!silent, outLen: outgoing.length};
+                var value = session.getValue();
+                var fsHash = apf.crypto.MD5.hex_md5(value);
+                pendingSave = { silent: !!silent, outLen: outgoing.length, fsHash: fsHash };
                 if (state === "IDLE" && isUnity)
                     return doSaveFile(silent);
 
@@ -1001,56 +974,58 @@ define(function(require, module, exports) {
                     silent: !!silent
                 });
             }
-            
-            function saveWatchDog(restart) {
+
+            function saveWatchDog(restart, timeout) {
                 if (saveTimer && !restart)
                     return;
                 endSaveWatchDog();
-                
+
                 saveTimer = setTimeout(function onSaveTimeout() {
                     saveTimer = pendingSave = null;
                     emit("saved", {err: "File save timeout", code: "ETIMEOUT"});
-                }, SAVE_FILE_TIMEOUT);
+                }, timeout || SAVE_FILE_TIMEOUT);
             }
-            
-            function saveWatchDogDisconnect() {
-                if (!saveTimer)
-                    return;
-                endSaveWatchDog();
-                c9.once("connect", function() {
-                    saveWatchDog(true);
-                });
-            }
-            
+
             function endSaveWatchDog() {
                 clearTimeout(saveTimer);
                 saveTimer = null;
             }
 
             function reload() {
+                console.log("[OT] reloading document", docId);
                 var sameSession = session;
                 resetState();
                 setSession(sameSession);
-                load();
+                doLoad();
             }
 
             // @see docs in the API section below
             function load() {
-                loaded = false;
-                loading = true;
+                if (state == "DISCONNECTED")
+                    reload();
+                else
+                    doLoad();
+            }
+
+            function doLoad() {
                 reqId = Math.floor(Math.random() * 9007199254740993);
                 connect.send("JOIN_DOC", { docId: docId, reqId: reqId });
             }
 
             // @see docs in the API section below
-            function leave() {
-                connect.send("LEAVE_DOC", { docId: docId });
+            function leave(skipMsg) {
+                if (connect.connected || skipMsg)
+                    connect.send("LEAVE_DOC", { docId: docId });
+                if (saveTimer) // force-trigger timeout to fallback to filesystem saving
+                    saveWatchDog(true, 1);
                 resetState();
             }
 
             // @see docs in the API section below
             function disconnect() {
-                loaded = loading = false;
+                leave(true);
+                state = "DISCONNECTED";
+                console.log("[OT] document", docId, "disconnected");
             }
 
             // @see docs in the API section below
@@ -1189,6 +1164,16 @@ define(function(require, module, exports) {
                  */
                 get pendingUpdates() { return packedCs.length > 1; },
                 /**
+                 * Indicates whether the document is readonly.
+                 * @property {Boolean} readonly
+                 */
+                get readonly() { return isReadOnly(); },
+                /**
+                 * Sets the document to readonly mode.
+                 * @property {Boolean} readonly
+                 */
+                set readonly(r) { readonly = r; c9Document.tab.editor.setOption("readOnly", r); },
+                /**
                  * Load/Join the document from the collab server
                  * loaded = false
                  * loading = true
@@ -1262,12 +1247,7 @@ define(function(require, module, exports) {
                  * "EDIT_UPDATE", "SYNC_COMMIT", "CURSOR_UPDATE", "FILE_SAVED", "GET_REVISIONS"
                  * @param {Object} data - a chunk of data received of the join data stream
                  */
-                handleMessage: handleMessage,
-                /**
-                 * Report an error about a document being very large.
-                 * May not show anything in a single-user/owner scenario.
-                 */
-                reportLargeDocument: reportLargeDocument
+                handleMessage: handleMessage
             });
 
             return plugin;

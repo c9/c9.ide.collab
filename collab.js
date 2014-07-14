@@ -26,6 +26,7 @@ define(function(require, exports, module) {
         var bubble = imports["notification.bubble"];
         var timeslider = imports.timeslider;
         var OTDocument = imports.OTDocument;
+        var showError = imports["dialog.error"].show;
 
         var css = require("text!./collab.css");
         var staticPrefix = options.staticPrefix;
@@ -89,7 +90,7 @@ define(function(require, exports, module) {
                 var tab = e.tab;
                 tab.on("setPath", function(e) {
                     onSetPath(tab, e.oldpath, e.path);
-                })
+                });
             });
 
             tabs.on("tabDestroy", function(e) {
@@ -204,7 +205,7 @@ define(function(require, exports, module) {
                     break;
                 case "LARGE_DOC":
                     doc && doc.leave();
-                    doc && doc.reportLargeDocument(!msg.data.response);
+                    doc && reportLargeDocument(doc, !msg.data.response);
                     delete documents[docId];
                     break;
                 case "USER_STATE":
@@ -243,9 +244,8 @@ define(function(require, exports, module) {
          * @param {String} docId
          * @param {Document} doc
          * @param {Function} [progress]
-         * @param {Function} [callback]
          */
-        function joinDocument(docId, doc, progress, callback) {
+        function joinDocument(docId, doc, progress) {
             console.log("[OT] Join", docId);
             var docSession = doc.getSession();
             var aceSession = docSession && docSession.session;
@@ -257,8 +257,8 @@ define(function(require, exports, module) {
             if (aceSession)
                 otDoc.setSession(aceSession);
 
-            if (callback)
-                setupProgressCallback(otDoc, progress, callback);
+            if (progress)
+                setupProgressCallback(otDoc, progress);
 
             if (documents[docId])
                 return console.warn("[OT] Document previously joined -", docId,
@@ -286,6 +286,23 @@ define(function(require, exports, module) {
             var doc = documents[docId];
             doc.leave(); // will also dispose
             delete documents[docId];
+        }
+        
+        function reportLargeDocument(doc, forceReadonly) {
+            var docId = doc.id;
+            if (workspace.isAdmin && !forceReadonly) {
+                if (workspace.onlineCount === 1)
+                    return console.log("File is very large, collaborative editing disabled: " + docId);
+                return showError("File is very large, collaborative editing disabled: " + docId, 5000);
+            }
+            showError("File is very large. Collaborative editing disabled: " + docId, 5000);
+            var tab = tabs.findTab(docId);
+            if (!tab || !tab.editor)
+                return;
+            tab.classList.add("error");
+            if (doc.readonly)
+                return;
+            doc.readonly = true;
         }
 
         function saveDocument(docId, fallbackFn, fallbackArgs, callback) {
@@ -350,14 +367,15 @@ define(function(require, exports, module) {
                 otDoc = documents[path] = joinDocument(path, e.tab.document, progress);
             else
                 setupProgressCallback(otDoc, progress);
-            
+
+            otDoc.on("joined", onJoined);
+            otDoc.on("largeDocument", reportLargeDocument.bind(null, otDoc) );
+            otDoc.on("joinProgress", startWatchDog);
+            startWatchDog();
+
             // Load using XHR while collab not connected
             if (!connect.connected)
                 return;
-
-            otDoc.on("joined", onJoined);
-            otDoc.on("joinProgress", startWatchDog);
-            startWatchDog();
 
             var fallbackXhrAbort;
             return {
@@ -387,6 +405,7 @@ define(function(require, exports, module) {
                         console.warn("[OT] JOIN_DOC failed - fallback to filesystem");
                     return fsOpenFallback();
                 }
+                console.log("[OT] Joined", otDoc.id);
                 callback(e.err, e.contents, e.metadata);
             }
 

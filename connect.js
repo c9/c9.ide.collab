@@ -241,7 +241,7 @@ define(function(require, exports, module) {
                     stream.off("data", onData);
                     stream.destroy();
                     isClosed = true;
-                    connected = false;
+                    onDisconnect();
                     setTimeout(function() {
                         c9.connected && connect();
                     }, 1000);

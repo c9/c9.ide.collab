@@ -15,11 +15,13 @@ define(function(require, exports, module) {
 
         var plugin = new Plugin("Ajax.org", main.consumes);
         var emit = plugin.getEmitter();
+        
+        var isAdmin = options.isAdmin;
 
         var authorPool = {};
         var colorPool = {};
         var users = {};
-        var minOnlineCount = 1;
+        var onlineCount = 0;
 
         var myUserId = info.getUser().id;
         var loadedWorkspace = false;
@@ -104,14 +106,14 @@ define(function(require, exports, module) {
             users = data.users;
             chatHistory = data.chatHistory;
             loadedWorkspace = true;
+            onlineCount = 1;
             emit("sync");
         }
 
         function leaveClient(uid) {
             var user = users[uid];
             user.online = Math.max(user.online-1, 0);
-            if (user)
-                minOnlineCount--;
+            onlineCount--;
             emit("sync");
         }
 
@@ -122,7 +124,7 @@ define(function(require, exports, module) {
             authorPool[uid] = authorId;
             reversedAuthorPool[authorId] = uid;
             colorPool[uid] = user.color;
-            minOnlineCount++;
+            onlineCount++;
             emit("sync");
         }
 
@@ -371,12 +373,17 @@ define(function(require, exports, module) {
              * Gets the approximate number of users/browser tabs currently online on this workspace.
              * Not fully accurate, but should reflect a lower bound for the number of users.
              */
-            get minOnlineCount() { return minOnlineCount; },
+            get onlineCount() { return onlineCount; },
             /**
              * Gets the cached previously-loaded acccess information
              * @property {Object} info
              */
             get accessInfo() { return cachedInfo || {}; },
+            /**
+             * Gets whether the user is admin
+             * @property {Object} isAdmin
+             */
+            get isAdmin() { return isAdmin; },
             /**
              * Gets the chat history being a list of messages (max. the most recent 100 messages)
              */
