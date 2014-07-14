@@ -4,7 +4,7 @@ define(function(require, exports, module) {
     main.consumes = [
         "Panel", "c9", "tabManager", "fs", "metadata", "ui", "apf", "settings", 
         "preferences", "ace", "util", "collab.connect", "collab.workspace", 
-        "timeslider", "OTDocument", "notification.bubble"
+        "timeslider", "OTDocument", "notification.bubble", "dialog.error"
     ];
     main.provides = ["collab"];
     return main;
@@ -26,6 +26,7 @@ define(function(require, exports, module) {
         var bubble = imports["notification.bubble"];
         var timeslider = imports.timeslider;
         var OTDocument = imports.OTDocument;
+        var showError = imports["dialog.error"].show;
 
         var css = require("text!./collab.css");
         var staticPrefix = options.staticPrefix;
@@ -44,7 +45,8 @@ define(function(require, exports, module) {
         // open collab documents
         var documents = {};
         var openFallbackTimeouts = {};
-        var OPEN_FILESYSTEM_FALLBACK_TIMEOUT = 5000;
+        var usersLeaving = {};
+        var OPEN_FILESYSTEM_FALLBACK_TIMEOUT = 6000;
 
         var loaded = false;
         function load() {
@@ -59,7 +61,6 @@ define(function(require, exports, module) {
             metadata.on("beforeReadFile", beforeReadFile, plugin);
             fs.on("afterReadFile", afterReadFile, plugin);
             fs.on("beforeWriteFile", beforeWriteFile, plugin);
-            fs.on("beforeRename", beforeRename, plugin);
 
             ace.on("initAceSession", function(e) {
                 var doc = e.doc;
@@ -84,6 +85,13 @@ define(function(require, exports, module) {
             window.addEventListener("unload", function() {
                 leaveAll();
             }, false);
+            
+            tabs.on("open", function(e) {
+                var tab = e.tab;
+                tab.on("setPath", function(e) {
+                    onSetPath(tab, e.oldpath, e.path);
+                });
+            });
 
             tabs.on("tabDestroy", function(e) {
                 leaveDocument(e.tab.path);
@@ -177,11 +185,11 @@ define(function(require, exports, module) {
                     if (!user)
                         break;
                     workspace.joinClient(user);
-                    bubbleNotification("came online", user);
+                    notifyUserOnline(user);
                     break;
                 case "USER_LEAVE":
                     workspace.leaveClient(data.userId);
-                    bubbleNotification("went offline", user);
+                    notifyUserOffline(user);
                     break;
                 case "LEAVE_DOC":
                     doc && doc.clientLeave(data.clientId);
@@ -195,6 +203,11 @@ define(function(require, exports, module) {
                         return console.warn("[OT] JOIN_DOC no document match ! - docId:", docId, "open docs:", Object.keys(documents));
                     doc.joinData(data);
                     break;
+                case "LARGE_DOC":
+                    doc && doc.leave();
+                    doc && reportLargeDocument(doc, !msg.data.response);
+                    delete documents[docId];
+                    break;
                 case "USER_STATE":
                     workspace.updateUserState(data.userId, data.state);
                     break;
@@ -207,15 +220,32 @@ define(function(require, exports, module) {
                         console.warn("[OT] Doc ", docId, " not yet inited - MSG:", msg);
             }
         }
+        
+        function notifyUserOffline(user) {
+            clearTimeout(usersLeaving[user.fullname]);
+            usersLeaving[user.fullname] = setTimeout(function() {
+                bubbleNotification("went offline", user);
+                delete usersLeaving[user.fullname];
+            }, 4000);
+        }
+        
+        function notifyUserOnline(user) {
+            if (usersLeaving[user.fullname]) {
+                // User left for like 4 seconds, don't notify
+                clearTimeout(usersLeaving[user.fullname]);
+                return;
+            }
+            
+            bubbleNotification("came online", user);
+        }
 
         /**
          * Join a document and report progress and on-load contents
          * @param {String} docId
          * @param {Document} doc
-         * @param {Function} progress
-         * @param {Function} callback
+         * @param {Function} [progress]
          */
-        function joinDocument(docId, doc, progress, callback) {
+        function joinDocument(docId, doc, progress) {
             console.log("[OT] Join", docId);
             var docSession = doc.getSession();
             var aceSession = docSession && docSession.session;
@@ -227,8 +257,8 @@ define(function(require, exports, module) {
             if (aceSession)
                 otDoc.setSession(aceSession);
 
-            if (callback)
-                setupJoinAndProgressCallbacks(otDoc, progress, callback);
+            if (progress)
+                setupProgressCallback(otDoc, progress);
 
             if (documents[docId])
                 return console.warn("[OT] Document previously joined -", docId,
@@ -243,15 +273,9 @@ define(function(require, exports, module) {
             return otDoc;
         }
 
-        function setupJoinAndProgressCallbacks(otDoc, progress, callback) {
-            var progressListener = function(e) {
+        function setupProgressCallback(otDoc, progress) {
+            otDoc.on("joinProgress", function(e) {
                 progress && progress(e.loaded, e.total, e.complete);
-            };
-            otDoc.on("joinProgress", progressListener);
-            otDoc.once("joined", function(e) {
-                console.log("[OT] Joined", otDoc.id);
-                otDoc.off("joinProgress", progressListener);
-                callback(e.err, e.contents, e.metadata);
             });
         }
 
@@ -262,6 +286,23 @@ define(function(require, exports, module) {
             var doc = documents[docId];
             doc.leave(); // will also dispose
             delete documents[docId];
+        }
+        
+        function reportLargeDocument(doc, forceReadonly) {
+            var docId = doc.id;
+            if (workspace.isAdmin && !forceReadonly) {
+                if (workspace.onlineCount === 1)
+                    return console.log("File is very large, collaborative editing disabled: " + docId);
+                return showError("File is very large, collaborative editing disabled: " + docId, 5000);
+            }
+            showError("File is very large. Collaborative editing disabled: " + docId, 5000);
+            var tab = tabs.findTab(docId);
+            if (!tab || !tab.editor)
+                return;
+            tab.classList.add("error");
+            if (doc.readonly)
+                return;
+            doc.readonly = true;
         }
 
         function saveDocument(docId, fallbackFn, fallbackArgs, callback) {
@@ -305,11 +346,9 @@ define(function(require, exports, module) {
         };
         */
 
-        function isReadOnly() {
-            return !!(c9.readonly || timeslider.visible);
-        }
-
         /**
+         * Start a Collab session with each metadata read.
+         *
          * e.path
          * e.tab
          * e.callback
@@ -321,47 +360,60 @@ define(function(require, exports, module) {
             var callback = e.callback;
             var otDoc = documents[path];
             if (!otDoc)
-                otDoc = joinDocument(path, e.tab.document, progress, callback);
+                otDoc = documents[path] = joinDocument(path, e.tab.document, progress);
             else
-                setupJoinAndProgressCallbacks(otDoc, progress, callback);
+                setupProgressCallback(otDoc, progress);
+
+            otDoc.on("joined", onJoined);
+            otDoc.on("largeDocument", reportLargeDocument.bind(null, otDoc) );
+            otDoc.on("joinProgress", startWatchDog);
+            startWatchDog();
+
+            // Load using XHR while collab not connected
+            if (!connect.connected)
+                return;
+
+            var fallbackXhrAbort;
+            return {
+                abort: function() {
+                    if (fallbackXhrAbort)
+                        fallbackXhrAbort();
+                    else
+                        console.log("TODO: [OT] abort joining a document");
+                }   
+            };
+
+            function startWatchDog() {
+                clearTimeout(openFallbackTimeouts[path]);
+                openFallbackTimeouts[path] = setTimeout(function() {
+                    console.warn("[OT] JOIN_DOC timed out - fallback to filesystem, but don't abort");
+                    fsOpenFallback();
+                    otDoc.off("joined", onJoined);
+                }, OPEN_FILESYSTEM_FALLBACK_TIMEOUT);
+            }
+
+            function onJoined(e) {
+                otDoc.off("joined", onJoined);
+                clearTimeout(openFallbackTimeouts[path]);
+                openFallbackTimeouts[path] = null;
+                if (e.err) {
+                    if (e.err.code != "ENOENT" && e.err.code != "ELARGE")
+                        console.warn("[OT] JOIN_DOC failed - fallback to filesystem");
+                    return fsOpenFallback();
+                }
+                console.log("[OT] Joined", otDoc.id);
+                callback(e.err, e.contents, e.metadata);
+            }
 
             function fsOpenFallback() {
                 var xhr = fs.readFileWithMetadata(path, "utf8", callback, progress);
                 fallbackXhrAbort = xhr.abort.bind(xhr);
             }
-
-            openFallbackTimeouts[path] = setTimeout(function() {
-                console.warn("[OT] JOIN_DOC timed out - fallback to filesystem, but don't abort");
-                fsOpenFallback();
-                otDoc.off("joined", onJoinErrorFallback);
-            }, OPEN_FILESYSTEM_FALLBACK_TIMEOUT);
-
-            otDoc.on("joined", onJoinErrorFallback);
-
-            function onJoinErrorFallback(e) {
-                otDoc.off("joined", onJoinErrorFallback);
-                clearTimeout(openFallbackTimeouts[path]);
-                if (e.err) {
-                    console.warn("[OT] JOIN_DOC failed - fallback to filesystem");
-                    fsOpenFallback();
-                }
-            }
-
-            var fallbackXhrAbort;
-            if (connect.connected) {
-                return { abort: function() {
-                    if (fallbackXhrAbort)
-                        fallbackXhrAbort();
-                    else
-                        console.log("TODO: [OT] abort joining a document");
-                } };
-            }
-            else {
-                // load through the metadata plugin (fs.xhr.js) while collab not connected
-                return null;
-            }
         }
 
+        /**
+         * Normalize tab contents after file read.
+         */
         function afterReadFile(e) {
             var path = e.path;
             var tab = tabs.findTab(path);
@@ -374,22 +426,32 @@ define(function(require, exports, module) {
                 tab.document.value = normHttpValue;
         }
 
+        /**
+         * Save using collab server for OT-enabled documents.
+         * Overrides the normal file writing behavior.
+         */
         function beforeWriteFile(e) {
             var path = e.path;
             var tab = tabs.findTab(path);
             var doc = documents[path];
+
+            // Fall back to default writeFile if we can't handle it
             if (!tab || timeslider.visible || !connect.connected || !doc || !doc.loaded)
                 return;
+
+            // Override default writeFile
             var args = e.args.slice();
             var progress = args.pop();
             var callback = args.pop();
-            saveDocument(path, e.fn, e.args, callback);
+            var defaultWriteFile = e.fn;
+            saveDocument(path, defaultWriteFile, e.args, callback);
             return false;
         }
-
-        function beforeRename(e) {
-            // do collab rename
-            // return false;
+        
+        function onSetPath(tab, oldpath, path) {
+            console.log("[OT] detected rename/save as from", oldpath, "to", path);
+            leaveDocument(oldpath);
+            joinDocument(path, tab.document);
         }
 
         function normalizeTextLT(text) {

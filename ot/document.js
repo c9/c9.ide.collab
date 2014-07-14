@@ -1,7 +1,9 @@
 define(function(require, module, exports) {
-    main.consumes = ["Plugin", "ace", "util", "apf",
+    main.consumes = [
+        "Plugin", "ace", "util", "apf",
         "collab.connect", "collab.util", "collab.workspace",
-        "timeslider", "CursorLayer", "AuthorLayer"];
+        "timeslider", "CursorLayer", "AuthorLayer"
+    ];
     main.provides = ["OTDocument"];
     return main;
 
@@ -33,9 +35,9 @@ define(function(require, module, exports) {
         var MAX_DELAY = options.maxDelay;
         var MAX_COMMIT_TRIALS = 3;
         var SAVE_FILE_TIMEOUT = 5000;
+        var MAX_OP_SIZE = 1024 * 1024;
 
         function OTDocument(docId, c9Document) {
-
             var plugin = new Plugin("Ajax.org", main.consumes);
             var emit = plugin.getEmitter();
             var cloneObject = c9util.cloneObject;
@@ -56,15 +58,20 @@ define(function(require, module, exports) {
             var packedCs;
             var loaded, loading, inited;
             var state;
-            
+            var pendingSave;
+            var readonly;
+            var reqId;
+
             resetState();
-            
+
             function resetState() {
                 if (session) {
                     session.off("change", handleUserChanges);
+                    session.off("changeEditor", onChangeEditor);
                     session.selection.off("changeCursor", onCursorChange);
                     session.selection.off("changeSelection", onCursorChange);
                     session.selection.off("addRange", onCursorChange);
+                    session = null;
                 }
                 if (inited) {
                     cursorLayer.dispose();
@@ -72,8 +79,8 @@ define(function(require, module, exports) {
                 }
                 doc = session = docStream = revStream = undefined;
                 revCache = rev0Cache = latestRevNum = lastSel = undefined;
-                clearTimeout(sendTimer); clearTimeout(cursorTimer); clearTimeout(saveTimer);
-                sendTimer = cursorTimer = saveTimer = undefined;
+                clearTimeout(sendTimer); clearTimeout(cursorTimer); endSaveWatchDog();
+                sendTimer = cursorTimer = undefined;
                 commitTrials = 0;
                 incoming = [];
                 outgoing = [];
@@ -108,6 +115,7 @@ define(function(require, module, exports) {
                 incoming = [];
 
                 session.on("change", handleUserChanges);
+                session.on("changeEditor", onChangeEditor);
                 session.selection.on("changeCursor", onCursorChange);
                 session.selection.on("changeSelection", onCursorChange);
                 session.selection.on("addRange", onCursorChange);
@@ -320,6 +328,12 @@ define(function(require, module, exports) {
             function doSend() {
                 if (state !== "IDLE")
                     return;
+                
+                if (sendTimer) {
+                    clearTimeout(sendTimer);
+                    sendTimer = null;
+                }
+                        
 
                 var st = new Date();
                 if (!outgoing.length && !isPackedUnity())
@@ -331,6 +345,12 @@ define(function(require, module, exports) {
                     var top = outgoing[0];
                     top.revNum = latestRevNum + 1;
                     top.selection = lastSel = CursorLayer.selectionToData(session.selection);
+                    if (top.op.filter(function(o) { return o.length > MAX_OP_SIZE; }).length) {
+                        connect.send("LARGE_DOC", { docId: top.docId });
+                        // TODO: rejoin when doc becomes ok again
+                        emit("largeDocument");
+                        return leave();
+                    }
                     connect.send("EDIT_UPDATE", top);
                     emit("send", { revNum: top.revNum });
                 }
@@ -360,10 +380,15 @@ define(function(require, module, exports) {
             function joinData(data) {
                 var st = new Date();
                 loaded = false;
+                if (data.reqId && reqId !== data.reqId)
+                    return console.log("Ignored unrequested join data");
 
                 var err = data.err;
                 if (err) {
-                    console.error("JOIN_DOC Error:", docId, err);
+                    if (err.code != "ENOENT" && err.code != "ELARGE")
+                        console.error("JOIN_DOC Error:", docId, err);
+                    if (err.code == "ELARGE")
+                        emit("largeDocument");
                     return emit.sticky("joined", {err: err});
                 }
 
@@ -385,7 +410,7 @@ define(function(require, module, exports) {
                 try {
                     doc = JSON.parse(docStream);
                 } catch(e) {
-                    console.error(e, "Stream:", docStream);
+                    console.error("[OT] Stream:", docStream, e);
                     // try reload
                     return reload();
                 } finally {
@@ -407,8 +432,11 @@ define(function(require, module, exports) {
                 outgoing = [];
                 incoming = [];
                 if (pendingSave) {
-                    emit("saved", {err: "Document `" + docId + "` updated to latest state on disk, please try saving again", code: "EREJOINED"});
-                    pendingSave = null;
+                    // Document was updated to latest state on disk,
+                    // but that information won't really help users,
+                    // so we're just going to save the state as it is now.
+                    saveWatchDog(true);
+                    save(pendingSave.silent);
                 }
 
                 delete doc.selections[workspace.myOldClientId]; // in case of being away
@@ -545,6 +573,7 @@ define(function(require, module, exports) {
                         // revert & discard all my uncommited changesets because:
                         // a- a file watcher caused this document sync on (overriding my changes)
                         // b- my changes may lead to inconsist state or can fail to be applied to the new synced document state
+                        console.log("Received new document, discarding any pending changes");
                         revertMyPendingChanges(msg.userId);
                         pendingSave = null;
                     }
@@ -615,11 +644,22 @@ define(function(require, module, exports) {
                     cursorLayer.hideAllTooltips();
             }
 
+            function onChangeEditor(e) {
+                var oldEditor = e.oldEditor;
+                if (oldEditor) {
+                    // console.log("[OT] old editor readonly", oldEditor.getReadOnly());
+                    if (readonly)
+                        oldEditor.setReadOnly(false);
+                }
+                if (e.editor && readonly) {
+                    // console.log("[OT] new editor readonly", readonly);
+                    e.editor.setReadOnly(true);
+                }
+            }
+
             // my cursor or selection changes, schedule an update message
             function onCursorChange() {
-                if (!loaded || ignoreChanges)
-                    return;
-                if (cursorTimer)
+                if (!loaded || ignoreChanges || cursorTimer)
                     return;
                 // Don't send too many cursor change messages
                 cursorTimer = setTimeout(changedSelection, 200);
@@ -636,7 +676,7 @@ define(function(require, module, exports) {
                     author: msg.userId,
                     updated_at: msg.updated_at || Date.now()
                 };
-         
+
                 if (isActiveTimesliderDocument())
                     timeslider.sliderLength = msg.revNum;
             }
@@ -650,11 +690,11 @@ define(function(require, module, exports) {
              * Gets a revision with the contents and authorship attributes of the document at this revision
              * Only works if revisions were previously loaded
              */
-            function getDetailedRevision(revNum) {
+            function getDetailedRevision(revNum, contentsOnly) {
                 var i;
                 // authAttribs can only be edited in the forward way because
                 // The user who deleed some text isn't necessarily the one who inserted it
-                if (!rev0Cache) {
+                if (!rev0Cache && !contentsOnly) {
                     var rev0Contents = revCache.contents;
                     for (i = revCache.revNum; i > 0; i--) {
                         var op = operations.inverse(revisions[i].operation);
@@ -678,6 +718,8 @@ define(function(require, module, exports) {
                     applyAuthorAttributes(authAttribs, revisions[i].operation, workspace.authorPool[revisions[i].author]);
                 }
                 var rev = cloneObject(revisions[revNum]);
+                if (!rev)
+                    return null;
                 rev.contents = contents;
                 rev.authAttribs = authAttribs;
 
@@ -686,6 +728,15 @@ define(function(require, module, exports) {
                 revCache.authAttribs = cloneObject(authAttribs);
                 revCache.revNum = revNum;
                 return rev;
+            }
+            
+            /**
+             * Gets the contents of a particular revision. Returns null
+             * if the revision is not currently available locally.
+             */
+            function getRevisionContents(revNum) {
+                var rev = getDetailedRevision(revNum, true);
+                return rev && rev.contents;
             }
 
             // @see docs in the API section below
@@ -707,7 +758,7 @@ define(function(require, module, exports) {
             }
 
             function isReadOnly() {
-                return c9Document.editor.ace.getReadOnly();
+                return readonly || c9Document.editor.ace.getReadOnly();
             }
 
             // @see docs in the API section below
@@ -816,8 +867,7 @@ define(function(require, module, exports) {
             }
 
             function handleFileSaved(data) {
-                clearTimeout(saveTimer);
-                saveTimer = null;
+                endSaveWatchDog();
 
                 var err = data.err;
                 if (err) {
@@ -828,7 +878,8 @@ define(function(require, module, exports) {
                 // pendingSave exists: save triggered by me
                 // otherwise: other collaborator save
                 if (pendingSave) {
-                    if (pendingSave.fsHash !== data.fsHash) {
+                    var value = getRevisionContents(data.revNum);
+                    if (value && apf.crypto.MD5.hex_md5(value) !== data.fsHash) {
                         console.error("[OT] Failed saving file!", err, docId);
                         return emit("saved", {err: "Save content mismatch", code: "EMISMATCH"});
                     }
@@ -863,7 +914,7 @@ define(function(require, module, exports) {
 
                 revStream += data.chunk;
 
-                if (data.chunkNum !== data.chunksLength)
+                if (data.chunkNum < data.chunksLength)
                     return;
 
                 var revisionsObj = JSON.parse(revStream);
@@ -903,60 +954,83 @@ define(function(require, module, exports) {
                 authorLayer.refresh();
             }
 
-            var pendingSave;
-
             // @see docs in the API section below
             function save(silent) {
-                var saveStr = session.getValue();
-                var fsHash = apf.crypto.MD5.hex_md5(saveStr);
+                saveWatchDog();
+
                 var isUnity = isPackedUnity();
                 if (!isUnity)
                     addOutgoingEdit();
-                pendingSave = {silent: !!silent, outLen: outgoing.length, fsHash: fsHash};
+                pendingSave = {silent: !!silent, outLen: outgoing.length};
                 if (state === "IDLE" && isUnity)
                     return doSaveFile(silent);
-                if (sendTimer) {
-                    clearTimeout(sendTimer);
-                    sendTimer = null;
-                    scheduleSend();
-                }
+
+                doSend();
             }
 
             function doSaveFile(silent) {
-                clearTimeout(saveTimer);
-                saveTimer = setTimeout(function() {
-                    saveTimer = pendingSave = null;
-                    emit("saved", {err: "File save timeout", code: "ETIMEOUT"});
-                }, SAVE_FILE_TIMEOUT);
+                saveWatchDog();
+
+                if (!pendingSave)  // should be set, but let's make sure
+                   pendingSave = { silent: silent };
+                
                 connect.send("SAVE_FILE", {
                     docId: docId,
                     silent: !!silent
                 });
             }
 
+            function saveWatchDog(restart, timeout) {
+                if (saveTimer && !restart)
+                    return;
+                endSaveWatchDog();
+
+                saveTimer = setTimeout(function onSaveTimeout() {
+                    saveTimer = pendingSave = null;
+                    emit("saved", {err: "File save timeout", code: "ETIMEOUT"});
+                }, timeout || SAVE_FILE_TIMEOUT);
+            }
+
+            function endSaveWatchDog() {
+                clearTimeout(saveTimer);
+                saveTimer = null;
+            }
+
             function reload() {
+                console.log("[OT] reloading document", docId);
                 var sameSession = session;
                 resetState();
                 setSession(sameSession);
-                load();
+                doLoad();
             }
 
             // @see docs in the API section below
             function load() {
-                loaded = false;
-                loading = true;
-                connect.send("JOIN_DOC", { docId: docId });
+                if (state == "DISCONNECTED")
+                    reload();
+                else
+                    doLoad();
+            }
+
+            function doLoad() {
+                reqId = Math.floor(Math.random() * 9007199254740993);
+                connect.send("JOIN_DOC", { docId: docId, reqId: reqId });
             }
 
             // @see docs in the API section below
-            function leave() {
-                connect.send("LEAVE_DOC", { docId: docId });
+            function leave(skipMsg) {
+                if (connect.connected || skipMsg)
+                    connect.send("LEAVE_DOC", { docId: docId });
+                if (saveTimer) // force-trigger timeout to fallback to filesystem saving
+                    saveWatchDog(true, 1);
                 resetState();
             }
 
             // @see docs in the API section below
             function disconnect() {
-                loaded = loading = false;
+                leave(true);
+                state = "DISCONNECTED";
+                console.log("[OT] document", docId, "disconnected");
             }
 
             // @see docs in the API section below
@@ -1094,6 +1168,16 @@ define(function(require, module, exports) {
                  * @property {Boolean} pendingUpdates
                  */
                 get pendingUpdates() { return packedCs.length > 1; },
+                /**
+                 * Indicates whether the document is readonly.
+                 * @property {Boolean} readonly
+                 */
+                get readonly() { return isReadOnly(); },
+                /**
+                 * Sets the document to readonly mode.
+                 * @property {Boolean} readonly
+                 */
+                set readonly(r) { readonly = r; c9Document.tab.editor.setOption("readOnly", r); },
                 /**
                  * Load/Join the document from the collab server
                  * loaded = false

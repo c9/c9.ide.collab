@@ -152,8 +152,10 @@ define(function(require, exports, module) {
             if (fatalError)
                 return;
             
-            if (connected)
-                onDisconnect();
+            if (connected) {
+                console.log("Collab already connected, ignoring reconnection attempt");
+                return;
+            }
 
             if (connecting)
                 return;
@@ -223,7 +225,7 @@ define(function(require, exports, module) {
                     if (debug)
                         console.log("[OT] RECEIVED FROM SERVER", data);
                     if (data.type !== "CONNECT")
-                        return console.error("[OT] Invalid connect data!", data);
+                        return console.log("[OT] Waiting for connect event, skipping message", data);
                     connected = true;
                     connecting = false;
                     connectMsg = data;
@@ -237,12 +239,12 @@ define(function(require, exports, module) {
                     if (isClosed)
                         return;
                     stream.off("data", onData);
-                    // stream.destroy();
+                    stream.destroy();
                     isClosed = true;
-
-                    // setTimeout(function () {
-                    //     c9.connected && connect();
-                    // }, 3000);
+                    onDisconnect();
+                    setTimeout(function() {
+                        c9.connected && connect();
+                    }, 1000);
                 }
             });
         }

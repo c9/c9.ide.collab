@@ -45,7 +45,9 @@ define(function(require, exports, module) {
             // Needed now for bubble
             ui.insertCss(css, staticPrefix, plugin);
 
-            c9.once("ready", loadNotifications);
+            c9.once("ready", function() {
+                setTimeout(loadNotifications, 10000);
+            });
 
             if (!options.hosted && c9.debug) {
                 // standalone version test
@@ -117,6 +119,11 @@ define(function(require, exports, module) {
                 return postLoadedNotifications();
 
             api.collab.get("members/list?pending=1", function (err, members) {
+                if (err && err.code === 0) {
+                    // Server still starting or CORS error; retry
+                    return setTimeout(loadNotifications, 20000);
+                }
+                
                 if (err) return alert(err);
 
                 if (Array.isArray(members)) {

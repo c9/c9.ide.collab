@@ -15,10 +15,13 @@ define(function(require, exports, module) {
 
         var plugin = new Plugin("Ajax.org", main.consumes);
         var emit = plugin.getEmitter();
+        
+        var isAdmin = options.isAdmin;
 
         var authorPool = {};
         var colorPool = {};
         var users = {};
+        var onlineCount = 0;
 
         var myUserId = info.getUser().id;
         var loadedWorkspace = false;
@@ -39,22 +42,30 @@ define(function(require, exports, module) {
                 switch (action) {
                     case "add_member":
                         addCachedMember(body);
+                        if (myUserId == uid) {
+                            showAlert("Workspace Access Changed",
+                                body.acl == "rw"
+                                    ? "You have been granted read/write access to this workspace."
+                                    : "You have been granted readonly access to this workspace.",
+                                "To continue, Cloud9 will be reloaded.", function() { reloadWorkspace(1000); });
+                        }
                         break;
                     case "update_member_access":
                         updateCachedAccess(uid, body.acl);
                         if (myUserId == uid) {
-                            showAlert("Workspace Access", (body.acl == "rw" ? "You have been granted read/write access to the workspace."
-                                    : "You workspace access has been limited to read-only." )
-                                + " Reloading now to apply new access rights ...");
-                            reloadWorkspace(3000);
+                            showAlert("Workspace Access Changed",
+                                body.acl == "rw"
+                                    ? "You have been granted read/write access to the workspace."
+                                    : "You workspace access has been limited to read-only.",
+                                "To continue, Cloud9 will be reloaded.", function() { reloadWorkspace(1000); });
                         }
                         break;
                     case "remove_member":
                         removeCachedMember(uid);
                         if (body.uid == myUserId) {
-                            showAlert("Workspace Access", "You have been removed from the workspace by the workspace owner/admin."
-                                + " Reloading now to apply your new access rights ...");
-                            reloadWorkspace(3000);
+                            showAlert("Workspace Access Revoked",
+                                "You have been removed from the list of members of this workspace.",
+                                "To continue, Cloud9 will be reloaded.", function() { reloadWorkspace(1000); });
                         }
                         break;
                     case "request_access":
@@ -95,12 +106,14 @@ define(function(require, exports, module) {
             users = data.users;
             chatHistory = data.chatHistory;
             loadedWorkspace = true;
+            onlineCount = 1;
             emit("sync");
         }
 
         function leaveClient(uid) {
             var user = users[uid];
             user.online = Math.max(user.online-1, 0);
+            onlineCount--;
             emit("sync");
         }
 
@@ -111,6 +124,7 @@ define(function(require, exports, module) {
             authorPool[uid] = authorId;
             reversedAuthorPool[authorId] = uid;
             colorPool[uid] = user.color;
+            onlineCount++;
             emit("sync");
         }
 
@@ -123,14 +137,24 @@ define(function(require, exports, module) {
         var cachedInfo;
         function loadMembers(callback) {
             if (!options.hosted || cachedMembers) {
-                return done(cachedMembers || [
-                    { name: "Mostafa Eweda", uid: -1, acl: "rw", role: "a", email: "mostafa@c9.io" },
-                    { name: "Lennart Kats", uid: 5, acl: "r", color: "yellow", onlineStatus: "online", email: "lennart@c9.io" },
-                    { name: "Ruben Daniels", uid: 2, acl: "rw", color: "blue", onlineStatus: "idle", email: "ruben@ajax.org" },
-                    { name: "Bas de Wachter", uid: 8, acl: "rw", color: "purple", email: "bas@c9.io" }
-                ]);
+                // Use mock data
+                return done(
+                    cachedMembers || [
+                        { name: "John Doe", uid: -1, acl: "rw", role: "a", email: "johndoe@c9.io" },
+                        { name: "Mostafa Eweda", uid: -1, acl: "rw", color: "green", email: "mostafa@c9.io" },
+                        { name: "Lennart Kats", uid: 5, acl: "r", color: "yellow", onlineStatus: "online", email: "lennart@c9.io" },
+                        { name: "Ruben Daniels", uid: 2, acl: "rw", color: "blue", onlineStatus: "idle", email: "ruben@ajax.org" },
+                        { name: "Bas de Wachter", uid: 8, acl: "rw", color: "purple", email: "bas@c9.io" }
+                    ],
+                    cachedInfo || { admin: true, member: true, pending: false, private: false, appPublic: true, previewPublic: true }
+                );
             }
             api.collab.get("access_info", function (err, info) {
+                if (err && err.code === 0) {
+                    // Server still starting or CORS error; retry
+                    return setTimeout(loadMembers.bind(null, callback), 20000);
+                }
+                
                 if (err) return callback(err);
                 if (!info.member)
                     return done([], info);
@@ -346,10 +370,20 @@ define(function(require, exports, module) {
              */
             get members() { return cachedMembers || []; },
             /**
+             * Gets the approximate number of users/browser tabs currently online on this workspace.
+             * Not fully accurate, but should reflect a lower bound for the number of users.
+             */
+            get onlineCount() { return onlineCount; },
+            /**
              * Gets the cached previously-loaded acccess information
              * @property {Object} info
              */
             get accessInfo() { return cachedInfo || {}; },
+            /**
+             * Gets whether the user is admin
+             * @property {Object} isAdmin
+             */
+            get isAdmin() { return isAdmin; },
             /**
              * Gets the chat history being a list of messages (max. the most recent 100 messages)
              */
