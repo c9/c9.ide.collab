@@ -185,7 +185,7 @@ define(function(require, module, exports) {
                     packedCs = handleUserChanges2(aceDoc, packedCs, e.data);
                     scheduleSend();
                 } catch (ex) {
-                    console.error("[OT] handleUserChanges", ex);
+                    reportException(ex);
                     reload();
                 }
             }
@@ -410,7 +410,7 @@ define(function(require, module, exports) {
                 try {
                     doc = JSON.parse(docStream);
                 } catch(e) {
-                    console.error("[OT] Stream:", docStream, e);
+                    reportException(e);
                     // try reload
                     return reload();
                 } finally {
@@ -613,8 +613,8 @@ define(function(require, module, exports) {
                 try {
                     applyAce(msg.op, aceDoc);
                     applyAuthorAttributes(doc.authAttribs, msg.op, workspace.authorPool[msg.userId]);
-                } catch(e) {
-                    console.error("[OT] applyEdit error:", e);
+                } catch (e) {
+                    reportException(e);
                     err = e;
                 } finally {
                     authorLayer.refresh();
@@ -1043,6 +1043,12 @@ define(function(require, module, exports) {
                 var lastRev = revisions[revisions.length - 1];
                 return !isPackedUnity() ||
                     (revisions.length > 1 && starRevNums.indexOf(lastRev.revNum) === -1);
+            }
+            
+            function reportException(e) {
+                setTimeout(function() {
+                    throw e; // throw bare exception, triggering logging by e.g. raygun
+                });
             }
 
             plugin.freezePublicAPI({
