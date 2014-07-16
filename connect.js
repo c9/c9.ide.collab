@@ -240,8 +240,10 @@ define(function(require, exports, module) {
                 function onClose() {
                     if (isClosed)
                         return;
-                    stream.off("data", onData);
-                    stream.destroy();
+                    if (stream) {
+                        stream.off("data", onData);
+                        stream.destroy();
+                    }
                     isClosed = true;
                     onDisconnect();
                     setTimeout(function() {
