@@ -1023,7 +1023,6 @@ define(function(require, module, exports) {
                     connect.send("LEAVE_DOC", { docId: docId });
                 if (saveTimer) // force-trigger timeout to fallback to filesystem saving
                     saveWatchDog(true, 1);
-                resetState();
             }
 
             // @see docs in the API section below
