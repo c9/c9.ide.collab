@@ -221,6 +221,8 @@ define(function(require, exports, module) {
                     emit("message", data);
                 }
                 function onConnect(data) {
+                    if (isClosed || !collab)
+                        return onClose();
                     data = JSON.parse(data);
                     if (debug)
                         console.log("[OT] RECEIVED FROM SERVER", data);
