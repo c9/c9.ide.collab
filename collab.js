@@ -406,8 +406,8 @@ define(function(require, exports, module) {
             }
 
             function fsOpenFallback() {
-                var xhr = fs.readFileWithMetadata(path, "utf8", callback, progress);
-                fallbackXhrAbort = xhr.abort.bind(xhr);
+                var xhr = fs.readFileWithMetadata(path, "utf8", callback, progress) || {};
+                fallbackXhrAbort = ((xhr && xhr.abort) || function(){}).bind(xhr);
             }
         }
 
