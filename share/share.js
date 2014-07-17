@@ -231,9 +231,7 @@ define(function(require, module, exports) {
             
             publicEditor.on("afterchange", function(e){
                 updateAccess("visibility", e.value, publicEditor, function(err){
-                    var value = e.value || err;
-                    publicApp[value ? "disable" : "enable"]();
-                    publicPreview[value ? "disable" : "enable"]();
+                    syncPermissions();
                 });
             });
             publicApp.on("afterchange", function(e){
@@ -260,20 +258,24 @@ define(function(require, module, exports) {
             membersPanel = new MembersPanel("Ajax.org", main.consumes, {});
             membersPanel.draw({ aml: membersParent });
             
+            syncPermissions();
+
+            emit.sticky("draw");
+        }
+        
+        function syncPermissions(){
             api.collab.get("access_info", function (err, info) {
                 if (err) return;
                 
                 publicEditor[info.private ? "uncheck" : "check"]();
-                publicApp[info.appPublic || !info.private ? "check" : "uncheck"]();
-                publicPreview[info.previewPublic || !info.private ? "check" : "uncheck"]();
+                publicApp[info.appPublic && info.private ? "uncheck" : "check"]();
+                publicPreview[info.previewPublic && info.private ? "uncheck" : "check"]();
                 
                 if (!info.private) {
                     publicApp.disable();
                     publicPreview.disable();
                 }
             });
-
-            emit.sticky("draw");
         }
 
         /***** Methods *****/
