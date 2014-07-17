@@ -166,29 +166,39 @@ define(function(require, module, exports) {
             var words = {
                 "visibility": ["this workspace"],
                 "app": ["the running application"],
-                "preview": ["the preview of workspace files"],
-                
+                "preview": ["the preview of workspace files"]
             }
             
-            function updateAccess(field, value, cb){
+            function updateAccess(field, value, cb, callback){
                 var to = value ? "public" : "private";
                 
                 question.show(
                     "Change Access To " + to.uCaseFirst(),
                     (field == "visibility"
-                        ? "Make this workspace available to the whole world?"
-                        : "Make " + words[field][0] + " available to anyone with the url?"),
-                    "Are you sure you want to make this change? Anyone with "
-                        + "the url will be able to access " + words[field] + ".",
+                        ? (value
+                            ? "Make this workspace available to the whole world?"
+                            : "Close this workspace available only to the listed users?")
+                        : (value
+                            ? "Make " + words[field][0] + " available to anyone with the url?"
+                            : "Close " + words[field][0] + " available only to the listed users?"),
+                    value
+                        ? "Are you sure you want to make this change? Anyone with "
+                            + "the url will be able to access " + words[field] + "."
+                        : "Are you sure you want to make this change? Only users "
+                            + "with read-only or read-write access will be able to "
+                            + "access " + words[field] + ".",
                     function(){ // Yes
                         cb.disable();
                         api.project.put("access/" + field + "/" + to, function(err){
+                            cb.enable();
+                            
+                            callback(err);
+                            
                             if (err) {
-                                cb.enable();
                                 cb[value ? "uncheck" : "check"]();
                                 
                                 // Forbidden
-                                if (err.code == 401) {
+                                if (err.code == 403) {
                                     alert("Forbidden",
                                         "You are not allowed to change this setting.",
                                         "Only the owner of this workspace can change "
@@ -219,7 +229,11 @@ define(function(require, module, exports) {
             }
             
             publicEditor.on("afterchange", function(e){
-                updateAccess("visibility", e.value, publicEditor);
+                updateAccess("visibility", e.value, publicEditor, function(err){
+                    var value = e.value || err;
+                    publicApp[value ? "disable" : "enable"]();
+                    publicPreview[value ? "disable" : "enable"]();
+                });
             });
             publicApp.on("afterchange", function(e){
                 updateAccess("app", e.value, publicApp);
@@ -249,8 +263,13 @@ define(function(require, module, exports) {
                 if (err) return;
                 
                 publicEditor[info.private ? "uncheck" : "check"]();
-                publicApp[!info.publicApp ? "uncheck" : "check"]();
-                publicPreview[!info.publicPreview ? "uncheck" : "check"]();
+                publicApp[info.appPublic || !info.private ? "check" : "uncheck"]();
+                publicPreview[info.previewPublic || !info.private ? "check" : "uncheck"]();
+                
+                if (!info.private) {
+                    publicApp.disable();
+                    publicPreview.disable();
+                }
             });
 
             emit.sticky("draw");
