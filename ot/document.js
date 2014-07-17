@@ -2,7 +2,7 @@ define(function(require, module, exports) {
     main.consumes = [
         "Plugin", "ace", "util", "apf",
         "collab.connect", "collab.util", "collab.workspace",
-        "timeslider", "CursorLayer", "AuthorLayer"
+        "timeslider", "CursorLayer", "AuthorLayer", "error_handler"
     ];
     main.provides = ["OTDocument"];
     return main;
@@ -16,11 +16,11 @@ define(function(require, module, exports) {
         var timeslider = imports.timeslider;
         var CursorLayer = imports.CursorLayer;
         var AuthorLayer = imports.AuthorLayer;
-
         var lang = require("ace/lib/lang");
         // var Range = require("ace/range").Range;
         var xform = require("./xform");
         var operations = require("./operations");
+        var errorHandler = imports.error_handler;
         var apply = require("./apply");
         var applyContents = apply.applyContents;
         var applyAce = apply.applyAce;
@@ -185,7 +185,7 @@ define(function(require, module, exports) {
                     packedCs = handleUserChanges2(aceDoc, packedCs, e.data);
                     scheduleSend();
                 } catch (ex) {
-                    reportException(ex);
+                    errorHandler.reportError(ex);
                     reload();
                 }
             }
@@ -410,7 +410,7 @@ define(function(require, module, exports) {
                 try {
                     doc = JSON.parse(docStream);
                 } catch(e) {
-                    reportException(e);
+                    errorHandler.reportError(e);
                     // try reload
                     return reload();
                 } finally {
@@ -614,7 +614,7 @@ define(function(require, module, exports) {
                     applyAce(msg.op, aceDoc);
                     applyAuthorAttributes(doc.authAttribs, msg.op, workspace.authorPool[msg.userId]);
                 } catch (e) {
-                    reportException(e);
+                    errorHandler.reportError(e);
                     err = e;
                 } finally {
                     authorLayer.refresh();
@@ -998,9 +998,13 @@ define(function(require, module, exports) {
 
             function reload() {
                 console.log("[OT] reloading document", docId);
-                var sameSession = session;
                 resetState();
-                setSession(sameSession);
+                var docSession =  c9Document.getSession();
+                var aceSession = docSession && docSession.session;
+                if (!aceSession)
+                    console.warn("[OT] reload: document doesn't have aceSession set - will be set later");
+                else
+                    setSession(aceSession);
                 doLoad();
             }
 
@@ -1043,12 +1047,6 @@ define(function(require, module, exports) {
                 var lastRev = revisions[revisions.length - 1];
                 return !isPackedUnity() ||
                     (revisions.length > 1 && starRevNums.indexOf(lastRev.revNum) === -1);
-            }
-            
-            function reportException(e) {
-                setTimeout(function() {
-                    throw e; // throw bare exception, triggering logging by e.g. raygun
-                });
             }
 
             plugin.freezePublicAPI({
