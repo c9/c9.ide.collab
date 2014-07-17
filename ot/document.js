@@ -998,9 +998,13 @@ define(function(require, module, exports) {
 
             function reload() {
                 console.log("[OT] reloading document", docId);
-                var sameSession = session;
                 resetState();
-                setSession(sameSession);
+                var docSession =  c9Document.getSession();
+                var aceSession = docSession && docSession.session;
+                if (!aceSession)
+                    console.warn("[OT] reload: document doesn't have aceSession set - will be set later");
+                else
+                    setSession(aceSession);
                 doLoad();
             }
 
