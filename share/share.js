@@ -192,7 +192,8 @@ define(function(require, module, exports) {
                         api.project.put("access/" + field + "/" + to, function(err){
                             cb.enable();
                             
-                            callback(err);
+                            if (callback)
+                                callback(err);
                             
                             if (err) {
                                 cb[value ? "uncheck" : "check"]();
