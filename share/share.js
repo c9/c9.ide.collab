@@ -271,10 +271,8 @@ define(function(require, module, exports) {
                 publicApp[info.appPublic && info.private ? "uncheck" : "check"]();
                 publicPreview[info.previewPublic && info.private ? "uncheck" : "check"]();
                 
-                if (!info.private) {
-                    publicApp.disable();
-                    publicPreview.disable();
-                }
+                publicApp[!info.private ? "disable" : "enable"]();
+                publicPreview[!info.private ? "disable" : "enable"]();
             });
         }
 
