@@ -177,16 +177,16 @@ define(function(require, module, exports) {
                     (field == "visibility"
                         ? (value
                             ? "Make this workspace available to the whole world?"
-                            : "Close this workspace available only to the listed users?")
+                            : "Close this workspace to everyone but the listed users?")
                         : (value
                             ? "Make " + words[field][0] + " available to anyone with the url?"
-                            : "Close " + words[field][0] + " available only to the listed users?"),
-                    value
+                            : "Close " + words[field][0] + " to everyone but the listed users?")),
+                    (value
                         ? "Are you sure you want to make this change? Anyone with "
                             + "the url will be able to access " + words[field] + "."
                         : "Are you sure you want to make this change? Only users "
                             + "with read-only or read-write access will be able to "
-                            + "access " + words[field] + ".",
+                            + "access " + words[field] + "."),
                     function(){ // Yes
                         cb.disable();
                         api.project.put("access/" + field + "/" + to, function(err){
