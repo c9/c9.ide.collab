@@ -643,6 +643,7 @@ define(function(require, module, exports) {
                     applyAce(msg.op, aceDoc);
                     applyAuthorAttributes(doc.authAttribs, msg.op, workspace.authorPool[msg.userId]);
                 } catch (e) {
+                    e.message = (e.message || "") + " in " + session.doc.getNewLineMode() + " " + docId;
                     errorHandler.reportError(e);
                     err = e;
                 } finally {
@@ -874,7 +875,7 @@ define(function(require, module, exports) {
                    receiveRevisions(data);
                    break;
                  default:
-                   console.error("[OT] Unkown document event type:", event.type, docId, event);
+                   errorHandler.reportError(new Error("Unkown OT document event type:" + event.type + " " + JSON.stringify(event)));
                }
             }
             
