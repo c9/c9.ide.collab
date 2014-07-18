@@ -457,7 +457,7 @@ define(function(require, exports, module) {
         }
 
         function normalizeTextLT(text) {
-            var nlCh = detectNewLineType(text);
+            var nlCh = collabUtil.detectNewLineType(text);
             return text.split(/\r\n|\r|\n/).join(nlCh);
         }
 
