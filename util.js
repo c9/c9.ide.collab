@@ -105,11 +105,22 @@ define(function(require, exports, module) {
                 numUsers--;
             return numUsers > 1;
         }
+        
+        function detectNewLineType(text) {
+            // Must be the strictly same as on the server
+            // (and note that Ace doesn't have \r newline mode)
+            var match = text.match(/^.*?(\r\n|\n)/m);
+            return match ? match[1] : "\n";
+        }
 
         /**
          * Utilities for the collab plugins
          */
         plugin.freezePublicAPI({
+            /**
+             * @ignore
+             */
+            detectNewLineType: detectNewLineType, 
             /**
              * Escape text from HTML tags and format hyperlinks to HTML anchor elements
              * @param {String} text - the text to escape HTML from

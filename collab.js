@@ -4,7 +4,8 @@ define(function(require, exports, module) {
     main.consumes = [
         "Panel", "c9", "tabManager", "fs", "metadata", "ui", "apf", "settings", 
         "preferences", "ace", "util", "collab.connect", "collab.workspace", 
-        "timeslider", "OTDocument", "notification.bubble", "dialog.error"
+        "timeslider", "OTDocument", "notification.bubble", "dialog.error",
+        "collab.util"
     ];
     main.provides = ["collab"];
     return main;
@@ -19,6 +20,7 @@ define(function(require, exports, module) {
         var apf = imports.apf;
         var ace = imports.ace;
         var util = imports.util;
+        var collabUtil = imports["collab.util"];
         var settings = imports.settings;
         var prefs = imports.preferences;
         var connect = imports["collab.connect"];
@@ -455,9 +457,14 @@ define(function(require, exports, module) {
         }
 
         function normalizeTextLT(text) {
-            var match = text.match(/^.*?(\r\n|\r|\n)/m);
-            var nlCh = match ? match[1] : "\n";
+            var nlCh = detectNewLineType(text);
             return text.split(/\r\n|\r|\n/).join(nlCh);
+        }
+
+        function detectNewLineType(text) {
+            // Must be the strictly same as on the client
+            var match = text.match(/^.*?(\r\n|\r|\n)/m);
+            return match ? match[1] : "\n";
         }
 
         function bubbleNotification(msg, user) {

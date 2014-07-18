@@ -2,7 +2,7 @@ define(function(require, module, exports) {
     main.consumes = [
         "Plugin", "ace", "util", "apf",
         "collab.connect", "collab.util", "collab.workspace",
-        "timeslider", "CursorLayer", "AuthorLayer", "error_handler"
+        "timeslider", "CursorLayer", "AuthorLayer", "error_handler",
     ];
     main.provides = ["OTDocument"];
     return main;
@@ -11,6 +11,7 @@ define(function(require, module, exports) {
         var Plugin = imports.Plugin;
         var connect = imports["collab.connect"];
         var c9util = imports.util;
+        var collabUtil = imports["collab.util"];
         var apf = imports.apf;
         var workspace = imports["collab.workspace"];
         var timeslider = imports.timeslider;
@@ -61,6 +62,7 @@ define(function(require, module, exports) {
             var pendingSave;
             var readonly;
             var reqId;
+            var newLine;
 
             resetState();
 
@@ -105,6 +107,7 @@ define(function(require, module, exports) {
                 IndexCache(aceDoc);
                 aceDoc.oldSetValue = aceDoc.oldSetValue || aceDoc.setValue;
                 aceDoc.setValue = patchedSetValue.bind(aceDoc);
+                recordNewLineType();
                 // aceDoc.applyDeltas = patchedApplyDeltas.bind(aceDoc);
                 // aceDoc.revertDeltas = patchedRevertDeltas.bind(aceDoc);
 
@@ -192,7 +195,11 @@ define(function(require, module, exports) {
 
             function handleUserChanges2 (aceDoc, packedCs, data) {
                 packedCs = packedCs.slice();
-                var nlCh = aceDoc.getNewLineCharacter();
+                var nlCh = newLine;
+                if (newLine !== nlCh) {
+                    errorHandler.reportError(new Error("Warning: inconsistent newLine type in session for " + docId));
+                    recordNewLineType();
+                }
                 var startOff = aceDoc.positionToIndex(data.range.start);
 
                 var offset = startOff, opOff = 0;
@@ -389,6 +396,7 @@ define(function(require, module, exports) {
                         console.error("JOIN_DOC Error:", docId, err);
                     if (err.code == "ELARGE")
                         emit("largeDocument");
+                    recordNewLineType(doc.contents);
                     return emit.sticky("joined", {err: err});
                 }
 
@@ -450,7 +458,27 @@ define(function(require, module, exports) {
 
                 loaded = true;
                 loading = false;
+                recordNewLineType(doc.contents);
                 emit.sticky("joined", {contents: doc.contents, metadata: doc.metadata});
+            }
+            
+            function recordNewLineType(contents) {
+                if (contents)
+                    newLine = collabUtil.detectNewLineType(contents);
+                if (!session || !session.doc)
+                    return;
+                var mode;
+                switch (newLine) {
+                    case "\r\n":
+                        mode = "windows"; break;
+                    case "\n": case undefined:
+                        mode = "unix"; break;
+                    default:
+                        // Like Ace, this is all we support
+                        errorHandler.reportError(new Error("Warning: unexpected newLine mode: " + newLine));
+                        mode = "\n";
+                }
+                session.doc.setNewLineMode(mode);
             }
 
             /**
@@ -556,6 +584,7 @@ define(function(require, module, exports) {
                         msg.revNum, latestRevNum + 1);
                     return;
                 }
+                
                 var st = new Date();
                 if (outgoing.length && isOurOutgoing(msg, outgoing[0])) {
                     // 'op' not sent to save network bandwidth
