@@ -217,8 +217,8 @@ function AuthorAttributes(minKeySize, maxKeySize) {
         for (var i = 0; i < nodes.length; i+=2) {
             if (Array.isArray(nodes[i+1])) {
                 var l1 = sanityCheck(nodes[i+1]);
-                if (l1 != nodes[i])
-                    debugger;
+                // if (l1 != nodes[i])
+                //     debugger;
                 len += l1;
             } else {
                 len += nodes[i];
