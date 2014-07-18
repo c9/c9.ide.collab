@@ -396,7 +396,6 @@ define(function(require, module, exports) {
                         console.error("JOIN_DOC Error:", docId, err);
                     if (err.code == "ELARGE")
                         emit("largeDocument");
-                    recordNewLineType(doc.contents);
                     return emit.sticky("joined", {err: err});
                 }
 
