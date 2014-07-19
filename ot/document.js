@@ -195,8 +195,8 @@ define(function(require, module, exports) {
 
             function handleUserChanges2 (aceDoc, packedCs, data) {
                 packedCs = packedCs.slice();
-                var nlCh = newLine;
-                if (newLine !== nlCh) {
+                var nlCh = newLine || "\n";
+                if (nlCh !== aceDoc.getNewLineCharacter()) {
                     errorHandler.reportError(new Error("Warning: inconsistent newLine type in session for " + docId));
                     recordNewLineType();
                 }
