@@ -647,7 +647,8 @@ define(function(require, module, exports) {
                     err = e;
                 } finally {
                     authorLayer.refresh();
-                    doc.revNum = msg.revNum;
+                    if (msg.revNum)
+                        doc.revNum = msg.revNum;
                     ignoreChanges = false;
 
                     // try reload
@@ -853,7 +854,7 @@ define(function(require, module, exports) {
 
             // @see docs in the API section below
             function handleMessage(event) {
-                if (!inited)
+                if (!inited || !doc)
                     return incoming.push(event);
 
                 var data = event.data;
