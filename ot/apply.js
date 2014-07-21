@@ -63,9 +63,12 @@ exports.applyAce = function(op, editorDoc) {
             var endDel = editorDoc.indexToPosition(index + text.length);
             var range = Range.fromPoints(startDel, endDel);
             var docText = editorDoc.getTextRange(range);
-            if (docText !== text)
-                throw new TypeError("Expected '" + text +
+            if (docText !== text) {
+                var err = new Error("Expected '" + text +
                     "' to delete, found '" + docText + "'");
+                err.code = "EMISMATCH";
+                throw err;
+            }
             editorDoc.remove(range);
             break;
         default:

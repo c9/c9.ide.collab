@@ -177,7 +177,7 @@ define(function(require, module, exports) {
              * Record and buffer the user changes to the document into packedCs for it to be sent
              * to the collab server as EDIT_UPDATE
              */
-            function handleUserChanges (e) {
+            function handleUserChanges(e) {
                 // needed to provide immediate feedback for remote selection changes caused by local edits
                 session._emit("changeBackMarker");
                 if (!inited || ignoreChanges)
@@ -187,7 +187,11 @@ define(function(require, module, exports) {
                     packedCs = handleUserChanges2(aceDoc, packedCs, e.data);
                     scheduleSend();
                 } catch (ex) {
-                    errorHandler.reportError(ex);
+                    errorHandler.reportError(ex, {
+                        data: e.data,
+                        newLineMode: session.doc.getNewLineMode(),
+                        docId: docId
+                    }, ["collab"]);
                     reload();
                 }
             }
@@ -416,7 +420,7 @@ define(function(require, module, exports) {
                 try {
                     doc = JSON.parse(docStream);
                 } catch(e) {
-                    errorHandler.reportError(e);
+                    errorHandler.reportError(e, null, ["collab"]);
                     // try reload
                     return reload();
                 } finally {
@@ -473,7 +477,10 @@ define(function(require, module, exports) {
                         mode = "unix"; break;
                     default:
                         // Like Ace, this is all we support
-                        errorHandler.reportError(new Error("Warning: unexpected newLine mode: " + newLine));
+                        errorHandler.reportError(new Error("Warning: unexpected newLine mode: " + newLine), {
+                            newLineMode: session.doc.getNewLineMode(),
+                            docId: docId
+                        }, ["collab"]);
                         mode = "unix";
                 }
                 session.doc.setNewLineMode(mode);
@@ -641,8 +648,15 @@ define(function(require, module, exports) {
                     applyAce(msg.op, aceDoc);
                     applyAuthorAttributes(doc.authAttribs, msg.op, workspace.authorPool[msg.userId]);
                 } catch (e) {
-                    e.message = (e.message || "") + " in " + session.doc.getNewLineMode() + " " + docId;
-                    errorHandler.reportError(e);
+                    var oldMessage = e.message;
+                    if (e.code === "EMISMATCH")
+                        e.message = "Mismatch applying client-side OT operation";
+                    errorHandler.reportError(e, {
+                        message: oldMessage,
+                        newLineMode: session.doc.getNewLineMode(),
+                        docId: docId,
+                        msg: msg
+                    }, ["collab"]);
                     err = e;
                 } finally {
                     authorLayer.refresh();
@@ -853,6 +867,10 @@ define(function(require, module, exports) {
 
             // @see docs in the API section below
             function handleMessage(event) {
+                if (inited && !doc)
+                    errorHandler.reportError(new Error("Weird state: inited, but no document"), {
+                        state: state
+                    }, ["collab"]);
                 if (!inited || !doc)
                     return incoming.push(event);
 
@@ -874,7 +892,7 @@ define(function(require, module, exports) {
                    receiveRevisions(data);
                    break;
                  default:
-                   errorHandler.reportError(new Error("Unkown OT document event type:" + event.type + " " + JSON.stringify(event)));
+                   errorHandler.reportError(new Error("Unknown OT document event type:" + event.type + " " + JSON.stringify(event)), null, ["collab"]);
                }
             }
             
