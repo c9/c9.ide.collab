@@ -474,7 +474,7 @@ define(function(require, module, exports) {
                     default:
                         // Like Ace, this is all we support
                         errorHandler.reportError(new Error("Warning: unexpected newLine mode: " + newLine));
-                        mode = "\n";
+                        mode = "unix";
                 }
                 session.doc.setNewLineMode(mode);
             }
