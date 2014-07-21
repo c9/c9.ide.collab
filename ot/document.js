@@ -73,13 +73,12 @@ define(function(require, module, exports) {
                     session.selection.off("changeCursor", onCursorChange);
                     session.selection.off("changeSelection", onCursorChange);
                     session.selection.off("addRange", onCursorChange);
-                    session = null;
                 }
                 if (inited) {
                     cursorLayer.dispose();
                     authorLayer.dispose();
                 }
-                doc = session = docStream = revStream = undefined;
+                docStream = revStream = undefined;
                 revCache = rev0Cache = latestRevNum = lastSel = undefined;
                 clearTimeout(sendTimer); clearTimeout(cursorTimer); endSaveWatchDog();
                 sendTimer = cursorTimer = undefined;
@@ -1029,12 +1028,9 @@ define(function(require, module, exports) {
             function reload() {
                 console.log("[OT] reloading document", docId);
                 resetState();
-                var docSession =  c9Document.getSession();
-                var aceSession = docSession && docSession.session;
-                if (!aceSession)
-                    console.warn("[OT] reload: document doesn't have aceSession set - will be set later");
-                else
-                    setSession(aceSession);
+                var sameSession = session;
+                session = null;
+                setSession(sameSession);
                 doLoad();
             }
 

@@ -2,7 +2,7 @@ define(function(require, exports, module) {
 "use strict";
 
     main.consumes = [
-        "Panel", "c9", "tabManager", "fs", "metadata", "ui", "apf", "settings", 
+        "Panel", "tabManager", "fs", "metadata", "ui", "apf", "settings", 
         "preferences", "ace", "util", "collab.connect", "collab.workspace", 
         "timeslider", "OTDocument", "notification.bubble", "dialog.error",
         "collab.util"
@@ -12,7 +12,6 @@ define(function(require, exports, module) {
 
     function main(options, imports, register) {
         var Panel = imports.Panel;
-        var c9 = imports.c9;
         var tabs = imports.tabManager;
         var fs = imports.fs;
         var metadata = imports.metadata;
@@ -252,7 +251,7 @@ define(function(require, exports, module) {
             var docSession = doc.getSession();
             var aceSession = docSession && docSession.session;
             if (!aceSession)
-                console.warn("[OT] Ace session not ready - will setSession when ready!");
+                console.warn("[OT] Ace session not ready for:", docId, "- will setSession when ready!");
 
             var otDoc = documents[docId] || new OTDocument(docId, doc);
 
@@ -388,7 +387,7 @@ define(function(require, exports, module) {
             function startWatchDog() {
                 clearTimeout(openFallbackTimeouts[path]);
                 openFallbackTimeouts[path] = setTimeout(function() {
-                    console.warn("[OT] JOIN_DOC timed out - fallback to filesystem, but don't abort");
+                    console.warn("[OT] JOIN_DOC timed out:", path, "- fallback to filesystem, but don't abort");
                     fsOpenFallback();
                     otDoc.off("joined", onJoined);
                 }, OPEN_FILESYSTEM_FALLBACK_TIMEOUT);
@@ -400,7 +399,7 @@ define(function(require, exports, module) {
                 openFallbackTimeouts[path] = null;
                 if (e.err) {
                     if (e.err.code != "ENOENT" && e.err.code != "ELARGE")
-                        console.warn("[OT] JOIN_DOC failed - fallback to filesystem");
+                        console.warn("[OT] JOIN_DOC failed:", path, "- fallback to filesystem");
                     return fsOpenFallback();
                 }
                 console.log("[OT] Joined", otDoc.id);
