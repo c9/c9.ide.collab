@@ -214,7 +214,7 @@ define(function(require, module, exports) {
                     op = packedCs[++opOff];
                 }
 
-                if (offset !== 0) {
+                if (op && offset !== 0) {
                     var splitted = operations.split(op, offset);
                     packedCs.splice(opOff, 1, splitted[0], splitted[1]);
                     opOff++;
