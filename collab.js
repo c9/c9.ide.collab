@@ -201,7 +201,7 @@ define(function(require, exports, module) {
                         // bubbleNotification("opened file: " + docId, user);
                         return;
                     if (!doc)
-                        return console.warn("[OT] JOIN_DOC no document match ! - docId:", docId, "open docs:", Object.keys(documents));
+                        return console.warn("[OT] Received msg for file that is not open - docId:", docId, "open docs:", Object.keys(documents));
                     doc.joinData(data);
                     break;
                 case "LARGE_DOC":
@@ -214,7 +214,7 @@ define(function(require, exports, module) {
                     break;
                 default:
                     if (!doc)
-                        return console.error("[OT] Received msg for unknown docId", docId, msg);
+                        return console.warn("[OT] Received msg for file that is not open", docId, msg);
                     if (doc.loaded)
                         doc.handleMessage(msg);
                     else
