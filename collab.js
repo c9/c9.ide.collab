@@ -311,7 +311,7 @@ define(function(require, exports, module) {
             doc.once("saved", function(e) {
                 if ((e.code == "ETIMEOUT" || e.code == "EMISMATCH") && fallbackFn) {
                     // The vfs socket is probably dead ot stale
-                    console.warn("[OT] collab", e.code, "trying to save file", docId, "- you probably need to refresh your IDE");
+                    console.warn("[OT] collab", e.code, "trying to save file", docId, "- trying fallback approach instead");
                     return fallbackFn.apply(null, fallbackArgs);
                 }
                 callback(e.err);

@@ -920,6 +920,13 @@ define(function(require, module, exports) {
                 if (data.code == "VERSION_E")
                     latestRevNum = data.revNum;
                 if (data.code == "OT_E" || commitTrials > MAX_COMMIT_TRIALS) {
+                    reportEror(new Error("Sync commit because of OT error"), {
+                        docId: docId,
+                        newLineMode: session.doc && session.doc.getNewLineMode(),
+                        data: data,
+                        latestRevNum: latestRevNum,
+                        minOnlineCount: workspace.onlineCount
+                    }, ["collab"])
                     revertMyPendingChanges();
                     clearCs(session.getValue().length);
                     commitTrials = 0;
