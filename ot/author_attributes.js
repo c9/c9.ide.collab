@@ -231,8 +231,10 @@ function AuthorAttributes(minKeySize, maxKeySize) {
         for (var i=0; i < nodes.length; i+=2) {
             if (Array.isArray(nodes[i+1])) {
                 flatten(nodes[i+1], result);
-            } else
+            }
+            else {
                 result.push(nodes[i], nodes[i+1]);
+            }
         }
         return result;
     }
