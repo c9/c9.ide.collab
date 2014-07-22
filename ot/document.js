@@ -3,6 +3,7 @@ define(function(require, module, exports) {
         "Plugin", "ace", "util", "apf",
         "collab.connect", "collab.util", "collab.workspace",
         "timeslider", "CursorLayer", "AuthorLayer", "error_handler",
+        "c9"
     ];
     main.provides = ["OTDocument"];
     return main;
@@ -27,6 +28,7 @@ define(function(require, module, exports) {
         var applyAce = apply.applyAce;
         var IndexCache = require("./index_cache");
         var applyAuthorAttributes = require("./author_attributes")().apply;
+        var c9 = imports.c9;
 
         // The minimum delay that should be between a commited EDIT_UPDATE and the next
         // Happens when I'm collaboratively editing and the collaborators cursors are nearby
@@ -121,6 +123,9 @@ define(function(require, module, exports) {
                 session.selection.on("changeCursor", onCursorChange);
                 session.selection.on("changeSelection", onCursorChange);
                 session.selection.on("addRange", onCursorChange);
+                
+                // Don't do fallback saving on disconnect (work around #3680)
+                c9.on("disconnect", endSaveWatchDog);
             }
 
             /**
