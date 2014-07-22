@@ -868,13 +868,14 @@ define(function(require, module, exports) {
                     return;
                 console.warn("[OT] Reverting my changes to recover sync or inconsistent state");
                 userId = userId || workspace.myUserId;
-                outgoing.splice(0, outgoing.length).forEach(function (myEdit) {
+                for (var i = outgoing.length - 1; i >= 0; i--) {
                     applyEdit(
-                        {op: operations.inverse(myEdit.op), userId: userId},
+                        {op: operations.inverse(outgoing[i].op), userId: userId},
                         session.doc,
                         { outgoing: outgoing, userId: userId}
                     );
-                });
+                }
+                outgoing = [];
             }
 
             // @see docs in the API section below
