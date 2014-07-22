@@ -35,7 +35,7 @@ define(function(require, module, exports) {
             function refresh() {
                 var doc = session.collabDoc.original;
                 var ace = doc.editor && doc.editor.ace;
-                var aceSession = ace.session;
+                var aceSession = ace && ace.session;
                 if (aceSession !== session)
                     return;
 
