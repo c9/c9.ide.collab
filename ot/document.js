@@ -639,7 +639,7 @@ define(function(require, module, exports) {
 
             // If the document is at the latest state, apply a edit into the current document state
             // Else if the timeslider is visible, do nothing - we can later get the contents from the revisions
-            function applyEdit(msg, aceDoc) {
+            function applyEdit(msg, aceDoc, revertData) {
                 if (timeslider.visible)
                     return;
                 var err;
@@ -650,12 +650,20 @@ define(function(require, module, exports) {
                 } catch (e) {
                     var oldMessage = e.message;
                     if (e.code === "EMISMATCH")
-                        e.message = "Mismatch applying client-side OT operation";
+                        e.message = // distinguish different error categories based on state
+                            !revertData
+                            ? "Mismatch applying client-side OT operation"
+                            : revertData.userId
+                            ? "Mismatch applying client-side OT operation, revert with userId"
+                            : "Mismatch applying client-side OT operation, revert without userId";
                     errorHandler.reportError(e, {
                         message: oldMessage,
                         newLineMode: session.doc.getNewLineMode(),
                         docId: docId,
-                        msg: msg
+                        msg: msg,
+                        revertData: revertData,
+                        latestRevNum: latestRevNum,
+                        minOnlineCount: workspace.onlineCount
                     }, ["collab"]);
                     err = e;
                 } finally {
@@ -861,7 +869,11 @@ define(function(require, module, exports) {
                 console.warn("[OT] Reverting my changes to recover sync or inconsistent state");
                 userId = userId || workspace.myUserId;
                 outgoing.splice(0, outgoing.length).forEach(function (myEdit) {
-                    applyEdit({op: operations.inverse(myEdit.op), userId: userId}, session.doc);
+                    applyEdit(
+                        {op: operations.inverse(myEdit.op), userId: userId},
+                        session.doc,
+                        { outgoing: outgoing, userId: userId}
+                    );
                 });
             }
 
