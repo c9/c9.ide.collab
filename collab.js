@@ -368,11 +368,12 @@ define(function(require, exports, module) {
             otDoc.on("joined", onJoined);
             otDoc.on("largeDocument", reportLargeDocument.bind(null, otDoc) );
             otDoc.on("joinProgress", startWatchDog);
-            startWatchDog();
 
             // Load using XHR while collab not connected
             if (!connect.connected)
                 return;
+            
+            startWatchDog();
 
             var fallbackXhrAbort;
             return {
