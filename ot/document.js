@@ -916,13 +916,13 @@ define(function(require, module, exports) {
                 if (data.code == "VERSION_E")
                     latestRevNum = data.revNum;
                 if (data.code == "OT_E" || commitTrials > MAX_COMMIT_TRIALS) {
-                    reportEror(new Error("Sync commit because of OT error"), {
+                    errorHandler.reportError(new Error("Sync commit because of OT error"), {
                         docId: docId,
                         newLineMode: session.doc && session.doc.getNewLineMode(),
                         data: data,
                         latestRevNum: latestRevNum,
                         minOnlineCount: workspace.onlineCount
-                    }, ["collab"])
+                    }, ["collab"]);
                     revertMyPendingChanges();
                     clearCs(session.getValue().length);
                     commitTrials = 0;
@@ -1095,7 +1095,8 @@ define(function(require, module, exports) {
 
             // @see docs in the API section below
             function disconnect() {
-                // Don't do fallback saving on disconnect - endSaveWatchDog() (work around #3680)
+                // We don't do fallback saving on disconnect, so we call
+                // resetState(), which calls endSaveWatchDog() (working around #3680)
                 resetState();
                 state = "DISCONNECTED";
                 console.log("[OT] document", docId, "disconnected");
