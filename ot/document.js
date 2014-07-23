@@ -2,8 +2,7 @@ define(function(require, module, exports) {
     main.consumes = [
         "Plugin", "ace", "util", "apf",
         "collab.connect", "collab.util", "collab.workspace",
-        "timeslider", "CursorLayer", "AuthorLayer", "error_handler",
-        "c9"
+        "timeslider", "CursorLayer", "AuthorLayer", "error_handler"
     ];
     main.provides = ["OTDocument"];
     return main;
@@ -11,24 +10,24 @@ define(function(require, module, exports) {
     function main(options, imports, register) {
         var Plugin = imports.Plugin;
         var connect = imports["collab.connect"];
-        var c9util = imports.util;
+        var c9Util = imports.util;
         var collabUtil = imports["collab.util"];
         var apf = imports.apf;
         var workspace = imports["collab.workspace"];
         var timeslider = imports.timeslider;
         var CursorLayer = imports.CursorLayer;
         var AuthorLayer = imports.AuthorLayer;
+        var errorHandler = imports.error_handler;
+
         var lang = require("ace/lib/lang");
         // var Range = require("ace/range").Range;
         var xform = require("./xform");
         var operations = require("./operations");
-        var errorHandler = imports.error_handler;
         var apply = require("./apply");
         var applyContents = apply.applyContents;
         var applyAce = apply.applyAce;
         var IndexCache = require("./index_cache");
         var applyAuthorAttributes = require("./author_attributes")().apply;
-        var c9 = imports.c9;
 
         // The minimum delay that should be between a commited EDIT_UPDATE and the next
         // Happens when I'm collaboratively editing and the collaborators cursors are nearby
@@ -43,7 +42,7 @@ define(function(require, module, exports) {
         function OTDocument(docId, c9Document) {
             var plugin = new Plugin("Ajax.org", main.consumes);
             var emit = plugin.getEmitter();
-            var cloneObject = c9util.cloneObject;
+            var cloneObject = c9Util.cloneObject;
             var debug = connect.debug;
 
             var doc, session;
@@ -123,9 +122,6 @@ define(function(require, module, exports) {
                 session.selection.on("changeCursor", onCursorChange);
                 session.selection.on("changeSelection", onCursorChange);
                 session.selection.on("addRange", onCursorChange);
-                
-                // Don't do fallback saving on disconnect (work around #3680)
-                c9.on("disconnect", endSaveWatchDog);
             }
 
             /**
@@ -668,7 +664,7 @@ define(function(require, module, exports) {
                         msg: msg,
                         revertData: revertData,
                         latestRevNum: latestRevNum,
-                        minOnlineCount: workspace.onlineCount
+                        onlineCount: workspace.onlineCount
                     }, ["collab"]);
                     err = e;
                 } finally {
@@ -1091,17 +1087,16 @@ define(function(require, module, exports) {
             }
 
             // @see docs in the API section below
-            function leave(skipMsg) {
-                if (connect.connected || skipMsg)
+            function leave() {
+                if (connect.connected)
                     connect.send("LEAVE_DOC", { docId: docId });
-                if (saveTimer) // force-trigger timeout to fallback to filesystem saving
-                    saveWatchDog(true, 1);
                 resetState();
             }
 
             // @see docs in the API section below
             function disconnect() {
-                leave(true);
+                // Don't do fallback saving on disconnect - endSaveWatchDog() (work around #3680)
+                resetState();
                 state = "DISCONNECTED";
                 console.log("[OT] document", docId, "disconnected");
             }

@@ -92,7 +92,7 @@ define(function(require, exports, module) {
 
         /***** Register and define API *****/
 
-        function syncWorkspace(data, mine) {
+        function syncWorkspace(data) {
             if (myClientId !== data.myClientId)
                 myOldClientId = myClientId;
             else
@@ -106,7 +106,10 @@ define(function(require, exports, module) {
             users = data.users;
             chatHistory = data.chatHistory;
             loadedWorkspace = true;
-            onlineCount = 1;
+            onlineCount = 0;
+            for (var user in users)
+                onlineCount += user.online;
+            onlineCount = Math.max(onlineCount, 1);
             emit("sync");
         }
 
