@@ -2,15 +2,16 @@ define(function(require, exports, module) {
 "use strict";
 
     main.consumes = [
-        "Plugin", "ui", "apf", "Menu", "MenuItem",
+        "Plugin", "ui", "util", "apf", "Menu", "MenuItem",
         "collab.workspace", "info", "dialog.error", "dialog.confirm",
-        "accessControl", "c9"
+        "accessControl"
     ];
     main.provides = ["MembersPanel"];
     return main;
 
     function main(options, imports, register) {
         var Plugin = imports.Plugin;
+        var c9Util = imports.util;
         var apf = imports.apf;
         var Menu = imports.Menu;
         var MenuItem = imports.MenuItem;
@@ -19,7 +20,8 @@ define(function(require, exports, module) {
         var showError = imports["dialog.error"].show;
         var confirm = imports["dialog.confirm"].show;
         var accessControl = imports.accessControl;
-
+        
+        var cloneObject = c9Util.cloneObject;
         var Tree = require("ace_tree/tree");
         var TreeData = require("./membersdp");
         var mnuCtxTreeEl;
@@ -228,6 +230,7 @@ define(function(require, exports, module) {
                 }
                 
                 cachedMembers.forEach(function (m) {
+                    m = cloneObject(m);
                     m.isAdmin = m.role == ROLE_ADMIN;
                     m.color = m.color || workspace.getUserColor(m.uid);
                     m.status = m.onlineStatus || workspace.getUserState(m.uid);
