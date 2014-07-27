@@ -58,7 +58,7 @@ define(function(require, module, exports) {
                 // "width"   : 80,
                 "command" : "sharedialog"
             });
-            
+
             menus.addItemByPath("Window/~", new ui.divider(), 35, plugin);
             menus.addItemByPath("Window/Share...", new ui.item({
                 command: "sharedialog"
@@ -67,7 +67,7 @@ define(function(require, module, exports) {
             ui.insertByIndex(layout.findParent({
                 name: "preferences"
             }), btn, 600, plugin);
-            
+
             settings.on("read", function(){
                 settings.setDefaults("project/share", [
                     ["preview", false],
@@ -162,13 +162,13 @@ define(function(require, module, exports) {
                 className.remove(actionArr[0]);
                 className.add(actionArr[1]);
             });
-            
+
             var words = {
                 "visibility": ["this workspace"],
                 "app": ["the running application"],
                 "preview": ["the preview of workspace files"]
-            }
-            
+            };
+
             function updateAccess(field, value, cb, callback){
                 var to = value ? "public" : "private";
                 
@@ -282,9 +282,9 @@ define(function(require, module, exports) {
             var username = txtUsername.value;
             var access = accessButton.classList.contains("rw") ? "rw" : "r";
             var accessString = access === "rw" ? "Read+Write" : "Read-Only";
-            btnInvite.setAttribute("disabled", true);
+            btnInvite.disable();
             workspace.addMember(username, access, function(err, member) {
-                btnInvite.setAttribute("disabled", false);
+                btnInvite.enable();
                 txtUsername.setValue("");
                 if (err)
                     return alert("Error", "Error adding workspace member", err.message);
