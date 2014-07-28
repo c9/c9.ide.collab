@@ -38,7 +38,7 @@ define(function(require, module, exports) {
                     updateSelection(selecs[clientId]);
             }
 
-            function drawCursor (pos, html, markerLayer, session, config, bgColor) {
+            function drawCursor(pos, html, markerLayer, session, config, bgColor) {
                 var cursorStyle = "background-color:" + util.formatColor(bgColor);
 
                 var top = markerLayer.$getTop(pos.row, config);
@@ -169,14 +169,18 @@ define(function(require, module, exports) {
                 var selectStyle = settings.get("user/ace/@selectstyle");
 
                 var selectionStyle = "background-color:" + util.formatColor(bgColor, 0.5) + ";" + "z-index:10;";
+                
+                function getScreenRowWidth(row) {
+                    return session.$rowLengthCache[row] || session.$getStringScreenWidth(editorDoc.getLine(row));
+                }
 
-                function drawLine(screenRange, inline) {
+                function drawLine(row, startColumn, endCloumn, inline) {
                     var fullLine = inline && selectStyle === "line";
                     var height = config.lineHeight;
-                    var width = (screenRange.end.column - screenRange.start.column) * config.characterWidth;
+                    var width = (endCloumn - startColumn) * config.characterWidth;
 
-                    var top = markerLayer.$getTop(screenRange.start.row, config);
-                    var left = markerLayer.$padding + screenRange.start.column * config.characterWidth;
+                    var top = markerLayer.$getTop(row, config);
+                    var left = markerLayer.$padding + startColumn * config.characterWidth;
 
                     html.push(
                         "<div class='", className, "' style='",
@@ -190,16 +194,16 @@ define(function(require, module, exports) {
 
                 if (screenRange.isMultiLine()) {
                     var row = screenRange.start.row;
-                    drawLine(new Range(row, screenRange.start.column, row, editorDoc.getLine(row).length + 1) , true);
+                    drawLine(row, screenRange.start.column, getScreenRowWidth(row) + 1, true);
                     row++;
                     while (row < screenRange.end.row) {
-                        drawLine(new Range(row, 0, row, editorDoc.getLine(row).length + 1), true);
+                        drawLine(row, 0, getScreenRowWidth(row) + 1, true);
                         row++;
                     }
-                    drawLine(new Range(row, 0, row, screenRange.end.column));
+                    drawLine(row, 0, screenRange.end.column);
                 }
                 else if (!screenRange.isEmpty()) {
-                    drawLine(screenRange);
+                    drawLine(screenRange.start.row, screenRange.start.column, screenRange.end.column);
                 }
             }
 
