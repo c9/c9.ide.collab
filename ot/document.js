@@ -35,7 +35,7 @@ define(function(require, module, exports) {
         // The maximum delay that should be between a commited EDIT_UPDATE and the next
         // happens when I'm editing alone
         var MAX_DELAY = options.maxDelay;
-        var MAX_COMMIT_TRIALS = 3;
+        var MAX_COMMIT_TRIALS = 20;
         var SAVE_FILE_TIMEOUT = 5000;
         var MAX_OP_SIZE = 1024 * 1024;
 
@@ -318,7 +318,7 @@ define(function(require, module, exports) {
             function scheduleSend() {
                 if (sendTimer)
                     return;
-                var delay = pendingSave ? 0 : calculateDelay();
+                var delay = (pendingSave  || commitTrials > 0) ? 0 : calculateDelay();
                 sendTimer = setTimeout(function () {
                     doSend();
                     sendTimer = null;
@@ -911,7 +911,7 @@ define(function(require, module, exports) {
             }
             
             function handleSyncCommit(data) {
-                console.error("[OT] SYNC_COMMIT", data.reason, data.code);
+                console.warn("[OT] SYNC_COMMIT", data.reason, data.code);
                 state = "IDLE";
                 if (data.code == "VERSION_E")
                     latestRevNum = data.revNum;
@@ -921,7 +921,7 @@ define(function(require, module, exports) {
                         newLineMode: session.doc && session.doc.getNewLineMode(),
                         data: data,
                         latestRevNum: latestRevNum,
-                        minOnlineCount: workspace.onlineCount
+                        onlineCount: workspace.onlineCount
                     }, ["collab"]);
                     revertMyPendingChanges();
                     clearCs(session.getValue().length);
