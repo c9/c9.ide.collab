@@ -1,0 +1,124 @@
+<html>
+    <style type="text/css">
+        
+        html, body, iframe {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+        }
+        
+        #right, #left, #main {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+        }
+        #right {
+            left: 50%;
+        }
+        #left {
+            right: 50%;
+        }
+        #main {
+            bottom: 50px;
+        }
+    </style>
+    <body>
+
+    <div id="main">
+        <div id="left">
+            <iframe src="/ide.html" frameborder="0"></iframe>
+        </div>
+        <div id="right">
+            <iframe src="/ide.html" frameborder="0"></iframe>
+        </div>
+    </div>
+    </body>
+    <script>
+        var frame1 = document.querySelector("#left > iframe");
+        var frame2 = document.querySelector("#right > iframe");
+        var ss = function() {
+            this._items = Object.create(null);
+            this.getItem = function(n) {
+                return this._items[n];
+            };
+            this.setItem = function(n, data) {
+                return this._items[n] = data;
+            };
+            this.removeItem = function(n) {
+                delete this._items[n];
+            };
+        };
+        function overrideSessionStorage(frame) {
+            frame.ss = new ss();
+            frame.contentWindow.__defineGetter__("sessionStorage", function() {
+                return frame.ss;
+            });
+        }
+        
+        overrideSessionStorage(frame1);
+        overrideSessionStorage(frame2);
+        
+        function execCommand(frame, name, arg) {
+            return getApp(frame).commands.exec(name, null, arg);
+        }
+        function getApp(frame, name, arg) {
+            return frame.contentWindow.app;
+        }
+        var dirname = "__collab_test__";
+        var fileCount = 10;
+        var actions = {
+            disconnect: function(frame) {
+                getApp(frame).c9.connection.disconnect();
+            },
+            save: function(frame) {
+                execCommand("save");
+            },
+            createTestFiles: function(frame, clean, cb) {
+                var app = getApp(frame);
+                
+                app.tabManager.getTabs().forEach(function(tab) {
+                    tab.unload();
+                });
+                clean
+                    ? app.fs.rmdir("/" + dirname, init)
+                    : init();
+                
+                function init() {
+                    var root = frame.contentWindow.plugins.filter(function(x) {
+                        return x.packagePath == "plugins/c9.ide.terminal/terminal";
+                    })[0].root;
+                    
+                    var args = ["-c", "mkdir -p " + dirname +";"];
+                    var dirs = [];
+                    for (var i = 0; i < fileCount; i++) {
+                        args[1] += " echo " + i + " > " + dirname + "/" + i + ";";
+                        dirs.push("/" + dirname + "/" + i);
+                    }
+                    
+                    app.proc.execFile("bash", {
+                        args: args,
+                        cwd: root
+                    }, function(e, r) {
+                        if (e) console.log(e);
+                        
+                        cb && cb(dirs);
+                    });
+                    return false;
+                }
+            },
+            openTestFiles: function(frame) {
+                var app = getApp(frame);
+                for (var i = 0; i < fileCount; i++) {
+                    app.tabManager.open({path: "/" + dirname + "/" + i});
+                }
+            },
+            type: function(frame) {
+                // execCommand(frame2, "reverttosavedall");
+                // execCommand(frame2, "closealltabs");
+                execCommand("insertstring", null, "a");
+            }
+        };
+        
+        actions;
+    </script>
+</html>
