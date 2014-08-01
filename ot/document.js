@@ -923,11 +923,7 @@ define(function(require, module, exports) {
                         latestRevNum: latestRevNum,
                         onlineCount: workspace.onlineCount
                     }, ["collab"]);
-                    revertMyPendingChanges();
-                    clearCs(session.getValue().length);
-                    commitTrials = 0;
-                    if (pendingSave)
-                        doSaveFile(pendingSave.silent);
+                    reload();
                 }
                 else {
                     scheduleSend();
