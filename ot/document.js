@@ -293,11 +293,14 @@ define(function(require, module, exports) {
              * joined to a document and thier latest updated cursor positions
              */
             function calculateDelay() {
-                var selections = cursorLayer ? cursorLayer.selections : {};
-                var aceEditor = c9Document.editor.ace;
-                var config = aceEditor.renderer.layerConfig;
-
                 var delay = MAX_DELAY;
+                var selections = cursorLayer ? cursorLayer.selections : {};
+                var aceEditor = (c9Document.editor || "").ace;
+                // todo unfocused document shouldn't keep ref to editor
+                if (!aceEditor || aceEditor.session != session)
+                    return MAX_DELAY;
+                
+                var config = aceEditor.renderer.layerConfig;
 
                 for (var clientId in selections) {
                     delay -= 3000;
