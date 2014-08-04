@@ -813,7 +813,8 @@ define(function(require, module, exports) {
             }
 
             function isReadOnly() {
-                return readonly || c9Document.editor.ace.getReadOnly();
+                return readonly ||
+                    (c9Document.editor && c9Document.editor.ace && c9Document.editor.ace.getReadOnly());
             }
 
             // @see docs in the API section below
