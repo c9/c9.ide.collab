@@ -108,7 +108,7 @@ define(function(require, exports, module) {
             loadedWorkspace = true;
             onlineCount = 0;
             for (var user in users)
-                onlineCount += user.online;
+                onlineCount += user.online ? 1 : 0;
             onlineCount = Math.max(onlineCount, 1);
             emit("sync");
         }
@@ -374,7 +374,6 @@ define(function(require, exports, module) {
             get members() { return cachedMembers || []; },
             /**
              * Gets the approximate number of users/browser tabs currently online on this workspace.
-             * Not fully accurate, but should reflect a lower bound for the number of users.
              */
             get onlineCount() { return onlineCount; },
             /**
