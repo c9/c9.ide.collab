@@ -915,11 +915,21 @@ define(function(require, module, exports) {
             }
             
             function handleSyncCommit(data) {
-                console.warn("[OT] SYNC_COMMIT", data.reason, data.code);
                 state = "IDLE";
-                if (data.code == "VERSION_E")
+                
+                if (data.code == "VERSION_E") {
+                    errorHandler.reportError(new Error("OT version inconsistency"), {
+                        docId: docId,
+                        newLineMode: session.doc && session.doc.getNewLineMode(),
+                        clientRevNum: latestRevNum,
+                        serverRevNum: data.revNum,
+                        onlineCount: workspace.onlineCount
+                    }, ["collab"]);
                     latestRevNum = data.revNum;
+                }
+                
                 if (data.code == "OT_E" || commitTrials > MAX_COMMIT_TRIALS) {
+                    console.error("[OT] Local document inconsistent with server; fatal -- SYNC_COMMIT", data.reason, data.code);
                     errorHandler.reportError(new Error("Sync commit because of OT error"), {
                         docId: docId,
                         newLineMode: session.doc && session.doc.getNewLineMode(),
@@ -930,6 +940,7 @@ define(function(require, module, exports) {
                     reload();
                 }
                 else {
+                    console.warn("[OT] Local document inconsistent with server; reapplying changes -- SYNC_COMMIT", data.reason, data.code);
                     scheduleSend();
                 }
             }
