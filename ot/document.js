@@ -937,9 +937,8 @@ define(function(require, module, exports) {
                 }
                 
                 if (data.code == "OT_E" || commitTrials > MAX_COMMIT_TRIALS) {
-                    console.error("[OT] Local document inconsistent with server; "
-                        + (rejoinReason ? "attempting rejoin" : "fatal") + " -- SYNC_COMMIT", data.reason, data.code);
-                    reportError(new Error("Sync commit because of OT error"), { data: data });
+                    console.warn("[OT] Local document inconsistent with server; attempting rejoin -- SYNC_COMMIT", data.reason, data.code);
+                    reportError(new Error("Non-fatal: sync commit because of OT error; attempting rejoin"), { data: data });
                     rejoin("OT_E");
                 }
                 else {
