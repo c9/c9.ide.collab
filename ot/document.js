@@ -64,6 +64,7 @@ define(function(require, module, exports) {
             var readonly;
             var reqId;
             var newLine;
+            var rejoinReason;
 
             resetState();
 
@@ -188,12 +189,8 @@ define(function(require, module, exports) {
                     packedCs = handleUserChanges2(aceDoc, packedCs, e.data);
                     scheduleSend();
                 } catch (ex) {
-                    errorHandler.reportError(ex, {
-                        data: e.data,
-                        newLineMode: session.doc.getNewLineMode(),
-                        docId: docId
-                    }, ["collab"]);
-                    rejoin();
+                    reportError(ex, { data: e.data });
+                    rejoin("E_EDIT_UPDATE");
                 }
             }
 
@@ -201,7 +198,7 @@ define(function(require, module, exports) {
                 packedCs = packedCs.slice();
                 var nlCh = newLine || "\n";
                 if (nlCh !== aceDoc.getNewLineCharacter()) {
-                    errorHandler.reportError(new Error("Warning: inconsistent newLine type in session for " + docId));
+                    reportError(new Error("Warning: inconsistent newLine type in session for " + docId));
                     recordNewLineType();
                 }
                 var startOff = aceDoc.positionToIndex(data.range.start);
@@ -424,9 +421,9 @@ define(function(require, module, exports) {
                 try {
                     doc = JSON.parse(docStream);
                 } catch (e) {
-                    errorHandler.reportError(e, null, ["collab"]);
+                    reportError(e, { data: data });
                     // try rejoin
-                    return rejoin();
+                    return rejoin("E_JOIN");
                 } finally {
                     docStream = null;
                 }
@@ -481,10 +478,7 @@ define(function(require, module, exports) {
                         mode = "unix"; break;
                     default:
                         // Like Ace, this is all we support
-                        errorHandler.reportError(new Error("Warning: unexpected newLine mode: " + newLine), {
-                            newLineMode: session.doc.getNewLineMode(),
-                            docId: docId
-                        }, ["collab"]);
+                        reportError(new Error("Warning: unexpected newLine mode: " + newLine));
                         mode = "unix";
                 }
                 session.doc.setNewLineMode(mode);
@@ -532,15 +526,35 @@ define(function(require, module, exports) {
                 }
                 // Seems document wasn't loaded yet; set server contents
                 else if (!clientRevNum) {
+                    if (rejoinReason && clientContents && clientContents !== serverContents)
+                        reportError(new Error("Collab: reverting local changes on uninited document"));
+                    
                     setValue(serverContents, clean, clean); // reset and bookmark if clean
                 }
                 // Other people edited the document, or there was a newer version on the server
                 // Restore consistency by overwiting any local changes
-                // TODO: nicely merge local and remote edits
                 else {
+                    if (rejoinReason && clientContents && clientContents !== serverContents) {
+                        // TODO: nicely merge local and remote edits
+                        reportError(new Error("Collab: reverting local changes on collaborative document"));
+                    }
+                    
                     // Will auto-aptimize to use 'patchedSetValue'
                     setValue(serverContents, clean, clean); // reset and bookmark
                 }
+                
+                rejoinReason = undefined;
+            }
+            
+            function reportError(exception, details) {
+                details = details || {};
+                details.state = state;
+                details.newLineMode = session.doc.getNewLineMode();
+                details.docId = docId;
+                details.latestRevNum = latestRevNum;
+                details.onlineCount = workspace.onlineCount;
+                details.rejoinReason = rejoinReason;
+                errorHandler.reportError(exception, details, ["collab"]);
             }
 
             // Checks if the packesCs is empty & doesn't have real-edit changes
@@ -651,22 +665,19 @@ define(function(require, module, exports) {
                     applyAuthorAttributes(doc.authAttribs, msg.op, workspace.authorPool[msg.userId]);
                 } catch (e) {
                     var oldMessage = e.message;
-                    if (e.code === "EMISMATCH")
+                    if (e.code === "EMISMATCH") {
                         e.message = // distinguish different error categories based on state
                             !revertData
                             ? "Mismatch applying client-side OT operation"
                             : revertData.userId
                             ? "Mismatch applying client-side OT operation, revert with userId"
                             : "Mismatch applying client-side OT operation, revert without userId";
-                    errorHandler.reportError(e, {
-                        message: oldMessage,
-                        newLineMode: session.doc.getNewLineMode(),
-                        docId: docId,
+                    }
+                    reportError(e, {
+                        cause: e.message !== oldMessage ? oldMessage : undefined,
                         msg: msg,
-                        revertData: revertData,
-                        latestRevNum: latestRevNum,
-                        onlineCount: workspace.onlineCount
-                    }, ["collab"]);
+                        revertData: revertData
+                    });
                     err = e;
                 } finally {
                     authorLayer.refresh();
@@ -676,7 +687,7 @@ define(function(require, module, exports) {
 
                     // try rejoin
                     if (err)
-                        rejoin();
+                        rejoin("E_APPLYEDIT");
                 }
             }
 
@@ -869,7 +880,6 @@ define(function(require, module, exports) {
                     outgoing.push({op: packedCs});
                 if (!outgoing.length)
                     return;
-                console.warn("[OT] Reverting my changes to recover sync or inconsistent state");
                 userId = userId || workspace.myUserId;
                 for (var i = outgoing.length - 1; i >= 0; i--) {
                     applyEdit(
@@ -884,9 +894,7 @@ define(function(require, module, exports) {
             // @see docs in the API section below
             function handleMessage(event) {
                 if (inited && !doc)
-                    errorHandler.reportError(new Error("Weird state: inited, but no document"), {
-                        state: state
-                    }, ["collab"]);
+                    reportError(new Error("Weird state: inited, but no document"));
                 if (!inited || !doc)
                     return incoming.push(event);
 
@@ -908,7 +916,7 @@ define(function(require, module, exports) {
                    receiveRevisions(data);
                    break;
                  default:
-                   errorHandler.reportError(new Error("Unknown OT document event type:" + event.type + " " + JSON.stringify(event)), null, ["collab"]);
+                   reportError(new Error("Unknown OT document event type:" + event.type + " " + JSON.stringify(event)));
                }
             }
             
@@ -916,26 +924,15 @@ define(function(require, module, exports) {
                 state = "IDLE";
                 
                 if (data.code == "VERSION_E") {
-                    errorHandler.reportError(new Error("OT version inconsistency"), {
-                        docId: docId,
-                        newLineMode: session.doc && session.doc.getNewLineMode(),
-                        clientRevNum: latestRevNum,
-                        serverRevNum: data.revNum,
-                        onlineCount: workspace.onlineCount
-                    }, ["collab"]);
+                    reportError(new Error("OT version inconsistency"), { serverRevNum: data.revNum });
                     latestRevNum = data.revNum;
                 }
                 
                 if (data.code == "OT_E" || commitTrials > MAX_COMMIT_TRIALS) {
-                    console.error("[OT] Local document inconsistent with server; fatal -- SYNC_COMMIT", data.reason, data.code);
-                    errorHandler.reportError(new Error("Sync commit because of OT error"), {
-                        docId: docId,
-                        newLineMode: session.doc && session.doc.getNewLineMode(),
-                        data: data,
-                        latestRevNum: latestRevNum,
-                        onlineCount: workspace.onlineCount
-                    }, ["collab"]);
-                    rejoin();
+                    console.error("[OT] Local document inconsistent with server; "
+                        + (rejoinReason ? "attempting rejoin" : "fatal") + " -- SYNC_COMMIT", data.reason, data.code);
+                    reportError(new Error("Sync commit because of OT error"), { data: data });
+                    rejoin("OT_E");
                 }
                 else {
                     console.warn("[OT] Local document inconsistent with server; reapplying changes -- SYNC_COMMIT", data.reason, data.code);
@@ -1079,9 +1076,10 @@ define(function(require, module, exports) {
              * 
              * See also joinWithSession() for what happens to the current text.
              */
-            function rejoin() {
-                console.log("[OT] rejoining document", docId);
+            function rejoin(reason) {
+                console.log("[OT] rejoining document", docId, "reason: ", reason);
                 resetState();
+                rejoinReason = reason;
                 var sameSession = session;
                 session = null;
                 setSession(sameSession);
@@ -1091,7 +1089,7 @@ define(function(require, module, exports) {
             // @see docs in the API section below
             function load() {
                 if (state == "DISCONNECTED")
-                    rejoin();
+                    rejoin("DISCONNECTED");
                 else
                     doLoad();
             }
