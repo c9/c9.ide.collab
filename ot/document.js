@@ -193,7 +193,7 @@ define(function(require, module, exports) {
                         newLineMode: session.doc.getNewLineMode(),
                         docId: docId
                     }, ["collab"]);
-                    reload();
+                    rejoin();
                 }
             }
 
@@ -423,10 +423,10 @@ define(function(require, module, exports) {
 
                 try {
                     doc = JSON.parse(docStream);
-                } catch(e) {
+                } catch (e) {
                     errorHandler.reportError(e, null, ["collab"]);
-                    // try reload
-                    return reload();
+                    // try rejoin
+                    return rejoin();
                 } finally {
                     docStream = null;
                 }
@@ -491,58 +491,56 @@ define(function(require, module, exports) {
             }
 
             /**
-             * Completes the initialization of the document after the document has completed loading
-             * and EditSession is in place to init authorLayer and cusorLayer
-             * inited = true
+             * Completes the initialization of the document after the document has
+             * finished loading.
+             * 
+             * When this is called, it's possible the document is already
+             * open or even edited, but collab is joining it late. This
+             * can happen e.g. when the IDE initially loads or with rejoin().
              */
             function joinWithSession() {
                 var clean = doc.fsHash === doc.docHash;
                 if (!clean)
                     console.log("[OT] doc latest state fs diff", docId);
 
-                var currentVal = session.getValue();
-                var otherMembersNums = Object.keys(doc.selections).length;
-                var latestContents = doc.contents;
-
-                // * re-joining the document - sync my edits if not edited by any other collaborator
-                // * previously loaded doc through filesystem: (only me)
-                // -----> prioritize current document state
-                if (latestRevNum === doc.revNum || (!otherMembersNums && currentVal)) {
-                    packedCs = operations.operation(doc.contents, currentVal);
-                    scheduleSend();
-
-                    if (!latestRevNum) {
-                        var authorI = workspace.authorPool[workspace.myUserId];
-                        applyAuthorAttributes(doc.authAttribs, packedCs, authorI);
-                    }
-                    latestContents = currentVal;
-                }
-                // * first-joined doc (collab-only)
-                // -----> load latest collab doc state
-                else if (!latestRevNum) {
-                    setValue(doc.contents, clean, clean); // reset and bookmark if clean
-                }
-                // * previously loaded doc through filesystem: (other members joined)
-                // * newer revision on the server
-                // -----> Override local edits: prioritize collab doc state (for OT consistency)
-                // -----> TODO: nicely merge local and remote edits
-                else {
-                    // Will auto-aptimize to use 'patchedSetValue'
-                    setValue(doc.contents, clean, clean); // reset and bookmark
-                }
-
-                latestRevNum = doc.revNum;
+                var clientContents = session.getValue();
+                var serverContents = doc.contents;
+                var clientRevNum = latestRevNum;
+                var serverRevNum = doc.revNum;
+                
+                // Reset state
+                latestRevNum = serverRevNum;
                 cursorTimer = setTimeout(changedSelection, 500);
-
                 cursorLayer && cursorLayer.dispose();
                 cursorLayer = new CursorLayer(session, workspace);
                 cursorLayer.updateSelections(doc.selections);
-
                 authorLayer && authorLayer.dispose();
-                authorLayer = new AuthorLayer(session, workspace); // will refresh on init
+                authorLayer = new AuthorLayer(session, workspace);
                 authorLayer.refresh();
-
                 inited = true;
+
+                // No one else edited the document: send any local changes to server
+                var otherMembersNums = Object.keys(doc.selections).length;
+                if (clientRevNum === serverRevNum || (!otherMembersNums && clientContents)) {
+                    packedCs = operations.operation(serverContents, clientContents);
+                    scheduleSend();
+
+                    if (!clientRevNum) {
+                        var authorI = workspace.authorPool[workspace.myUserId];
+                        applyAuthorAttributes(doc.authAttribs, packedCs, authorI);
+                    }
+                }
+                // Seems document wasn't loaded yet; set server contents
+                else if (!clientRevNum) {
+                    setValue(serverContents, clean, clean); // reset and bookmark if clean
+                }
+                // Other people edited the document, or there was a newer version on the server
+                // Restore consistency by overwiting any local changes
+                // TODO: nicely merge local and remote edits
+                else {
+                    // Will auto-aptimize to use 'patchedSetValue'
+                    setValue(serverContents, clean, clean); // reset and bookmark
+                }
             }
 
             // Checks if the packesCs is empty & doesn't have real-edit changes
@@ -676,9 +674,9 @@ define(function(require, module, exports) {
                         doc.revNum = msg.revNum;
                     ignoreChanges = false;
 
-                    // try reload
+                    // try rejoin
                     if (err)
-                        reload();
+                        rejoin();
                 }
             }
 
@@ -937,7 +935,7 @@ define(function(require, module, exports) {
                         latestRevNum: latestRevNum,
                         onlineCount: workspace.onlineCount
                     }, ["collab"]);
-                    reload();
+                    rejoin();
                 }
                 else {
                     console.warn("[OT] Local document inconsistent with server; reapplying changes -- SYNC_COMMIT", data.reason, data.code);
@@ -1075,8 +1073,14 @@ define(function(require, module, exports) {
                 saveTimer = null;
             }
 
-            function reload() {
-                console.log("[OT] reloading document", docId);
+            /**
+             * Reinitializes collab for this document, making sure it is in a
+             * consistent state.
+             * 
+             * See also joinWithSession() for what happens to the current text.
+             */
+            function rejoin() {
+                console.log("[OT] rejoining document", docId);
                 resetState();
                 var sameSession = session;
                 session = null;
@@ -1087,7 +1091,7 @@ define(function(require, module, exports) {
             // @see docs in the API section below
             function load() {
                 if (state == "DISCONNECTED")
-                    reload();
+                    rejoin();
                 else
                     doLoad();
             }
