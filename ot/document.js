@@ -630,7 +630,14 @@ define(function(require, module, exports) {
                         // a- a file watcher caused this document sync on (overriding my changes)
                         // b- my changes may lead to inconsist state or can fail to be applied to the new synced document state
                         console.log("Received new document, discarding any pending changes");
-                        revertMyPendingChanges(msg.userId);
+                        try {
+                            revertMyPendingChanges(msg.userId);
+                        } catch (e) {
+                            var cause = e.message;
+                            e.message = "Collab: unable to revert pending changes, reloading";
+                            reportError(e, { cause: cause });
+                            return rejoin("E_REVERT");
+                        }
                         pendingSave = null;
                     }
                     else {
