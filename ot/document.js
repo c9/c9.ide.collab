@@ -429,7 +429,7 @@ define(function(require, module, exports) {
                 }
 
                 if (docId !== data.docId)
-                    console.error("docId mismatch", docId, data.docId);
+                    reportError(new Error("docId mismatch"), { serverDocId: data.docId });
 
                 revisions = [];
                 starRevNums = [];
@@ -601,8 +601,7 @@ define(function(require, module, exports) {
             // An edit message can also have a piggy-packed selection update - optimization
             function handleIncomingEdit(msg) {
                 if (msg.revNum !== latestRevNum + 1) {
-                    console.error("[OT] Incoming edit revNum mismatch!",
-                        msg.revNum, latestRevNum + 1);
+                    reportError(new Error("Incoming edit revNum mismatch"), { serverRevNum: msg.revNum });
                     return;
                 }
                 
@@ -733,7 +732,7 @@ define(function(require, module, exports) {
             // Update the timeslider if rendering this document
             function addRevision(msg) {
                 if (!msg.op.length)
-                    console.error("[OT] Empty rev operation should never happen!");
+                    reportError(new Error("Empty rev operation should never happen!"), { msg: msg });
                 revisions[msg.revNum] = {
                     operation: msg.op,
                     revNum: msg.revNum,
@@ -880,6 +879,8 @@ define(function(require, module, exports) {
                     outgoing.push({op: packedCs});
                 if (!outgoing.length)
                     return;
+                // TODO: determine when is this an error exactly? good to log it anyway now
+                reportError("Collab: reverting pending changes to document because of server sync commit");
                 userId = userId || workspace.myUserId;
                 for (var i = outgoing.length - 1; i >= 0; i--) {
                     applyEdit(
