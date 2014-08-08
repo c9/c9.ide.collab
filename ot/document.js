@@ -255,6 +255,13 @@ define(function(require, module, exports) {
                     var remainingText = removedText;
                     var opIdx = opOff;
                     var nextOp = packedCs[opIdx];
+                    
+                    if (!nextOp) {
+                        // Seems like we're in an inconsistent state; rejoin
+                        reportError("Collab: failed to remove text past end of document; rejoining", { data: data });
+                        return rejoin();
+                    }
+                    
                     while (remainingText.length) {
                         var opLen = operations.length(nextOp);
                         var toRem = Math.min(remainingText.length, opLen);
