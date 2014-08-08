@@ -24,6 +24,10 @@
     .flex-direction(column);
 }
 
+.chatText a {
+    color: #909090;
+}
+
 .chatText {
     overflow: auto;
     font-size: 12px;
