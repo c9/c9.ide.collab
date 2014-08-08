@@ -303,7 +303,7 @@ define(function(require, module, exports) {
         }
 
         function initGutterLayer(editor) {
-            if (editor.$authorGutterInited) return;
+            if (!editor || editor.$authorGutterInited) return;
             editor.$authorGutterInited = true;
 
             var highlightedCell;
