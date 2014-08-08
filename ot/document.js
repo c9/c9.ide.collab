@@ -556,7 +556,8 @@ define(function(require, module, exports) {
             function reportError(exception, details) {
                 details = details || {};
                 details.state = state;
-                details.newLineMode = session.doc.getNewLineMode();
+                details.session = !!session;
+                details.newLineMode = session && session.doc && session.doc.getNewLineMode();
                 details.docId = docId;
                 details.latestRevNum = latestRevNum;
                 details.onlineCount = workspace.onlineCount;
