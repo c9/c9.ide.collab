@@ -87,7 +87,7 @@ define(function(require, module, exports) {
                     renderRange(html, markerLayer, session, config, screenRange, bgColor);
 
                     var cursor = screenRange[range.cursor == range.start ? "start" : "end"];
-                    drawCursor.call(this, cursor, html, markerLayer, session, config, bgColor);
+                    drawCursor(cursor, html, markerLayer, session, config, bgColor);
                 }
                 // save screenRanges for displaying tooltips
                 this.screenRanges = screenRanges;
@@ -169,45 +169,17 @@ define(function(require, module, exports) {
 
             function renderRange(html, markerLayer, session, config, screenRange, bgColor) {
                 var className = "ace_selection";
-                var editorDoc = session.doc;
-                var selectStyle = settings.get("user/ace/@selectstyle");
-
+                var selectStyle = settings.get("user/ace/@selectionStyle");
                 var selectionStyle = "background-color:" + util.formatColor(bgColor, 0.5) + ";" + "z-index:10;";
-                
-                function getScreenRowWidth(row) {
-                    return session.$rowLengthCache[row] || session.$getStringScreenWidth(editorDoc.getLine(row));
-                }
-
-                function drawLine(row, startColumn, endCloumn, inline) {
-                    var fullLine = inline && selectStyle === "line";
-                    var height = config.lineHeight;
-                    var width = (endCloumn - startColumn) * config.characterWidth;
-
-                    var top = markerLayer.$getTop(row, config);
-                    var left = markerLayer.$padding + startColumn * config.characterWidth;
-
-                    html.push(
-                        "<div class='", className, "' style='",
-                        "height:", height, "px;",
-                        fullLine ? "right:0;" : ("width:" + width + "px;"),
-                        "top:", top, "px;",
-                        "left:", left,"px;",
-                        selectionStyle, "'></div>"
-                    );
-                }
 
                 if (screenRange.isMultiLine()) {
-                    var row = screenRange.start.row;
-                    drawLine(row, screenRange.start.column, getScreenRowWidth(row) + 1, true);
-                    row++;
-                    while (row < screenRange.end.row) {
-                        drawLine(row, 0, getScreenRowWidth(row) + 1, true);
-                        row++;
-                    }
-                    drawLine(row, 0, screenRange.end.column);
+                    if (selectStyle === "line")
+                        markerLayer.drawMultiLineMarker(html, screenRange, className, config, selectionStyle);
+                    else
+                        markerLayer.drawTextMarker(html, screenRange, className, config, selectionStyle);
                 }
                 else if (!screenRange.isEmpty()) {
-                    drawLine(screenRange.start.row, screenRange.start.column, screenRange.end.column);
+                    markerLayer.drawSingleLineMarker(html, screenRange, className, config, 0, selectionStyle);
                 }
             }
 
@@ -229,7 +201,6 @@ define(function(require, module, exports) {
                 if (!sel) {
                     sel = {
                         update: drawSelections,
-                        drawCursor: drawCursor,
                         uid: data.userId,
                         clientId: data.clientId,
                         rangeList: new RangeList()
