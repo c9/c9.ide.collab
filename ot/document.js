@@ -511,14 +511,6 @@ define(function(require, module, exports) {
                 
                 // Reset state
                 latestRevNum = serverRevNum;
-                cursorTimer = setTimeout(changedSelection, 500);
-                cursorLayer && cursorLayer.dispose();
-                cursorLayer = new CursorLayer(session, workspace);
-                cursorLayer.updateSelections(doc.selections);
-                authorLayer && authorLayer.dispose();
-                authorLayer = new AuthorLayer(session, workspace);
-                authorLayer.refresh();
-                inited = true;
 
                 // No one else edited the document: send any local changes to server
                 var otherMembersNums = Object.keys(doc.selections).length;
@@ -551,6 +543,16 @@ define(function(require, module, exports) {
                 }
                 
                 rejoinReason = undefined;
+                
+                cursorTimer = setTimeout(changedSelection, 500);
+                cursorLayer && cursorLayer.dispose();
+                cursorLayer = new CursorLayer(session, workspace);
+                cursorLayer.updateSelections(doc.selections);
+                authorLayer && authorLayer.dispose();
+                authorLayer = new AuthorLayer(session, workspace);
+                authorLayer.refresh();
+
+                inited = true;
             }
             
             function reportError(exception, details) {
