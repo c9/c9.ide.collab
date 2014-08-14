@@ -2,7 +2,7 @@ define(function(require, module, exports) {
     main.consumes = [
         "Plugin", "c9", "commands", "menus", "ui", "layout", "dialog.alert",
         "MembersPanel", "info", "collab.workspace", "Menu", "MenuItem",
-        "clipboard", "settings", "api", "dialog.question", "preferences"
+        "clipboard", "settings", "api", "dialog.question"
     ];
     main.provides = ["dialog.share"];
     return main;
@@ -19,7 +19,6 @@ define(function(require, module, exports) {
         var api = imports.api;
         var alert = imports["dialog.alert"].show;
         var layout = imports.layout;
-        var prefs = imports.preferences;
         var workspace = imports["collab.workspace"];
         var question = imports["dialog.question"];
         var Menu = imports.Menu;
@@ -74,20 +73,6 @@ define(function(require, module, exports) {
                     ["app", false],
                     ["useOwnerSettings", false],
                 ]);
-            }, plugin);
-            
-            prefs.add({
-                "Project" : {
-                    position: 10,
-                    "Collaboration" : {
-                        position: 1000,
-                        "Always Load IDE State of Owner to Collaborators" : {
-                            type: "checkbox",
-                            position: 100,
-                            path: "project/share/@useOwnerSettings"
-                        }
-                    }
-                }
             }, plugin);
         }
 

@@ -43,7 +43,7 @@
     box-shadow: 1px 1px rgba(255,255,255,0.06), inset 1px 1px rgba(255,255,255,0.06);
     overflow: hidden;
     position: relative;
-    height: 160px !important;
+    height: 140px !important;
     margin-bottom: 10px;
     border-radius: 3px;
 }
