@@ -81,7 +81,8 @@ define(function(require, module, exports) {
                     authorLayer.dispose();
                 }
                 docStream = revStream = undefined;
-                revCache = rev0Cache = latestRevNum = lastSel = undefined;
+                revCache = rev0Cache = lastSel = undefined;
+                // latestRevNum stays since we use it in joinWithSession()
                 clearTimeout(sendTimer); clearTimeout(cursorTimer); endSaveWatchDog();
                 sendTimer = cursorTimer = undefined;
                 commitTrials = 0;
