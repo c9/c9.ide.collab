@@ -971,12 +971,16 @@ define(function(require, module, exports) {
                 // otherwise: other collaborator save
                 if (pendingSave) {
                     var value = getRevisionContents(data.revNum);
-                    if (value && apf.crypto.MD5.hex_md5(value) !== data.fsHash) {
-                        console.error("[OT] Failed saving file!", err, docId);
+                    if (!value) {
+                        // Unclear if this is really an error or when it happens
+                        reportError("File saved, unable to confirm checksum");
+                    }
+                    else if (apf.crypto.MD5.hex_md5(value) !== data.fsHash) {
+                        reportError("File saving checksum failed; retrying with XHR");
                         return emit("saved", {err: "Save content mismatch", code: "EMISMATCH"});
                     }
                     else {
-                        console.log("File saved and md5 checksum matched", docId);
+                        console.log("File saved and md5 checksum matched", docId, "revision", data.revNum);
                     }
                 }
 
