@@ -27,8 +27,8 @@
         <label style="margin-top:10px">Who has access</label>
         <a:bar id="members" class="members"></a:bar>
         <a:checkbox skin="checkbox_black" style='width: 200px;margin:-7px 0 9px 0;' 
-          title="When enabled members will always see the owner's last saved state when they load Cloud9"
-          checked="project/share/@useOwnerSettings">Don't allow members to save their tab state</a:checkbox>
+          tooltip="When enabled members will always see the owner's last saved state when they load Cloud9"
+          value="project/share/@useOwnerSettings">Don't allow members to save their tab state</a:checkbox>
 
         <blockquote class="invite">
             <label>Invite People</label>
