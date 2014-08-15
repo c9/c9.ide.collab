@@ -141,7 +141,7 @@ function randomOp() {
         var random = Math.random();
         if (!l || random < 0.3) {
             l = doc.getValue().length;
-            op.pos = doc.indexToPosition(getRandomInt(0, l));
+            op.pos = doc.indexToPosition(getRandomInt(0, l), false, true);
             op.text = nextString(getRandomInt(0, 5)) + (getRandomInt(0, 10) ? "" : "\n");
             op.type = "insert";
         } else if (random < 0.5) {
@@ -150,7 +150,7 @@ function randomOp() {
             if (!deleteMore)
                 p[1] = clip(p[1], p[0], p[0] + 2);
             
-            op.range = Range.fromPoints(doc.indexToPosition(p[0]), doc.indexToPosition(p[1]));
+            op.range = Range.fromPoints(doc.indexToPosition(p[0], false, true), doc.indexToPosition(p[1], false, true));
             op.type = "remove";
         } else {
             op.type = "apply";

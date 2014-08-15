@@ -24,7 +24,7 @@ function IndexCache(doc) {
     });
 
     doc.indexToPositionSlow = doc.indexToPosition;
-    doc.indexToPosition = function(index, startRow) {
+    doc.indexToPosition = function(index, startRow, check) {
         if (startRow) return doc.indexToPositionSlow(index, startRow);
         
         var startIndex = 0;
@@ -44,17 +44,24 @@ function IndexCache(doc) {
         
         if (rcache.length > 20)
             rcache.unshift();
-            
+        
+        if (check) {
+            var slowPos = doc.indexToPositionSlow(index);
+            if (slowPos.row !== pos.row && slowPos.column !== slowPos.column)
+                reportError("Inconsistency in indexToPosition");
+            return slowPos;
+        }
+        
         return pos;
     };
     doc.positionToIndexSlow = doc.positionToIndex;
-    doc.positionToIndex = function(pos, startRow) {
+    doc.positionToIndex = function(pos, startRow, check) {
         if (startRow) return doc.positionToIndexSlow(pos, startRow);
         /* if (this.rowToIndex(pos.row) + pos.column != doc.positionToIndexSlow(pos, startRow))
             debugger */
-        return this.rowToIndex(pos.row) + pos.column;
+        return this.rowToIndex(pos.row, check) + pos.column;
     };
-    doc.rowToIndex = function(row) {
+    doc.rowToIndex = function(row, check) {
         var lines = this.$lines || this.getAllLines();
         var newlineLength = this.getNewLineCharacter().length;
         var index = 0;
@@ -70,8 +77,24 @@ function IndexCache(doc) {
         if (row > 0)icache[row-1] = index;
         /* if (index + pos.column != doc.positionToIndexSlow(pos, startRow))
             debugger */
+        
+        if (check) {
+            var slowIndex = doc.positionToIndexSlow({ row: row, column: 0});
+            if (slowIndex !== index)
+                reportError("Inconsistency in rowToIndex");
+            return slowIndex;
+        }
         return index;
     };
+    
+    function reportError(exception) {
+        if (!exception.stack)
+            exception = new Error(exception);
+        // lazy: just throw somewhere and expect raygun to catch it
+        setTimeout(function() {
+            throw exception;
+        });
+    }
 }
 
 module.exports = IndexCache;
