@@ -19,9 +19,13 @@ function IndexCache(doc) {
         }
     }, true);
     doc.on("changeNewLineMode", function(e) {
+        doc.resetPositionIndex();
+    });
+    
+    doc.resetPositionIndex = function() {
         doc.icache = [];
         doc.rcache = [];
-    });
+    };
 
     doc.indexToPositionSlow = doc.indexToPosition;
     doc.indexToPosition = function(index, startRow) {

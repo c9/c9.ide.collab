@@ -75,6 +75,7 @@ define(function(require, module, exports) {
                     session.selection.off("changeCursor", onCursorChange);
                     session.selection.off("changeSelection", onCursorChange);
                     session.selection.off("addRange", onCursorChange);
+                    session.doc && session.doc.resetPositionIndex();
                 }
                 if (inited) {
                     cursorLayer.dispose();
