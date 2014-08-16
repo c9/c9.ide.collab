@@ -1,4 +1,5 @@
 define(function(require, exports, module) {
+"use strict";
 
     main.consumes = [
         "CollabPanel", "ui", "panels", "collab.util", "collab.workspace", 
@@ -149,7 +150,7 @@ define(function(require, exports, module) {
             }, plugin);
 
             mnuCtxTreeEl = mnuCtxTree.aml;
-            
+
             parent.setAttribute("contextmenu", mnuCtxTreeEl);
 
             mnuCtxTree.on("show", function() {
