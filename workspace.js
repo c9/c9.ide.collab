@@ -368,6 +368,11 @@ define(function(require, exports, module) {
              */
             get chatHistory()   { return chatHistory; },
             /**
+             * Sets the chat history messages
+             * @property [{Object}] chatHistory
+             */
+            set chatHistory(history)   { chatHistory = history; },
+            /**
              * Gets the cached previously-loaded workspace members
              * @property [{Object}] members
              */

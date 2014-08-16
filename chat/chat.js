@@ -1,9 +1,8 @@
 define(function(require, exports, module) {
-"use strict";
 
     main.consumes = [
         "CollabPanel", "ui", "panels", "collab.util", "collab.workspace", 
-        "collab"
+        "collab", "Menu", "MenuItem"
     ];
     main.provides = ["chat"];
     return main;
@@ -15,11 +14,15 @@ define(function(require, exports, module) {
         var util = imports["collab.util"];
         var workspace = imports["collab.workspace"];
         var collab = imports.collab;
+        var Menu = imports.Menu;
+        var MenuItem = imports.MenuItem;
 
         var html = require("text!./chat.html");
         var css = require("text!./chat.css");
         var timeago = require("./timeago");
         var staticPrefix = options.staticPrefix;
+
+        var toDeleteMessage;
 
         var ROLE_NONE = "n";
         var ROLE_VISITOR = "v";
@@ -37,9 +40,13 @@ define(function(require, exports, module) {
         var emoji = require("./my_emoji");
 
         // panel-relared UI elements
-        var chatInput, chatText;
+        var chatInput, chatText, mnuCtxTreeEl;
         // non-panel related UI elements
         var chatThrob, chatCounter, chatNotif;
+
+        function $(id) {
+            return document.getElementById(id);
+        }
 
         var loaded = false;
         function load() {
@@ -47,6 +54,7 @@ define(function(require, exports, module) {
             loaded = true;
 
             collab.on("chatMessage", onChatMessage);
+            collab.on("chatClear", onChatClear);
         }
 
         var drawn = false;
@@ -56,14 +64,15 @@ define(function(require, exports, module) {
 
             drawNonPanelElements();
 
-            var parent = options.html;
-            parent.className += " chatContainer";
+            var parent = options.aml;
+            var parentExt = parent.$int;
+            parentExt.className += " chatContainer";
 
-            chatText = parent.appendChild(document.createElement("div"));
+            chatText = parentExt.appendChild(document.createElement("div"));
             chatText.setAttribute("class", "chatText");
 
             chatInput = new apf.codebox({
-                htmlNode: parent,
+                htmlNode: parentExt,
                 skin: "codebox",
                 "initial-message": "Enter your message here",
                 // clearbutton      : "true",
@@ -116,6 +125,66 @@ define(function(require, exports, module) {
             collab.on("hide", function(){
                 workspace.off("sync", onWorkspaceSync);
             });
+
+            var deleteMsgItem = new MenuItem({
+                caption: "Delete Message",
+                match: "rw",
+                onclick: clearChatMessage,
+                disabled: true
+            });
+
+            var clearHistoryItem = new MenuItem({
+                caption: "Clear history",
+                match: "rw",
+                onclick: clearChatHistory,
+                disabled: true
+            });
+
+            var mnuCtxTree = new Menu({
+                id: "mnuChat",
+                items: [
+                    deleteMsgItem,
+                    clearHistoryItem
+                ]
+            }, plugin);
+
+            mnuCtxTreeEl = mnuCtxTree.aml;
+            
+            parent.setAttribute("contextmenu", mnuCtxTreeEl);
+
+            mnuCtxTree.on("show", function() {
+                setTimeout(function() {
+                    var hasReadWrite = workspace.fs === "rw";
+                    var collabConnected = collab.connected;
+                    clearHistoryItem.aml.setAttribute("disabled", !hasReadWrite || !collabConnected || !chatText.firstChild);
+                    toDeleteMessage = findMessageToDelete(hasReadWrite);
+                    deleteMsgItem.aml.setAttribute("disabled", !toDeleteMessage || !collabConnected);
+                }, 10);
+            });
+        }
+
+        function findMessageToDelete(hasReadWrite) {
+            var menuRect = mnuCtxTreeEl.$int.getBoundingClientRect();
+            var msg;
+            [].slice.apply(chatText.getElementsByTagName("p")).forEach(function(msgP) {
+                var rect = msgP.getBoundingClientRect();
+                if (rect.left < menuRect.left && (rect.left + rect.width) > menuRect.left
+                    && rect.top < menuRect.top && (rect.top + rect.height) > menuRect.top
+                    && (hasReadWrite || msgP.userId == workspace.myUserId))
+                    msg = msgP;
+            });
+            return msg;
+        }
+
+        function clearChatMessage() {
+            if (!toDeleteMessage || !toDeleteMessage.id)
+                return console.error("[OT] Chat: no message found to delete!");
+            var msgId = toDeleteMessage.id.match(/ot_chat_(\d+)/)[1];
+            collab.send("CLEAR_CHAT", { id : msgId });
+        }
+
+        function clearChatHistory() {
+            collab.send("CLEAR_CHAT", { clear: true });
         }
 
         var seenMsgs = {};
@@ -197,6 +266,20 @@ define(function(require, exports, module) {
                 chatNotif.play();
         }
 
+        function onChatClear(data) {
+            if (data.clear) {
+                // fast way to delete all children - not innerHtml = ''
+                while (chatText.firstChild)
+                    chatText.removeChild(chatText.firstChild);
+                seenMsgs = {}; // sql truncate table would lead to same msg ids
+                workspace.chatHistory = [];
+            }
+            else if (data.id) {
+                var msgHtml = $("ot_chat_" + data.id);
+                msgHtml && msgHtml.parentNode.removeChild(msgHtml);
+            }
+        }
+
         function addMessage(msg, increment) {
             if (seenMsgs[msg.id])
                 return;
@@ -218,6 +301,8 @@ define(function(require, exports, module) {
             // });
 
             var html = document.createElement("p");
+            html.id = "ot_chat_" + msg.id;
+            html.userId = msg.userId;
 
             var borderEl = document.createElement("span");
             html.appendChild(borderEl);
@@ -247,10 +332,6 @@ define(function(require, exports, module) {
 
             ui.insertHtml(null, html, plugin);
             ui.insertCss(css, staticPrefix, plugin);
-
-            function $(id) {
-                return document.getElementById(id);
-            }
 
             chatThrob = $("chatThrob");
             chatCounter = $("chatCounter");
