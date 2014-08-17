@@ -203,7 +203,7 @@ define(function(require, module, exports) {
                     reportError(new Error("Warning: inconsistent newLine type in session for " + docId));
                     recordNewLineType();
                 }
-                var startOff = aceDoc.positionToIndex(data.range.start);
+                var startOff = aceDoc.positionToIndex(data.range.start, false, true);
 
                 var offset = startOff, opOff = 0;
                 var op = packedCs[0];

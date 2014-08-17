@@ -54,13 +54,13 @@ exports.applyAce = function(op, editorDoc) {
             break;
         case "insert":
             text = operations.val(op[i]);
-            editorDoc.insert(editorDoc.indexToPosition(index), text);
+            editorDoc.insert(editorDoc.indexToPosition(index, false, true), text);
             index += text.length;
             break;
         case "delete":
             text = operations.val(op[i]);
-            var startDel = editorDoc.indexToPosition(index);
-            var endDel = editorDoc.indexToPosition(index + text.length);
+            var startDel = editorDoc.indexToPosition(index, false, true);
+            var endDel = editorDoc.indexToPosition(index + text.length, false, true);
             var range = Range.fromPoints(startDel, endDel);
             var docText = editorDoc.getTextRange(range);
             if (docText !== text) {
