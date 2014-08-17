@@ -212,6 +212,9 @@ define(function(require, exports, module) {
                 case "USER_STATE":
                     workspace.updateUserState(data.userId, data.state);
                     break;
+                case "CLEAR_CHAT":
+                    emit("chatClear", data);
+                    break;
                 default:
                     if (!doc)
                         return console.warn("[OT] Received msg for file that is not open", docId, msg);
