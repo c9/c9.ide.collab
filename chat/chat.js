@@ -157,9 +157,9 @@ define(function(require, exports, module) {
                 setTimeout(function() {
                     var hasReadWrite = workspace.fs === "rw";
                     var collabConnected = collab.connected;
-                    clearHistoryItem.aml.setAttribute("disabled", !hasReadWrite || !collabConnected || !chatText.firstChild);
+                    clearHistoryItem.disabled = !hasReadWrite || !collabConnected || !chatText.firstChild;
                     toDeleteMessage = findMessageToDelete(hasReadWrite);
-                    deleteMsgItem.aml.setAttribute("disabled", !toDeleteMessage || !collabConnected);
+                    deleteMsgItem.disabled = !toDeleteMessage || !collabConnected;
                 }, 10);
             });
         }
