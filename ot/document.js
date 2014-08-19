@@ -200,7 +200,7 @@ define(function(require, module, exports) {
                 packedCs = packedCs.slice();
                 var nlCh = newLine || "\n";
                 if (nlCh !== aceDoc.getNewLineCharacter()) {
-                    reportError(new Error("Warning: inconsistent newLine type in session for " + docId));
+                    reportError(new Error("Warning: inconsistent newLine type in session"));
                     recordNewLineType();
                 }
                 var startOff = aceDoc.positionToIndex(data.range.start, false, true);
