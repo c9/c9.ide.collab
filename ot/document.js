@@ -943,7 +943,7 @@ define(function(require, module, exports) {
             function handleSyncCommit(data) {
                 state = "IDLE";
                 
-                if (data.code == "VERSION_E") {
+                if (data.code == "VERSION_E" && latestRevNum !== data.revNum) {
                     reportError(new Error("OT version inconsistency"), { serverRevNum: data.revNum });
                     latestRevNum = data.revNum;
                 }
