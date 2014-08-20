@@ -200,7 +200,7 @@
                 movelineup: 20,
                 movelinedown: 5,
                 
-                save: 1
+                save: 20
             };
             
             this.tick = setInterval(function() {
@@ -245,16 +245,32 @@
         };
         
         
+        var app1, app2;
+        
+        
+        app1 = getApp(frame1);
+        app2 = getApp(frame2);
+        
+        Object.keys(app1.commands.commands).forEach(function(t) {
+            if (u1.tasks[t])
+                u1.tasks[t] = u2.tasks[t] = 0;
+        });
+        
         var u1 = new User(frame1, {});
         var u2 = new User(frame2, {});
         
-       function openFiles() {
+        function openFiles() {
             actions.init(function() {
                 u1.openFile("0");
                 u2.openFile("0");
             });
         }
         
+        function stop(argument) {
+            u1.stop();
+            u2.stop();
+            console.log(app1._ace.getValue() == app2._ace.getValue());
+        }
         document.querySelector("#controlls").innerHTML = '<button onclick="openFiles()">open Files</button>\
         <span style=";">\
             <input name=u1 type="range" onchange="u1.start(parseInt(this.value) / 1000)" value=0></input>\
@@ -264,6 +280,7 @@
             <input name=u2 type="range" onchange="u2.start(parseInt(this.value) / 1000)" value=0></input>\
             <label for="u2">user 2 speed<label>\
         </span>\
-        </span>';
+        </span>\
+        <button onclick="stop()">stop</button>';
     </script>
 </html>
