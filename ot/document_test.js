@@ -22,6 +22,7 @@ function testHandleUserChanges(original, changes, expected) {
 
     changes.forEach(function (change) {
         packedCs = handleUserChanges(packedCs, change);
+        console.log("packedCs:", packedCs);
     });
 
     assert.deepEqual(expected, packedCs, "expected != != packedCs --> "  + expected + " != " + packedCs);
@@ -130,6 +131,12 @@ var handleChangesTests = [
             {action: "insert", offset: 1, text: "defg"},
             {action: "remove", offset: 0, text: "adef"}
         ], ["da", "ig", "r2"]
+    ],
+    [    "abc\ndef\nghi", [
+            {action: "insert", offset: 1, text: "mn"},
+            {action: "remove", offset: 7, text: "e"},
+            {action: "remove", offset: 2, text: "nbc\nd"},
+        ], ["r1", "im", "dbc\nde", "r5"],
     ]
 ];
 

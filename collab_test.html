@@ -34,10 +34,10 @@
     
     <div id="main">
         <div id="left">
-            <iframe id="1" src="/ide.html" frameborder="0"></iframe>
+            <iframe id="1" src="/ide.html?debug=1" frameborder="0"></iframe>
         </div>
         <div id="right">
-            <iframe id="2" src="/ide.html" frameborder="0"></iframe>
+            <iframe id="2" src="/ide.html?debug=1" frameborder="0"></iframe>
         </div>
     </div>
     <div id="controlls">
@@ -244,21 +244,25 @@
             this.stop();
         };
         
-        
         var app1, app2;
-        
-        
-        app1 = getApp(frame1);
-        app2 = getApp(frame2);
-        
-        Object.keys(app1.commands.commands).forEach(function(t) {
-            if (u1.tasks[t])
-                u1.tasks[t] = u2.tasks[t] = 0;
-        });
-        
-        var u1 = new User(frame1, {});
-        var u2 = new User(frame2, {});
-        
+        var u1, u2;
+        var checkLoaded = setInterval(function() {
+            console.log("Check Clients Loaded ?");
+            app1 = getApp(frame1);
+            app2 = getApp(frame2);
+            if (app1 && app2) {
+                u1 = new User(frame1, {});
+                u2 = new User(frame2, {});
+
+                Object.keys(app1.commands.commands).forEach(function(t) {
+                    if (u1.tasks[t])
+                        u1.tasks[t] = u2.tasks[t] = 0;
+                });
+
+                clearInterval(checkLoaded);
+            }
+        }, 1000);
+
         function openFiles() {
             actions.init(function() {
                 u1.openFile("0");
