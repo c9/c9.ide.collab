@@ -943,8 +943,10 @@ define(function(require, module, exports) {
             function handleSyncCommit(data) {
                 state = "IDLE";
                 
-                if (data.code == "VERSION_E" && latestRevNum !== data.revNum) {
-                    reportError(new Error("OT version inconsistency"), { serverRevNum: data.revNum });
+                if (data.code == "VERSION_E") {
+                    // this can happen if another users change reached server before ours, do not report error in that case
+                    if (latestRevNum !== data.revNum || workspace.onlineCount == 1)
+                        reportError(new Error("OT version inconsistency"), { serverRevNum: data.revNum });
                     latestRevNum = data.revNum;
                 }
                 
