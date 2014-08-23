@@ -46,15 +46,15 @@ module.exports = {
     "test document with \\r\\n" : function() {
         createDoc("par\r\na\r\na");
         assert.equal(doc.getNewLineCharacter().length, 2);
-        test({row: 1, column: 0}, 5);
-        test({row: 1, column: 1}, 6);
-        test({row: 2, column: 0}, 8);
+        test({row: 1, column: 0}, 4);
+        test({row: 1, column: 1}, 5);
+        test({row: 2, column: 0}, 6);
         doc.insert({row: 0, column: 1}, "\n");
         test({row: 0, column: 1}, 1);
-        test({row: 1, column: 1}, 4);
+        test({row: 1, column: 1}, 3);
         doc.removeNewLine(0);
-        test({row: 2, column: 0}, 8);
-        test({row: 1, column: 0}, 5);
+        test({row: 2, column: 0}, 6);
+        test({row: 1, column: 0}, 4);
     }
 };
 
