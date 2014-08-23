@@ -67,7 +67,7 @@ function IndexCache(doc) {
     };
     doc.rowToIndex = function(row, check) {
         var lines = this.$lines || this.getAllLines();
-        var newlineLength = this.getNewLineCharacter().length;
+        var newlineLength = 1; // "\n" for collab server
         var index = 0;
         var icache = this.icache;
         row = Math.min(row, lines.length);

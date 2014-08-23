@@ -106,10 +106,14 @@ define(function(require, exports, module) {
             return numUsers > 1;
         }
         
+        function normalizeTextLT(text) {
+            var nlCh = detectNewLineType(text);
+            return text.split(/\r\n|\r|\n/).join(nlCh);
+        }
+
         function detectNewLineType(text) {
-            // Must be the strictly same as on the server
-            // (and note that Ace doesn't have \r newline mode)
-            var match = text.match(/^.*?(\r\n|\n)/m);
+            // Must be the strictly same as on the client
+            var match = text.match(/^.*?(\r\n|\r|\n)/m);
             return match ? match[1] : "\n";
         }
 
@@ -117,10 +121,8 @@ define(function(require, exports, module) {
          * Utilities for the collab plugins
          */
         plugin.freezePublicAPI({
-            /**
-             * @ignore
-             */
-            detectNewLineType: detectNewLineType, 
+            detectNewLineType: detectNewLineType,
+            normalizeTextLT: normalizeTextLT,
             /**
              * Escape text from HTML tags and format hyperlinks to HTML anchor elements
              * @param {String} text - the text to escape HTML from
