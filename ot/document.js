@@ -517,14 +517,13 @@ define(function(require, module, exports) {
                     setValue(serverContents, clean, clean); // reset and bookmark
                 }
 
-                // TODO @nightwing get from settings
-                var nlChr = doc.newLineChar || "\n";
-                if (!doc.newLineChar) {
+                if (doc.newLineChar) {
+                    setAceNewLineMode(doc.newLineChar);
+                } else {
                     console.log("[OT] doc.newLineChar empty for ", docId, "new file? ok - syncing newline mode to collab server");
-                    connect.send("UPDATE_NL_CHAR", { docId: docId, newLineChar: nlChr });
+                    onChangeNewLineMode();
                 }
-                setAceNewLineMode(doc.newLineChar);
-
+                
                 rejoinReason = undefined;
                 
                 cursorTimer = setTimeout(changedSelection, 500);
@@ -552,7 +551,15 @@ define(function(require, module, exports) {
                         reportError(new Error("Warning: unexpected newLine mode: " + lineEndChar));
                         mode = "unix";
                 }
+                session.doc.off("changeNewLineMode", onChangeNewLineMode);
                 session.doc.setNewLineMode(mode);
+                session.doc.on("changeNewLineMode", onChangeNewLineMode);
+            }
+            
+            function onChangeNewLineMode() {
+                var mode = session.doc.getNewLineMode();
+                var nlChr = mode == "windows" ? "\r\n" : "\n";
+                connect.send("UPDATE_NL_CHAR", { docId: docId, newLineChar: nlChr });
             }
 
             function reportError(exception, details) {
