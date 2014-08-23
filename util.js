@@ -107,8 +107,7 @@ define(function(require, exports, module) {
         }
         
         function normalizeTextLT(text) {
-            var nlCh = detectNewLineType(text);
-            return text.split(/\r\n|\r|\n/).join(nlCh);
+            return text.replace(/\r\n|\r/g, "\n");
         }
 
         function detectNewLineType(text) {

@@ -18,6 +18,12 @@ function IndexCache(doc) {
                 doc.rcache.splice(i, 1);
         }
     }, true);
+    // needed when used with changeable newline character
+    // doc.on("changeNewLineMode", function(e) {
+    //     doc.icache = [];
+    //     doc.rcache = [];
+    // });
+    
 
     doc.indexToPositionSlow = doc.indexToPosition;
     doc.indexToPosition = function(index, startRow, check) {
@@ -59,7 +65,7 @@ function IndexCache(doc) {
     };
     doc.rowToIndex = function(row, check) {
         var lines = this.$lines || this.getAllLines();
-        var newlineLength = 1; // "\n" for collab server
+        var newlineLength = this.getNewLineCharacter().length;
         var index = 0;
         var icache = this.icache;
         row = Math.min(row, lines.length);

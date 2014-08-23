@@ -45,7 +45,7 @@ module.exports = {
     },
     "test document with \\r\\n" : function() {
         createDoc("par\r\na\r\na");
-        assert.equal(doc.getNewLineCharacter().length, 2);
+        assert.equal(doc.getNewLineCharacter().length, 1);
         test({row: 1, column: 0}, 4);
         test({row: 1, column: 1}, 5);
         test({row: 2, column: 0}, 6);
