@@ -34,7 +34,7 @@ var user2 = {
 };
 
 function initCollab(user, next) {
-    var vfs = vfsLocal({ root: "/" });
+    var vfs = vfsLocal({ root: "/", wsmetapath: ".metadata" });
     vfs.extend("collab", {
         file: __dirname + "/collab-server.js",
         redefine: true,
@@ -48,7 +48,10 @@ function initCollab(user, next) {
         assert.ok(meta.api);
         var collab = meta.api;
 
-        collab.connect(__dirname, user.clientId, function (err, meta) {
+        collab.connect({
+            basePath: __dirname,
+            clientId: user.clientId
+        }, function (err, meta) {
             assert.equal(err, null);
             assert.ok(meta);
             assert.ok(meta.stream);
@@ -148,6 +151,8 @@ module.exports = {
                 joinerStream.on("data", function collab2Stream(msg) {
                     joinerStream.removeListener("data", collab2Stream);
                     msg = JSON.parse(msg);
+                    if (msg.type !== "JOIN_DOC")
+                        return console.log("unexpected message:", msg);
                     assert.equal(msg.type, "JOIN_DOC");
                     initatorMsg = msg.data;
                     next();
@@ -157,6 +162,8 @@ module.exports = {
                 collabStream.on("data", function collab1Stream(msg) {
                     collabStream.removeListener("data", collab1Stream);
                     msg = JSON.parse(msg);
+                    if (msg.type !== "JOIN_DOC")
+                        return console.log("unexpected message:", msg);
                     assert.equal(msg.type, "JOIN_DOC");
                     collabMsg = msg.data;
                     next();
