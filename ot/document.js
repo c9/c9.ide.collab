@@ -127,7 +127,7 @@ define(function(require, module, exports) {
             /**
              * patch the original Ace document's setValue to only apply the edits
              */
-            function patchedSetValue (text) {
+            function patchedSetValue(text) {
                 var prev = this.getValue();
                 if (!prev)
                     return this.oldSetValue(text);
@@ -553,13 +553,15 @@ define(function(require, module, exports) {
                 }
                 session.doc.off("changeNewLineMode", onChangeNewLineMode);
                 session.doc.setNewLineMode(mode);
+                doc.$fsNewLine = lineEndChar;
                 session.doc.on("changeNewLineMode", onChangeNewLineMode);
             }
             
             function onChangeNewLineMode() {
                 var mode = session.doc.getNewLineMode();
-                var nlChr = mode == "windows" ? "\r\n" : "\n";
-                connect.send("UPDATE_NL_CHAR", { docId: docId, newLineChar: nlChr });
+                var nlCh = mode == "windows" ? "\r\n" : "\n";
+                doc.$fsNewLine = nlCh;
+                connect.send("UPDATE_NL_CHAR", { docId: docId, newLineChar: nlCh });
             }
 
             function reportError(exception, details) {
