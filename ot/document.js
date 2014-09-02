@@ -107,7 +107,8 @@ define(function(require, module, exports) {
                 var aceDoc = session.doc;
                 IndexCache(aceDoc);
                 aceDoc.oldSetValue = aceDoc.oldSetValue || aceDoc.setValue;
-                aceDoc.setValue = patchedSetValue.bind(aceDoc);
+                aceDoc.setValue = patchedSetValue;
+                aceDoc.getNewLineCharacter = patchedGetNewLineCharacter;
                 // aceDoc.applyDeltas = patchedApplyDeltas.bind(aceDoc);
                 // aceDoc.revertDeltas = patchedRevertDeltas.bind(aceDoc);
 
@@ -131,7 +132,12 @@ define(function(require, module, exports) {
                 var prev = this.getValue();
                 if (!prev)
                     return this.oldSetValue(text);
+                text = collabUtil.normalizeTextLT(text);
                 applyAce(operations.operation(prev, text), this);
+            }
+
+            function patchedGetNewLineCharacter() {
+                return "\n";
             }
 
             /*
@@ -553,7 +559,7 @@ define(function(require, module, exports) {
                 }
                 session.doc.off("changeNewLineMode", onChangeNewLineMode);
                 session.doc.setNewLineMode(mode);
-                doc.$fsNewLine = lineEndChar;
+                session.doc.$fsNewLine = lineEndChar;
                 session.doc.on("changeNewLineMode", onChangeNewLineMode);
             }
             
