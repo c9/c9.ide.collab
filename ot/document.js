@@ -566,7 +566,7 @@ define(function(require, module, exports) {
             function onChangeNewLineMode() {
                 var mode = session.doc.getNewLineMode();
                 var nlCh = mode == "windows" ? "\r\n" : "\n";
-                doc.$fsNewLine = nlCh;
+                session.doc.$fsNewLine = nlCh;
                 connect.send("UPDATE_NL_CHAR", { docId: docId, newLineChar: nlCh });
             }
 
