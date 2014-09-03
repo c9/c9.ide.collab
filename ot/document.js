@@ -558,8 +558,8 @@ define(function(require, module, exports) {
                         mode = "unix";
                 }
                 session.doc.off("changeNewLineMode", onChangeNewLineMode);
-                session.doc.setNewLineMode(mode);
                 session.doc.$fsNewLine = lineEndChar;
+                session.doc.setNewLineMode(mode);
                 session.doc.on("changeNewLineMode", onChangeNewLineMode);
             }
             
