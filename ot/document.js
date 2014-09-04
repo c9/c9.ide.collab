@@ -525,6 +525,12 @@ define(function(require, module, exports) {
 
                 if (doc.newLineChar) {
                     setAceNewLineMode(doc.newLineChar);
+                } else if (doc.newLineChar === undefined) {
+                    // needed for interoperability with old versions of collab server
+                    reportError(new Error("doc.newLineChar is undefined"));
+                    var nlCh = collabUtil.detectNewLineType(doc.contents || "");
+                    doc.permanentNlCh = nlCh;
+                    setAceNewLineMode(nlCh);
                 } else {
                     console.log("[OT] doc.newLineChar empty for ", docId, "new file? ok - syncing newline mode to collab server");
                     onChangeNewLineMode();
@@ -566,6 +572,11 @@ define(function(require, module, exports) {
             function onChangeNewLineMode() {
                 var mode = session.doc.getNewLineMode();
                 var nlCh = mode == "windows" ? "\r\n" : "\n";
+                // needed for interoperability with old versions of collab server
+                if (doc.permanentNlCh) {
+                    nlCh = doc.permanentNlCh;
+                    setAceNewLineMode(nlCh);
+                }
                 session.doc.$fsNewLine = nlCh;
                 connect.send("UPDATE_NL_CHAR", { docId: docId, newLineChar: nlCh });
             }
