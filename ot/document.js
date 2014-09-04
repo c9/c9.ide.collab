@@ -63,6 +63,7 @@ define(function(require, module, exports) {
             var pendingSave;
             var readonly;
             var reqId;
+            var newLine;
             var rejoinReason;
 
             resetState();
@@ -74,6 +75,7 @@ define(function(require, module, exports) {
                     session.selection.off("changeCursor", onCursorChange);
                     session.selection.off("changeSelection", onCursorChange);
                     session.selection.off("addRange", onCursorChange);
+                    session.doc && session.doc.resetPositionIndex();
                 }
                 if (inited) {
                     cursorLayer.dispose();
@@ -107,8 +109,8 @@ define(function(require, module, exports) {
                 var aceDoc = session.doc;
                 IndexCache(aceDoc);
                 aceDoc.oldSetValue = aceDoc.oldSetValue || aceDoc.setValue;
-                aceDoc.setValue = patchedSetValue;
-                aceDoc.getNewLineCharacter = patchedGetNewLineCharacter;
+                aceDoc.setValue = patchedSetValue.bind(aceDoc);
+                recordNewLineType();
                 // aceDoc.applyDeltas = patchedApplyDeltas.bind(aceDoc);
                 // aceDoc.revertDeltas = patchedRevertDeltas.bind(aceDoc);
 
@@ -128,16 +130,11 @@ define(function(require, module, exports) {
             /**
              * patch the original Ace document's setValue to only apply the edits
              */
-            function patchedSetValue(text) {
+            function patchedSetValue (text) {
                 var prev = this.getValue();
                 if (!prev)
                     return this.oldSetValue(text);
-                text = collabUtil.normalizeTextLT(text);
                 applyAce(operations.operation(prev, text), this);
-            }
-
-            function patchedGetNewLineCharacter() {
-                return "\n";
             }
 
             /*
@@ -201,7 +198,11 @@ define(function(require, module, exports) {
 
             function handleUserChanges2 (aceDoc, packedCs, data) {
                 packedCs = packedCs.slice();
-                var nlCh = "\n";
+                var nlCh = newLine || "\n";
+                if (nlCh !== aceDoc.getNewLineCharacter()) {
+                    reportError(new Error("Warning: inconsistent newLine type in session"));
+                    recordNewLineType();
+                }
                 var startOff = aceDoc.positionToIndex(data.range.start, false, true);
 
                 var offset = startOff, opOff = 0;
@@ -469,7 +470,27 @@ define(function(require, module, exports) {
 
                 loaded = true;
                 loading = false;
+                recordNewLineType(doc.contents);
                 emit.sticky("joined", {contents: doc.contents, metadata: doc.metadata});
+            }
+            
+            function recordNewLineType(contents) {
+                if (contents)
+                    newLine = collabUtil.detectNewLineType(contents);
+                if (!session || !session.doc)
+                    return;
+                var mode;
+                switch (newLine) {
+                    case "\r\n":
+                        mode = "windows"; break;
+                    case "\n": case undefined:
+                        mode = "unix"; break;
+                    default:
+                        // Like Ace, this is all we support
+                        reportError(new Error("Warning: unexpected newLine mode: " + newLine));
+                        mode = "unix";
+                }
+                session.doc.setNewLineMode(mode);
             }
 
             /**
@@ -522,13 +543,6 @@ define(function(require, module, exports) {
                     // Will auto-aptimize to use 'patchedSetValue'
                     setValue(serverContents, clean, clean); // reset and bookmark
                 }
-
-                if (doc.newLineChar) {
-                    setAceNewLineMode(doc.newLineChar);
-                } else {
-                    console.log("[OT] doc.newLineChar empty for ", docId, "new file? ok - syncing newline mode to collab server");
-                    onChangeNewLineMode();
-                }
                 
                 rejoinReason = undefined;
                 
@@ -542,34 +556,7 @@ define(function(require, module, exports) {
 
                 inited = true;
             }
-
-            function setAceNewLineMode(lineEndChar) {
-                if (!session || !session.doc)
-                    return;
-                var mode;
-                switch (lineEndChar) {
-                    case "\r\n":
-                        mode = "windows"; break;
-                    case "\n": case undefined:
-                        mode = "unix"; break;
-                    default:
-                        // Like Ace, this is all we support
-                        reportError(new Error("Warning: unexpected newLine mode: " + lineEndChar));
-                        mode = "unix";
-                }
-                session.doc.off("changeNewLineMode", onChangeNewLineMode);
-                session.doc.$fsNewLine = lineEndChar;
-                session.doc.setNewLineMode(mode);
-                session.doc.on("changeNewLineMode", onChangeNewLineMode);
-            }
             
-            function onChangeNewLineMode() {
-                var mode = session.doc.getNewLineMode();
-                var nlCh = mode == "windows" ? "\r\n" : "\n";
-                session.doc.$fsNewLine = nlCh;
-                connect.send("UPDATE_NL_CHAR", { docId: docId, newLineChar: nlCh });
-            }
-
             function reportError(exception, details) {
                 details = details || {};
                 details.state = state;
@@ -935,9 +922,6 @@ define(function(require, module, exports) {
                 switch (event.type) {
                 case "EDIT_UPDATE":
                     handleIncomingEdit(data);
-                    break;
-                case "UPDATE_NL_CHAR":
-                    setAceNewLineMode(data.newLineChar);
                     break;
                 case "SYNC_COMMIT":
                     handleSyncCommit(data);

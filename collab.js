@@ -426,7 +426,7 @@ define(function(require, exports, module) {
             if (!tab || !doc || doc.loaded)
                 return;
             var httpLoadedValue = tab.document.value;
-            var normHttpValue = collabUtil.normalizeTextLT(httpLoadedValue);
+            var normHttpValue = normalizeTextLT(httpLoadedValue);
             if (httpLoadedValue !== normHttpValue)
                 tab.document.value = normHttpValue;
         }
@@ -457,6 +457,17 @@ define(function(require, exports, module) {
             console.log("[OT] detected rename/save as from", oldpath, "to", path);
             leaveDocument(oldpath);
             joinDocument(path, tab.document);
+        }
+
+        function normalizeTextLT(text) {
+            var nlCh = collabUtil.detectNewLineType(text);
+            return text.split(/\r\n|\r|\n/).join(nlCh);
+        }
+
+        function detectNewLineType(text) {
+            // Must be the strictly same as on the client
+            var match = text.match(/^.*?(\r\n|\r|\n)/m);
+            return match ? match[1] : "\n";
         }
 
         function bubbleNotification(msg, user) {
