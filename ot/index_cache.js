@@ -18,14 +18,12 @@ function IndexCache(doc) {
                 doc.rcache.splice(i, 1);
         }
     }, true);
-    doc.on("changeNewLineMode", function(e) {
-        doc.resetPositionIndex();
-    });
+    // needed when used with changeable newline character
+    // doc.on("changeNewLineMode", function(e) {
+    //     doc.icache = [];
+    //     doc.rcache = [];
+    // });
     
-    doc.resetPositionIndex = function() {
-        doc.icache = [];
-        doc.rcache = [];
-    };
 
     doc.indexToPositionSlow = doc.indexToPosition;
     doc.indexToPosition = function(index, startRow, check) {
