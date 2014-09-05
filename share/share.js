@@ -268,11 +268,14 @@ define(function(require, module, exports) {
             var access = accessButton.classList.contains("rw") ? "rw" : "r";
             var accessString = access === "rw" ? "Read+Write" : "Read-Only";
             btnInvite.disable();
+            
             workspace.addMember(username, access, function(err, member) {
                 btnInvite.enable();
                 txtUsername.setValue("");
+                
                 if (err)
                     return alert("Error", "Error adding workspace member", err.message);
+                
                 alert("Invitation Sent",
                     "Workspace Member Added",
                     "You have granted " + member.name + " " + accessString
