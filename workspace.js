@@ -194,6 +194,8 @@ define(function(require, exports, module) {
                 if (err) return callback(err);
                 if (!pubsub.connected) // pubsub not working
                     addCachedMember(data, callback);
+                else
+                    callback(null, data);
                 // normally, pubsub will handle it for all clients
             });
         }
