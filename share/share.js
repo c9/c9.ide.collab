@@ -253,8 +253,8 @@ define(function(require, module, exports) {
                 if (err) return;
                 
                 publicEditor[info.private ? "uncheck" : "check"]();
-                publicApp[info.appPublic && info.private ? "uncheck" : "check"]();
-                publicPreview[info.previewPublic && info.private ? "uncheck" : "check"]();
+                publicApp[info.appPublic || !info.private ? "check" : "uncheck"]();
+                publicPreview[info.previewPublic || !info.private ? "check" : "uncheck"]();
                 
                 publicApp[!info.private ? "disable" : "enable"]();
                 publicPreview[!info.private ? "disable" : "enable"]();
