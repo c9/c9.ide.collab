@@ -5,7 +5,7 @@ define(function(require, exports, module) {
         "Panel", "tabManager", "fs", "metadata", "ui", "apf", "settings", 
         "preferences", "ace", "util", "collab.connect", "collab.workspace", 
         "timeslider", "OTDocument", "notification.bubble", "dialog.error",
-        "collab.util"
+        "collab.util", "error_handler"
     ];
     main.provides = ["collab"];
     return main;
@@ -28,6 +28,7 @@ define(function(require, exports, module) {
         var timeslider = imports.timeslider;
         var OTDocument = imports.OTDocument;
         var showError = imports["dialog.error"].show;
+        var errorHandler = imports.error_handler;
 
         var css = require("text!./collab.css");
         var staticPrefix = options.staticPrefix;
@@ -317,6 +318,13 @@ define(function(require, exports, module) {
 
             saveFallbackTimeouts[docId] = setTimeout(function() {
                 console.warn("[OT] collab saveFallbackTimeout while trying to save file", docId, "- trying fallback approach instead");
+                reportError(new Error("Warning: using fallback saving"), {
+                    docId: docId,
+                    loading: otDoc.loading,
+                    loaded: otDoc.loaded,
+                    inited: otDoc.inited,
+                    connected: connect.connected
+                }, ["collab"]);
                 fsSaveFallback();
                 doc.off("saved", onSaved);
             }, SAVE_FILESYSTEM_FALLBACK_TIMEOUT);
