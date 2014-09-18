@@ -396,6 +396,7 @@ define(function(require, module, exports) {
             }
 
             // @see docs in the API section below
+            var lastData; // for debugging
             function joinData(data) {
                 var st = new Date();
                 loaded = false;
@@ -410,9 +411,33 @@ define(function(require, module, exports) {
                         emit("largeDocument");
                     return emit.sticky("joined", {err: err});
                 }
-
+                
+                var copiedData = {
+                    userId: data.userId,
+                    clientId: data.clientId,
+                    docId: data.docId,
+                    reqId: data.reqId,
+                    chunkNum: data.chunkNum,
+                };
+                
+                if (!lastData && copiedData.chunkNum != 1
+                    || copiedData.chunkNum == 1 && docStream
+                    || copiedData.chunkNum != (lastData && lastData.chunkNum || 0) + 1
+                    || lastData && lastData.reqId != copiedData.reqId
+                    || typeof data.chunk != "string"
+                    || !data.chunk 
+                ) {
+                    reportError("Wrong chunk while loading ot document", {
+                        lastData: lastData,
+                        newData: copiedData,
+                        hasDocStream: typeof docStream != "string" && docStream,
+                        chunk: typeof data.chunk != "string" && data.chunk
+                    }, ["collab"]);
+                }
+                lastData = copiedData;
                 if (data.chunkNum === 1)
                     docStream = "";
+                
                 docStream += data.chunk;
 
                 var complete = data.chunkNum === data.chunksLength;
@@ -429,10 +454,14 @@ define(function(require, module, exports) {
                 try {
                     doc = JSON.parse(docStream);
                 } catch (e) {
-                    reportError(e, { data: data });
+                    var error = typeof docStream == "string" 
+                        ? {startCh: docStream.slice(0, 10), endCh: docStream.slice(-10)}
+                        : {docStream: docStream};
+                    reportError("JSON Error while loading ot document", error, ["collab"]);
                     // try rejoin
                     return rejoin("E_JOIN");
                 } finally {
+                    lastData = null;
                     docStream = null;
                 }
 
