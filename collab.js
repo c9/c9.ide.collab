@@ -46,8 +46,10 @@ define(function(require, exports, module) {
         // open collab documents
         var documents = {};
         var openFallbackTimeouts = {};
+        var saveFallbackTimeouts = {};
         var usersLeaving = {};
         var OPEN_FILESYSTEM_FALLBACK_TIMEOUT = 6000;
+        var SAVE_FILESYSTEM_FALLBACK_TIMEOUT = 60000;
 
         var loaded = false;
         function load() {
@@ -311,15 +313,43 @@ define(function(require, exports, module) {
 
         function saveDocument(docId, fallbackFn, fallbackArgs, callback) {
             var doc = documents[docId];
-            doc.once("saved", function(e) {
+            clearTimeout(saveFallbackTimeouts[docId]);
+
+            saveFallbackTimeouts[docId] = setTimeout(function() {
+                console.warn("[OT] collab saveFallbackTimeout while trying to save file", docId, "- trying fallback approach instead");
+                fsSaveFallback();
+                doc.off("saved", onSaved);
+            }, SAVE_FILESYSTEM_FALLBACK_TIMEOUT);
+
+            function onSaved(e) {
+                doc.off("saved", onSaved);
+                clearTimeout(saveFallbackTimeouts[docId]);
                 if ((e.code == "ETIMEOUT" || e.code == "EMISMATCH") && fallbackFn) {
                     // The vfs socket is probably dead ot stale
-                    console.warn("[OT] collab", e.code, "trying to save file", docId, "- trying fallback approach instead");
-                    return fallbackFn.apply(null, fallbackArgs);
+                    console.warn("[OT] collab error:", e.code, "trying to save file", docId, "- trying fallback approach instead");
+                    return fsSaveFallback();
                 }
                 callback(e.err);
-            });
-            doc.save();
+            }
+
+            function fsSaveFallback() {
+                fallbackFn.apply(null, fallbackArgs);
+            }
+
+            if (!doc.loaded || !connect.connected) {
+                doc.once("joined", function(e) {
+                    if (e && !e.err)
+                        doCollabSave();
+                });
+            }
+            else {
+                doCollabSave();
+            }
+
+            function doCollabSave() {
+                doc.on("saved", onSaved);
+                doc.save();
+            }
         }
 
         function leaveAll() {
@@ -440,8 +470,10 @@ define(function(require, exports, module) {
             var tab = tabs.findTab(path);
             var doc = documents[path];
 
+            if (!tab || timeslider.visible)
+                return false;
             // Fall back to default writeFile if we can't handle it
-            if (!tab || timeslider.visible || !connect.connected || !doc || !doc.loaded)
+            if (!doc)
                 return;
 
             // Override default writeFile
@@ -452,7 +484,7 @@ define(function(require, exports, module) {
             saveDocument(path, defaultWriteFile, e.args, callback);
             return false;
         }
-        
+
         function onSetPath(tab, oldpath, path) {
             console.log("[OT] detected rename/save as from", oldpath, "to", path);
             leaveDocument(oldpath);
