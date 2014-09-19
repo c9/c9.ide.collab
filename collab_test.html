@@ -58,6 +58,9 @@
             this.removeItem = function(n) {
                 delete this._items[n];
             };
+            this.clear = function() {
+                this._items = Object.create(null);
+            };
         };
         function overrideSessionStorage(frame) {
             frame.ss = new ss();
