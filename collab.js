@@ -318,11 +318,11 @@ define(function(require, exports, module) {
 
             saveFallbackTimeouts[docId] = setTimeout(function() {
                 console.warn("[OT] collab saveFallbackTimeout while trying to save file", docId, "- trying fallback approach instead");
-                reportError(new Error("Warning: using fallback saving"), {
+                errorHandler.reportError(new Error("Warning: using fallback saving"), {
                     docId: docId,
-                    loading: otDoc.loading,
-                    loaded: otDoc.loaded,
-                    inited: otDoc.inited,
+                    loading: doc.loading,
+                    loaded: doc.loaded,
+                    inited: doc.inited,
                     connected: connect.connected
                 }, ["collab"]);
                 fsSaveFallback();
@@ -478,11 +478,11 @@ define(function(require, exports, module) {
             var tab = tabs.findTab(path);
             var doc = documents[path];
 
-            if (!tab || timeslider.visible)
-                return false;
-            // Fall back to default writeFile if we can't handle it
-            if (!doc)
+            // Fall back to default writeFile if not applicable
+            if (!doc || !tab)
                 return;
+            if (timeslider.visible)
+                return false;
 
             // Override default writeFile
             var args = e.args.slice();
