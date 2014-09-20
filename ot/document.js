@@ -36,7 +36,7 @@ define(function(require, module, exports) {
         // happens when I'm editing alone
         var MAX_DELAY = options.maxDelay;
         var MAX_COMMIT_TRIALS = 20;
-        var COLLAB_SAVE_FILE_TIMEOUT = 5000;
+        var SAVE_FILE_TIMEOUT = 5000;
         var MAX_OP_SIZE = 1024 * 1024;
 
         function OTDocument(docId, c9Document) {
@@ -1142,7 +1142,7 @@ define(function(require, module, exports) {
                 saveTimer = setTimeout(function onSaveTimeout() {
                     saveTimer = pendingSave = null;
                     emit("saved", {err: "File save timeout", code: "ETIMEOUT"});
-                }, timeout || COLLAB_SAVE_FILE_TIMEOUT);
+                }, timeout || SAVE_FILE_TIMEOUT);
             }
 
             function endSaveWatchDog() {
