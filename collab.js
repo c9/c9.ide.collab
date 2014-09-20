@@ -318,11 +318,11 @@ define(function(require, exports, module) {
 
             saveFallbackTimeouts[docId] = setTimeout(function() {
                 console.warn("[OT] collab saveFallbackTimeout while trying to save file", docId, "- trying fallback approach instead");
-                errorHandler.reportError(new Error("Warning: using fallback saving"), {
+                reportError(new Error("Warning: using fallback saving"), {
                     docId: docId,
-                    loading: doc && doc.loading,
-                    loaded: doc && doc.loaded,
-                    inited: doc && doc.inited,
+                    loading: otDoc.loading,
+                    loaded: otDoc.loaded,
+                    inited: otDoc.inited,
                     connected: connect.connected
                 }, ["collab"]);
                 fsSaveFallback();
