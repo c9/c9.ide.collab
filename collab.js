@@ -49,8 +49,10 @@ define(function(require, exports, module) {
         var openFallbackTimeouts = {};
         var saveFallbackTimeouts = {};
         var usersLeaving = {};
+        var lastSaveSuccess = true;
         var OPEN_FILESYSTEM_FALLBACK_TIMEOUT = 6000;
-        var SAVE_FILESYSTEM_FALLBACK_TIMEOUT = 60000;
+        var SAVE_FILESYSTEM_FALLBACK_TIMEOUT = 30000;
+        var SAVE_FILESYSTEM_FALLBACK_TIMEOUT_REPEATED = 15000;
 
         var loaded = false;
         function load() {
@@ -318,16 +320,10 @@ define(function(require, exports, module) {
 
             saveFallbackTimeouts[docId] = setTimeout(function() {
                 console.warn("[OT] collab saveFallbackTimeout while trying to save file", docId, "- trying fallback approach instead");
-                errorHandler.reportError(new Error("Warning: using fallback saving"), {
-                    docId: docId,
-                    loading: doc && doc.loading,
-                    loaded: doc && doc.loaded,
-                    inited: doc && doc.inited,
-                    connected: connect.connected
-                }, ["collab"]);
                 fsSaveFallback();
                 doc.off("saved", onSaved);
-            }, SAVE_FILESYSTEM_FALLBACK_TIMEOUT);
+                lastSaveSuccess = false;
+            }, lastSaveSuccess ? SAVE_FILESYSTEM_FALLBACK_TIMEOUT : SAVE_FILESYSTEM_FALLBACK_TIMEOUT_REPEATED);
 
             function onSaved(e) {
                 doc.off("saved", onSaved);
@@ -335,12 +331,22 @@ define(function(require, exports, module) {
                 if ((e.code == "ETIMEOUT" || e.code == "EMISMATCH") && fallbackFn) {
                     // The vfs socket is probably dead ot stale
                     console.warn("[OT] collab error:", e.code, "trying to save file", docId, "- trying fallback approach instead");
-                    return fsSaveFallback();
+                    return fsSaveFallback({ code: e.code, err: e.err });
                 }
+                lastSaveSuccess = !e.err;
                 callback(e.err);
             }
 
-            function fsSaveFallback() {
+            function fsSaveFallback(attempt) {
+                errorHandler.reportError(new Error("Warning: using fallback saving"), {
+                    docId: docId,
+                    loading: doc && doc.loading,
+                    loaded: doc && doc.loaded,
+                    inited: doc && doc.inited,
+                    connected: connect.connected,
+                    attempt: attempt
+                }, ["collab"]);
+                
                 fallbackFn.apply(null, fallbackArgs);
             }
 
