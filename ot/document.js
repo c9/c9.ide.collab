@@ -396,7 +396,7 @@ define(function(require, module, exports) {
             }
 
             // @see docs in the API section below
-            var lastData; // for debugging
+            var lastData, chunkError; // for debugging
             function joinData(data) {
                 var st = new Date();
                 loaded = false;
@@ -418,21 +418,22 @@ define(function(require, module, exports) {
                     docId: data.docId,
                     reqId: data.reqId,
                     chunkNum: data.chunkNum,
+                    chunksLength: data.chunksLength
                 };
                 
                 if (!lastData && copiedData.chunkNum != 1
                     || copiedData.chunkNum == 1 && docStream
                     || copiedData.chunkNum != (lastData && lastData.chunkNum || 0) + 1
-                    || lastData && lastData.reqId != copiedData.reqId
+                    || lastData && lastData.reqId != copiedData.reqId && copiedData.chunkNum != 1
                     || typeof data.chunk != "string"
                     || !data.chunk 
                 ) {
-                    reportError("Wrong chunk while loading ot document", {
+                    chunkError = {
                         lastData: lastData,
                         newData: copiedData,
                         hasDocStream: typeof docStream != "string" && docStream,
                         chunk: typeof data.chunk != "string" && data.chunk
-                    }, ["collab"]);
+                    };
                 }
                 lastData = copiedData;
                 if (data.chunkNum === 1)
@@ -456,13 +457,17 @@ define(function(require, module, exports) {
                 } catch (e) {
                     var error = typeof docStream == "string" 
                         ? {startCh: docStream.slice(0, 10), endCh: docStream.slice(-10)}
-                        : {docStream: docStream};
+                        : {docStream: docStream, type: typeof docStream};
+                    error.copiedData = copiedData;
+                    error.chunk = typeof data.chunk != "string" && data.chunk;
+                    error.chunkError = chunkError;
                     reportError("JSON Error while loading ot document", error, ["collab"]);
                     // try rejoin
                     return rejoin("E_JOIN");
                 } finally {
                     lastData = null;
                     docStream = null;
+                    chunkError = null;
                 }
 
                 if (docId !== data.docId)
