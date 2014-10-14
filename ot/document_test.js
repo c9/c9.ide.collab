@@ -25,7 +25,7 @@ function testHandleUserChanges(original, changes, expected) {
         console.log("packedCs:", packedCs);
     });
 
-    assert.deepEqual(expected, packedCs, "expected != != packedCs --> "  + expected + " != " + packedCs);
+    assert.deepEqual(expected, packedCs, "expected != packedCs --> "  + expected + " != " + packedCs);
 }
 
 function handleUserChanges (packedCs, data) {

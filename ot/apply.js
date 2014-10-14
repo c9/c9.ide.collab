@@ -5,6 +5,15 @@ define(function(require, exports, module) {
 var operations = require("./operations");
 var Range = require("ace/range").Range;
 
+
+function OTError(expected, actual) {
+    var err = new Error("OT removed text mismatch");
+    err.expected = expected;
+    err.actual = actual;
+    err.code = "EMISMATCH";
+    return err;
+}
+
 /**
  * Apply an operation on a string document and return the resulting new document text.
  *
@@ -27,8 +36,7 @@ exports.applyContents = function(op, doc) {
             break;
         case "d": // delete
             if (doc.indexOf(val) !== 0)
-                throw new TypeError("Expected '" + val +
-                    "' to delete, found '" + doc.slice(0, 10) + "'");
+                throw new OTError(val, doc.slice(0, 10));
             else
                 doc = doc.slice(val.length);
             break;
@@ -64,10 +72,7 @@ exports.applyAce = function(op, editorDoc) {
             var range = Range.fromPoints(startDel, endDel);
             var docText = editorDoc.getTextRange(range);
             if (docText !== text) {
-                var err = new Error("Expected '" + text +
-                    "' to delete, found '" + docText + "'");
-                err.code = "EMISMATCH";
-                throw err;
+                throw new OTError(text, docText);
             }
             editorDoc.remove(range);
             break;
