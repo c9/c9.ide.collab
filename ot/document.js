@@ -461,7 +461,10 @@ define(function(require, module, exports) {
                     error.copiedData = copiedData;
                     error.chunk = typeof data.chunk != "string" && data.chunk;
                     error.chunkError = chunkError;
-                    reportError("JSON Error while loading ot document", error, ["collab"]);
+                    // this happens because sending lots of data via socket breaks it very often
+                    // we need to refactor this to use rest api instead
+                    // until that do not report this error
+                    // reportError("JSON Error while loading ot document", error, ["collab"]);
                     // try rejoin
                     return rejoin("E_JOIN");
                 } finally {
