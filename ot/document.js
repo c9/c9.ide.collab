@@ -185,25 +185,25 @@ define(function(require, module, exports) {
              * Record and buffer the user changes to the document into packedCs for it to be sent
              * to the collab server as EDIT_UPDATE
              */
-            function handleUserChanges(e) {
+            function handleUserChanges(delta) {
                 // needed to provide immediate feedback for remote selection changes caused by local edits
                 session._emit("changeBackMarker");
                 if (!inited || ignoreChanges)
                     return;
                 try {
                     var aceDoc = session.doc;
-                    packedCs = handleUserChanges2(aceDoc, packedCs, e.data);
+                    packedCs = handleUserChanges2(aceDoc, packedCs, delta);
                     scheduleSend();
                 } catch (ex) {
-                    reportError(ex, { data: e.data });
+                    reportError(ex, { data: delta });
                     rejoin("E_EDIT_UPDATE");
                 }
             }
 
-            function handleUserChanges2 (aceDoc, packedCs, data) {
+            function handleUserChanges2(aceDoc, packedCs, delta) {
                 packedCs = packedCs.slice();
                 var nlCh = "\n";
-                var startOff = aceDoc.positionToIndex(data.range.start, false, true);
+                var startOff = aceDoc.positionToIndex(delta.start, false, true);
 
                 var offset = startOff, opOff = 0;
                 var op = packedCs[0];
@@ -225,8 +225,8 @@ define(function(require, module, exports) {
 
                 var authorI;
 
-                if (data.action === "insertText" || data.action === "insertLines") {
-                    var newText = data.text || (data.lines && data.lines.join(nlCh) + nlCh) || "";
+                if (delta.action === "insert") {
+                    var newText = delta.lines.join(nlCh);
                     /*if (aceDoc.fromDelta && aceDoc.fromDelta.authAttribs) {
                         var undoAuthAttribs = aceDoc.fromDelta.authAttribs;
                         var reversedAuthorPool = workspace.reversedAuthorPool;
@@ -252,15 +252,15 @@ define(function(require, module, exports) {
                     //}
                 }
 
-                else if (data.action === "removeText" || data.action === "removeLines") {
-                    var removedText = data.text || (data.lines && data.lines.join(nlCh) + nlCh) || "";
+                else if (delta.action === "remove") {
+                    var removedText = delta.lines.join(nlCh);
                     var remainingText = removedText;
                     var opIdx = opOff;
                     var nextOp = packedCs[opIdx];
                     
                     if (!nextOp) {
                         // Seems like we're in an inconsistent state; rejoin
-                        reportError("Collab: failed to remove text past end of document; rejoining", { data: data });
+                        reportError("Collab: failed to remove text past end of document; rejoining", { data: delta });
                         return rejoin();
                     }
                     
