@@ -1264,10 +1264,20 @@ define(function(require, module, exports) {
                  */
                 get id()           { return docId; },
                 /**
+                 * Gets the reason why we had to rejoin this document
+                 * @property {Object} rejoinReason
+                 */
+                get rejoinReason() { return rejoinReason; },
+                /**
                  * Get the collab document file path
                  * @property {String} path
                  */
                 get path()         { return docId; },
+                /**
+                 * The current state
+                 * @property {String} state
+                 */
+                get state()        { return state; },
                 /**
                  * Get the collab Ace session
                  * @property {EditSession} session

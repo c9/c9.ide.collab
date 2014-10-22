@@ -316,6 +316,7 @@ define(function(require, exports, module) {
 
         function saveDocument(docId, fallbackFn, fallbackArgs, callback) {
             var doc = documents[docId];
+            var joinError;
             clearTimeout(saveFallbackTimeouts[docId]);
 
             saveFallbackTimeouts[docId] = setTimeout(function() {
@@ -338,11 +339,17 @@ define(function(require, exports, module) {
             }
 
             function fsSaveFallback(attempt) {
-                errorHandler.reportError(new Error("Warning: using fallback saving"), {
+                var message = doc && doc.loaded
+                    ? "Warning: using fallback saving on loaded document"
+                    : "Warning: using fallback saving on unloaded document";
+                errorHandler.reportError(new Error(message), {
                     docId: docId,
                     loading: doc && doc.loading,
                     loaded: doc && doc.loaded,
                     inited: doc && doc.inited,
+                    rejoinReason: doc && doc.rejoinReason,
+                    state: doc && doc.state,
+                    joinError: joinError,
                     connected: connect.connected,
                     attempt: attempt
                 }, ["collab"]);
@@ -352,6 +359,7 @@ define(function(require, exports, module) {
 
             if (!doc.loaded || !connect.connected) {
                 doc.once("joined", function(e) {
+                    joinError = e && e.err;
                     if (e && !e.err)
                         doCollabSave();
                 });
