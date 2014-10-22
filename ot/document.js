@@ -92,6 +92,7 @@ define(function(require, module, exports) {
                 starRevNums = [];
                 loaded = loading = inited = ignoreChanges = false;
                 state = "IDLE";
+                emit.unsticky("joined");
             }
 
             // @see docs in the API section below
