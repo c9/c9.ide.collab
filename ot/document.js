@@ -410,6 +410,7 @@ define(function(require, module, exports) {
                         console.error("JOIN_DOC Error:", docId, err);
                     if (err.code == "ELARGE")
                         emit("largeDocument");
+                    loading = false;
                     return emit.sticky("joined", {err: err});
                 }
                 
@@ -573,7 +574,6 @@ define(function(require, module, exports) {
                     console.log("[OT] doc.newLineChar empty for ", docId, "new file? ok - syncing newline mode to collab server");
                     onChangeNewLineMode();
                 }
-                
                 rejoinReason = undefined;
                 
                 cursorTimer = setTimeout(changedSelection, 500);
@@ -1184,6 +1184,7 @@ define(function(require, module, exports) {
             }
 
             function doLoad() {
+                loading = true;
                 reqId = Math.floor(Math.random() * 9007199254740993);
                 connect.send("JOIN_DOC", { docId: docId, reqId: reqId });
             }
