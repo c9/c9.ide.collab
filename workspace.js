@@ -110,7 +110,7 @@ define(function(require, exports, module) {
             for (var user in users)
                 onlineCount += user.online ? 1 : 0;
             onlineCount = Math.max(onlineCount, 1);
-            emit("sync");
+            emit.sticky("sync");
         }
 
         function leaveClient(uid) {
@@ -279,11 +279,6 @@ define(function(require, exports, module) {
 
         plugin.on("load", function(){
             load();
-        });
-
-        plugin.on("newListener", function(event, listener) {
-            if (event == "sync" && loadedWorkspace)
-                 listener();
         });
 
         /**
