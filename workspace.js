@@ -139,18 +139,8 @@ define(function(require, exports, module) {
         var cachedMembers;
         var cachedInfo;
         function loadMembers(callback) {
-            if (!options.hosted || cachedMembers) {
-                // Use mock data
-                return done(
-                    cachedMembers || [
-                        { name: "John Doe", uid: -1, acl: "rw", role: "a", email: "johndoe@c9.io" },
-                        { name: "Mostafa Eweda", uid: -1, acl: "rw", color: "green", email: "mostafa@c9.io" },
-                        { name: "Lennart Kats", uid: 5, acl: "r", color: "yellow", onlineStatus: "online", email: "lennart@c9.io" },
-                        { name: "Ruben Daniels", uid: 2, acl: "rw", color: "blue", onlineStatus: "idle", email: "ruben@ajax.org" },
-                        { name: "Bas de Wachter", uid: 8, acl: "rw", color: "purple", email: "bas@c9.io" }
-                    ],
-                    cachedInfo || { admin: true, member: true, pending: false, private: false, appPublic: true, previewPublic: true }
-                );
+            if (cachedMembers) {
+                return done(cachedMembers, cachedInfo);
             }
             api.collab.get("access_info", function (err, info) {
                 if (err && err.code === 0) {
@@ -177,14 +167,6 @@ define(function(require, exports, module) {
         }
 
         function addMember(username, access, callback) {
-            if (!options.hosted) {
-                return addCachedMember({
-                    uid: Math.floor(Math.random()*100000),
-                    name: username,
-                    acl: access,
-                    email: "s@a.a"
-                }, callback);
-            }
             api.collab.post("members/add", {
                 body: {
                     username: username,
@@ -212,9 +194,6 @@ define(function(require, exports, module) {
         }
 
         function removeMember(uid, callback) {
-            if (!options.hosted)
-                return removeCachedMember(uid, callback);
-
             api.collab.delete("members/remove", {
                 body: { uid : uid }
             }, function (err, data, res) {
@@ -236,9 +215,6 @@ define(function(require, exports, module) {
         }
 
         function updateAccess(uid, acl, callback) {
-            if (!options.hosted)
-                return updateCachedAccess(uid, acl, callback);
-
             api.collab.put("members/update_access", {
                 body: {
                     uid: uid,
