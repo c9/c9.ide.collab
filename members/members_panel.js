@@ -142,32 +142,10 @@ define(function(require, exports, module) {
                 
                 window.addEventListener('resize', resize, true);
                 
-                parent.on("afterstatechange", function () {
-                    update();
-                });
-                
-                membersDataProvider.on("change", function(){ update(); });
-                membersDataProvider.on("collapse", function(){ 
-                    setTimeout(update, 10); 
-                });
-                membersDataProvider.on("expand", function(){ 
-                    setTimeout(update, 10); 
-                });
-                
-                update();
+                membersTree.container.style.position = "relative";
+                membersTree.container.style.top = "0px";
             }
             
-            function update(){
-                var maxHeight = parent.parentNode.$int.offsetHeight * 0.5;
-                var treeHeight = parent.state == "minimized"
-                    ? 21
-                    : membersTree.renderer.layerConfig.maxHeight + 25;
-    
-                parent.$ext.style.height = Math.min(treeHeight, maxHeight) + "px";
-    
-                membersTree.resize(true);
-            }
-
             function hide() {
                 workspace.off("sync", onWorkspaceSync);
             }
@@ -180,9 +158,15 @@ define(function(require, exports, module) {
                 workspace.loadMembers(alertIfError);
                 workspace.off("sync", onWorkspaceSync);
                 workspace.on("sync", onWorkspaceSync);
+                setTimeout(resize);
             }
 
             function resize() {
+                var rowHeight = membersTree.provider.rowHeight;
+                var maxLines = Math.floor(
+                    Math.max(window.innerHeight / 2 - 60, 60) / rowHeight
+                );
+                membersTree.renderer.setOption("maxLines", maxLines);
                 membersTree.resize();
             }
 
@@ -291,8 +275,6 @@ define(function(require, exports, module) {
                     parent.setAttribute("contextmenu", mnuCtxTreeEl);
                 else
                     parent.setAttribute("contextmenu", mnuCtxTreePublicEl);
-                
-                update();
             }
 
              /***** Register and define API *****/
