@@ -50,12 +50,14 @@ define(function(require, exports, module) {
                 "<span class='avatar'>" + avatarImg + "</span>\n",
                 "<span class='status ", status, "'></span>\n",
                 "<span class='collaborator_color' style='background-color: ", color, ";'></span>\n",
-                 canAccessControl ?
-                    ("<div class='access_control "  + access  + "'>" +
+                 canAccessControl
+                    ? ("<div class='access_control "  + access  + "'>" +
                         "<div class='readbutton'>R</div>" +
                         "<div class='writebutton'>RW</div></div>" +
-                    "<div class='kickout'></div>\n") :
-                    ("<div class='access_control disabled'>" + disabledLabel + "</div>\n"),
+                    "<div class='kickout'></div>\n")
+                    : ("<div class='access_control disabled'>" + disabledLabel + "</div>\n" +
+                        (datarow.name == "You" ? "<div class='kickout'></div>\n" : "")
+                    ),
             ];
 
             return html.join("");
