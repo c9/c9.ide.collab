@@ -201,6 +201,7 @@ define(function(require, exports, module) {
                 var myRow = {};
 
                 var cachedMembers = workspace.members;
+                var users = workspace.users;
                 
                 if (!cachedMembers.length) { // We're visiting a public workspace
                     cachedMembers = [{
@@ -219,7 +220,16 @@ define(function(require, exports, module) {
                     m.color = m.color || workspace.getUserColor(m.uid);
                     m.status = m.onlineStatus || workspace.getUserState(m.uid);
                     m.md5Email = m.email ? apf.crypto.MD5.hex_md5(m.email.trim().toLowerCase()) : "";
-                    members[m.acl].push(m);
+                    members[m.acl == "rw" ? "rw" : "r"].push(m);
+                    
+                    var childList = users[m.uid] && users[m.uid].clients;
+                    m.items = childList && childList.length > 1 && childList.map(function(k, i) {
+                        return {
+                            id: k,
+                            name: "Tab " + i,
+                            user: m
+                        };
+                    });
 
                     if (m.uid == me.id) {
                         m.name = "0000"; // top in every sory

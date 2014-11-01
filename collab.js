@@ -190,11 +190,11 @@ define(function(require, exports, module) {
                     user = data.user;
                     if (!user)
                         break;
-                    workspace.joinClient(user);
+                    workspace.joinClient(user, data.clientId);
                     notifyUserOnline(user);
                     break;
                 case "USER_LEAVE":
-                    workspace.leaveClient(data.userId);
+                    workspace.leaveClient(data.userId, data.clientId);
                     notifyUserOffline(user);
                     break;
                 case "LEAVE_DOC":

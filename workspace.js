@@ -113,14 +113,17 @@ define(function(require, exports, module) {
             emit.sticky("sync");
         }
 
-        function leaveClient(uid) {
+        function leaveClient(uid, clientId) {
             var user = users[uid];
             user.online = Math.max(user.online-1, 0);
+            if (!user.clients) user.clients = [];
+            var i = user.clients.indexOf(clientId);
+            if (i != -1) user.clients.splice(i, 1);
             onlineCount--;
             emit("sync");
         }
 
-        function joinClient(user) {
+        function joinClient(user, clientId) {
             var uid = user.uid;
             var authorId = user.author;
             users[uid] = user;
