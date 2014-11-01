@@ -34,7 +34,7 @@ define(function(require, exports, module) {
 
         this.getContentHTML = function (datarow) {
             if (!datarow.uid)
-                return "<span class='root caption'>" + datarow.name + "</span>";
+                return "<span class='root " + (datarow.className || "") + "'>" + datarow.name + "</span>";
             var access = datarow.acl || "r";
             var canAccessControl = this.iAmAdmin && !datarow.isAdmin;
             var disabledLabel = access == "r" ? "<div class='readbutton'>R</div>" : "<div class='writebutton'>RW</div>";

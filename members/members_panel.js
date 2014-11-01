@@ -238,38 +238,21 @@ define(function(require, exports, module) {
                 members.rw.sort(memberCompartor);
                 myRow.name = "You";
 
-                if (!members.rw.length) {
-                    membersDataProvider.setRoot([{
-                        name: "Read",
-                        items: members.r,
-                        noSelect: true,
-                        className: "heading"
-                    }]);
-                }
-                else if (!members.r.length) {
-                    membersDataProvider.setRoot([{
-                        name: "Read+Write",
-                        items: members.rw,
-                        noSelect: true,
-                        className: "heading"
-                    }]);
-                }
-                else {
-                    membersDataProvider.setRoot([
-                        {
-                            name: "Read+Write",
-                            items: members.rw,
-                            noSelect: true,
-                            className: "heading"
-                        },
-                        {
-                            name: "Read Only",
-                            items: members.r,
-                            noSelect: true,
-                            className: "heading"
-                        }
-                    ]);
-                }
+                membersDataProvider.setRoot([{
+                    name: "Read+Write",
+                    items: members.rw,
+                    noSelect: true,
+                    clickAction: "toggle",
+                    className: "caption"
+                }, {
+                    name: "Read Only",
+                    items: members.r,
+                    noSelect: true,
+                    clickAction: "toggle",
+                    className: "caption"
+                }].filter(function(x) {
+                    return x.items.length;
+                }));
                 
                 if (workspace.accessInfo.member)
                     parent.setAttribute("contextmenu", mnuCtxTreeEl);
