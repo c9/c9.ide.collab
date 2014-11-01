@@ -233,7 +233,8 @@ define(function(require, exports, module) {
         function notifyUserOffline(user) {
             clearTimeout(usersLeaving[user.fullname]);
             usersLeaving[user.fullname] = setTimeout(function() {
-                bubbleNotification("went offline", user);
+                if (!user.online)
+                    bubbleNotification("went offline", user);
                 delete usersLeaving[user.fullname];
             }, 4000);
         }
@@ -244,8 +245,8 @@ define(function(require, exports, module) {
                 clearTimeout(usersLeaving[user.fullname]);
                 return;
             }
-            
-            bubbleNotification("came online", user);
+            if (user.online <= 1)
+                bubbleNotification("came online", user);
         }
 
         /**
