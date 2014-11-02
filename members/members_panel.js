@@ -119,10 +119,12 @@ define(function(require, exports, module) {
                         new Divider(),
                         new MenuItem({
                             caption: "Show Location",
+                            match: "online",
                             onclick: revealUser
                         }),
                         new MenuItem({
                             caption: "Load State",
+                            match: "online",
                             onclick: loadUserState
                         })
                     ]
@@ -149,7 +151,9 @@ define(function(require, exports, module) {
                     mnuCtxTreeEl.childNodes.forEach(function(item) {
                         var match = item.match;
                         var disabled = false;
-                        if (node.isAdmin || (match && match !== node.acl))
+                        if (match == "online") {
+                            disabled = !node.clientId;
+                        } else if (node.isAdmin || (match && match !== node.acl))
                             disabled = true;
                         item.setAttribute("disabled", disabled);
                     });
