@@ -220,6 +220,10 @@ define(function(require, exports, module) {
                 case "CLEAR_CHAT":
                     emit("chatClear", data);
                     break;
+                case "MESSAGE":
+                    if (emit("userMessage", data) !== false)
+                        handleUserMessage(data);
+                    break;
                 default:
                     if (!doc)
                         return console.warn("[OT] Received msg for file that is not open", docId, msg);
@@ -526,7 +530,59 @@ define(function(require, exports, module) {
                 md5Email + '?s=26&d='  + defaultImgUrl + '" /><span>' +
                 chatName + '<span class="notification_sub">' + msg + '</span></span>');
         }
-
+        
+        /***** sync tabs *****/
+        function getFocusedTabState() {
+            var tab = tabs.focussedTab;
+            if (!tab) return {};
+            var state = tab.getState();
+            var doc = state.document;
+            if (doc) {
+                doc.value = doc.undoManager = doc.meta = undefined;
+                if (doc.ace) {
+                    doc.ace.folds = doc.ace.options = undefined;
+                }
+            }
+            state.className = undefined;
+            return state;
+        }
+        var lastJump;
+        function revealUser(clientId) {
+            if (clientId == workspace.myClientId) {
+                handleUserMessage({
+                    action: "open",
+                    target: clientId,
+                    tabState: lastJump
+                });
+            } else {
+                connect.send("MESSAGE", {
+                    source: workspace.myClientId,
+                    target: clientId,
+                    action: "getTab",
+                });
+            }
+        }
+        function handleUserMessage(data) {
+            if (data.action == "getTab") {
+                if (data.target == workspace.myClientId) {
+                    connect.send("MESSAGE", {
+                        source: workspace.myClientId,
+                        target: data.source,
+                        action: "open",
+                        tabState: getFocusedTabState(),
+                    });
+                }
+            } else if (data.action == "open") {
+                if (data.target == workspace.myClientId) {
+                    if (data.tabState) {
+                        lastJump  = getFocusedTabState();
+                        data.tabState.focus = true;
+                        tabs.open(data.tabState);
+                    }
+                }
+            }
+        }
+        
         /***** Lifecycle *****/
         plugin.on("newListener", function(event, listener) {
             if (event == "connect" && connect.connected)
@@ -570,6 +626,8 @@ define(function(require, exports, module) {
                  * @param {Boolean}  e.increment  should the chat counter be incremented (not yet implemented)
                  */
                 "chatMessage",
+                
+                "message"
             ],
             /**
              * Get a clone of open collab documents
@@ -597,7 +655,12 @@ define(function(require, exports, module) {
              * @param  {String}     type    the type of the message
              * @param  {Object}     message the message body to send
              */
-            send: function(type, message) { connect.send(type, message); }
+            send: function(type, message) { connect.send(type, message); },
+            /**
+             * @ignore
+             */
+            revealUser: revealUser
+            
         });
 
         register(null, {

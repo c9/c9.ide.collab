@@ -2,9 +2,9 @@ define(function(require, exports, module) {
 "use strict";
 
     main.consumes = [
-        "Plugin", "ui", "util", "apf", "Menu", "MenuItem",
+        "Plugin", "ui", "util", "apf", "Menu", "MenuItem", "Divider",
         "collab.workspace", "info", "dialog.error", "dialog.confirm",
-        "accessControl"
+        "accessControl", "collab"
     ];
     main.provides = ["MembersPanel"];
     return main;
@@ -14,12 +14,14 @@ define(function(require, exports, module) {
         var c9Util = imports.util;
         var apf = imports.apf;
         var Menu = imports.Menu;
+        var Divider = imports.Divider;
         var MenuItem = imports.MenuItem;
         var workspace = imports["collab.workspace"];
         var info = imports.info;
         var showError = imports["dialog.error"].show;
         var confirm = imports["dialog.confirm"].show;
         var accessControl = imports.accessControl;
+        var collab = imports.collab;
         
         var cloneObject = c9Util.cloneObject;
         var Tree = require("ace_tree/tree");
@@ -53,9 +55,7 @@ define(function(require, exports, module) {
 
                 membersTree.on("mousedown", function(e) {
                     var domTarget = e.domEvent.target;
-
-                    var pos = e.getDocumentPosition();
-                    var node = membersDataProvider.findItemAtOffset(pos.y);
+                    var node = e.getNode();
                     if (!node || !domTarget)
                         return;
 
@@ -75,9 +75,7 @@ define(function(require, exports, module) {
                 });
                 membersTree.on("mouseup", function(e) {
                     var domTarget = e.domEvent.target;
-
-                    var pos = e.getDocumentPosition();
-                    var node = membersDataProvider.findItemAtOffset(pos.y);
+                    var node = e.getNode();
                     if (!node || !domTarget)
                         return;
 
@@ -88,6 +86,18 @@ define(function(require, exports, module) {
                     else if (className == "kickout")
                         removeMember();
                 });
+                
+                membersTree.on("dblclick", function(e) {
+                    var domTarget = e.domEvent.target;
+                    var node = e.getNode();
+                    if (!node || !domTarget)
+                        return;
+                    if (domTarget.classList.contains("ace_tree_cells")) {
+                        e.stop();
+                        revealUser();
+                    }
+                });
+                
 
                 var mnuCtxTree = new Menu({
                     id: "mnuMembers",
@@ -105,6 +115,15 @@ define(function(require, exports, module) {
                         new MenuItem({
                             caption: "Kick Out",
                             onclick: removeMember
+                        }),
+                        new Divider(),
+                        new MenuItem({
+                            caption: "Show Location",
+                            onclick: revealUser
+                        }),
+                        new MenuItem({
+                            caption: "Load State",
+                            onclick: loadUserState
                         })
                     ]
                 }, plugin);
@@ -190,6 +209,19 @@ define(function(require, exports, module) {
                     }, function(){ /* No */ }
                 );
             }
+            
+            function revealUser() {
+                var node = getSelectedMember();
+                var clientId = node && node.clientId;
+                if (!clientId)
+                    return;
+                collab.revealUser(clientId);
+            }
+            
+            function loadUserState() {
+                var node = getSelectedMember();
+                return node;
+            }
 
             function getSelectedMember() {
                 return membersTree.selection.getCursor();
@@ -199,6 +231,7 @@ define(function(require, exports, module) {
                 var me = info.getUser();
                 var members = {r: [], rw: []};
                 var myRow = {};
+                var myClientId = workspace.myClientId;
 
                 var cachedMembers = workspace.members;
                 var users = workspace.users;
@@ -225,18 +258,20 @@ define(function(require, exports, module) {
                     var childList = users[m.uid] && users[m.uid].clients;
                     m.items = childList && childList.length > 1 && childList.map(function(k, i) {
                         return {
-                            id: k,
+                            clientId: k,
                             name: "Tab " + i,
                             user: m
                         };
                     });
+                    m.clientId = childList && childList[0];
+                    m.isOpen = false;
 
                     if (m.uid == me.id) {
                         m.name = "0000"; // top in every sory
                         m.status = "online";
                         myRow = m;
                         // m.status = "online";
-                        membersDataProvider.iAmAdmin = m.isAdmin;
+                        m.clientId == myClientId;
                     }
                 });
 
@@ -247,19 +282,22 @@ define(function(require, exports, module) {
                 members.r.sort(memberCompartor);
                 members.rw.sort(memberCompartor);
                 myRow.name = "You";
-
+                
+                var oldRoot = membersDataProvider.root.items || [];
                 membersDataProvider.setRoot([{
                     name: "Read+Write",
                     items: members.rw,
                     noSelect: true,
                     clickAction: "toggle",
-                    className: "caption"
+                    className: "caption",
+                    isOpen: oldRoot[0] ? oldRoot[0].isOpen : true
                 }, {
                     name: "Read Only",
                     items: members.r,
                     noSelect: true,
                     clickAction: "toggle",
-                    className: "caption"
+                    className: "caption",
+                    isOpen: oldRoot[0] ? oldRoot[0].isOpen : false
                 }].filter(function(x) {
                     return x.items.length;
                 }));

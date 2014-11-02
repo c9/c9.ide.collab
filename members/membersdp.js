@@ -22,16 +22,6 @@ define(function(require, exports, module) {
             return "Loading Members...";
         };
 
-        this.setRoot = function(root) {
-            if (Array.isArray(root))
-                root = {items: root};
-            this.root = root || {};
-            this.visibleItems = [];
-            this.open(this.root, true);
-
-            this._signal("change");
-        };
-
         this.getContentHTML = function (datarow) {
             if (!datarow.uid)
                 return "<span class='root " + (datarow.className || "") + "'>" + datarow.name + "</span>";
