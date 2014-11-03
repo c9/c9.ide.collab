@@ -575,12 +575,31 @@ define(function(require, exports, module) {
             } else if (data.action == "open") {
                 if (data.target == workspace.myClientId) {
                     if (data.tabState) {
-                        lastJump  = getFocusedTabState();
+                        var tabState = getFocusedTabState();
+                        if (shouldUpdateLastJump(lastJump, tabState, data.tabState))
+                            lastJump = tabState;
                         data.tabState.focus = true;
                         tabs.open(data.tabState);
                     }
                 }
             }
+        }
+        
+        function shouldUpdateLastJump(prevState, state, newState) {
+            function getSelection(s) {
+                return s && s.document && s.document.ace && s.document.ace.selection;
+            }
+            if (!prevState) return true;
+            if (!newState.name) return false;
+            var prevSel = JSON.stringify(getSelection(prevState));
+            var sel = JSON.stringify(getSelection(state));
+            var newSel = JSON.stringify(getSelection(newState));
+            if (prevState.name == state.name && newSel == sel) {
+                return false;
+            }
+            if (state.name == newState.name && newSel == sel)
+                return false;
+            return true;
         }
         
         /***** Lifecycle *****/
