@@ -299,6 +299,7 @@ define(function(require, exports, module) {
         
         function reportLargeDocument(doc, forceReadonly) {
             var docId = doc.id;
+            delete documents[doc.id];
             if (workspace.isAdmin && !forceReadonly) {
                 if (workspace.onlineCount === 1)
                     return console.log("File is very large, collaborative editing disabled: " + docId);
