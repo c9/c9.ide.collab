@@ -120,7 +120,7 @@ define(function(require, exports, module) {
             var i = user.clients.indexOf(clientId);
             if (i != -1) user.clients.splice(i, 1);
             onlineCount--;
-            emit("sync");
+            emit.sticky("sync");
         }
 
         function joinClient(user, clientId) {
@@ -131,12 +131,12 @@ define(function(require, exports, module) {
             reversedAuthorPool[authorId] = uid;
             colorPool[uid] = user.color;
             onlineCount++;
-            emit("sync");
+            emit.sticky("sync");
         }
 
         function updateUserState(uid, state) {
             users[uid].state = state;
-            emit("sync");
+            emit.sticky("sync");
         }
 
         var cachedMembers;
@@ -165,7 +165,7 @@ define(function(require, exports, module) {
                 cachedMembers = members;
                 cachedInfo = info;
                 callback();
-                emit("sync");
+                emit.sticky("sync");
             }
         }
 
@@ -192,7 +192,7 @@ define(function(require, exports, module) {
                 return m.uid  != member.uid;
             });
             cachedMembers.push(member);
-            emit("sync");
+            emit.sticky("sync");
             next && next(null, member);
         }
 
@@ -213,7 +213,7 @@ define(function(require, exports, module) {
             cachedMembers = cachedMembers.filter(function (member) {
                 return member.uid  != uid;
             });
-            emit("sync");
+            emit.sticky("sync");
             next && next();
         }
 
@@ -237,7 +237,7 @@ define(function(require, exports, module) {
             (cachedMembers.filter(function (member) {
                 return member.uid  == uid;
             })[0] || {}).acl = acl;
-            emit("sync");
+            emit.sticky("sync");
             next && next();
         }
 
