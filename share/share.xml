@@ -2,17 +2,15 @@
     <a:window
       id        = "window"
       center    = "true"
-      width     = "430"
-      height    = "530"
       icon      = ""
       skin      = "bk-window2"
       kbclose   = "true"
-      title     = "Share Workspace"
+      title     = "Share this workspace"
       buttons   = "close"
       class     = "share dark"
       draggable = "true">
+        <label style="margin-bottom:6px">Links to share</label>
         <blockquote class="links">
-          <label style="margin-bottom:6px">Links to share</label>
           <label class="subhead">Editor:</label>
           <div id="shareLinkEditor" type="text" readonly="true" class="link"></div>
           <a:checkbox id="publicEditor" skin="checkbox_black" class="sharecb">Public</a:checkbox>
@@ -35,19 +33,17 @@
             <a:textbox
               id              = "txtUsername"
               skin            = "searchbox"
-              class           = "dark"
               initial-message = "C9 username or email"
-              width           = "285"
               focusselect     = "true" />
 
             <a:bar id="access" class="standalone access_control rw">
                 <div class="readbutton">R</div><div class="writebutton">RW</div>
             </a:bar>
 
-            <a:button id="btnInvite" skin="btn-default-css3" class="btn-green" width="80" height="25" right="15" bottom="42">Invite</a:button>
+            <a:button id="btnInvite" skin="btn-default-css3" class="btn-green">Invite</a:button>
             <a:checkbox skin="checkbox_black" style='margin-top:6px; width: 200px;' checked="true">Notify people via email</a:checkbox>
         </blockquote>
 
-        <a:button id="btnDone" skin="btn-default-css3" width="80" right="15" bottom="10">Done</a:button>
+        <a:button id="btnDone" skin="btn-default-css3" class="btn-done">Done</a:button>
     </a:window>
 </a:application>

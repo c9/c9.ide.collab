@@ -1,31 +1,37 @@
+.share{
+    width: @share-width;
+    height: @share-height;
+}
+
 .share .bk-container{
-    padding: 10px 15px 15px 15px;
+    padding: @share-padding;
 }
 
 .share label{
-    font-family : Arial;
-    font-size : 12px;
-    color: #f1f1f1;
+    font-family : @share-label-font-family;
+    font-size : @share-label-font-size;
+    font-weight: @share-label-font-weight;
+    color: @share-label-color;
     margin : 0 5px 2px 0;
     display: block;
     vertical-align: middle;
 }
 
 .share .sharecb{
-    margin-left:5px; 
+    margin: @share-checkbox-margin; 
     display:inline-block;
     vertical-align: middle;
 }
 
 .share .link{
-    background : rgba(255,255,255,0.05);
-    padding : 3px 3px 3px 4px;
-    border-radius: 3px;
-    width: 221px;
-    margin-bottom: 4px;
-    border: 1px solid rgb(27, 27, 27);
-    box-shadow: 0 1px rgba(255, 255, 255, 0.09);
-    color: #AAA;
+    background : @share-link-background;
+    padding : @share-link-padding;
+    border-radius: @share-link-border-radius;
+    width: @share-link-width;
+    margin: @share-link-margin;
+    border: @share-link-border;
+    box-shadow: @share-link-box-shadow;
+    color: @share-link-color;
     cursor: text;
     display: inline-block;
     cursor: pointer;
@@ -39,13 +45,13 @@
 
 .share .members{
     background-color: rgba(255, 255, 255, 0.07);
-    border: 1px solid #222;
-    box-shadow: 1px 1px rgba(255,255,255,0.06), inset 1px 1px rgba(255,255,255,0.06);
+    border: @share-members-border;
+    box-shadow: @share-members-box-shadow;
     overflow: hidden;
     position: relative;
     height: 140px !important;
-    margin-bottom: 10px;
-    border-radius: 3px;
+    margin: @share-members-margin;
+    border-radius: @share-members-border-radius;
 }
 .share .members .hover{
     background: #333333;
@@ -53,28 +59,55 @@
 
 .share blockquote{
     position : relative;
-    border-radius: 3px;
-    border: 1px solid rgba(0, 0, 0, 0.3);
-    box-shadow: 1px 1px rgba(255, 255, 255, 0.06), 1px 1px rgba(255, 255, 255, 0.06) inset;
+    border-radius: @share-container-border-radius;
+    border: @share-container-border;
+    box-shadow: @share-container-box-shadow;
 }
 .share blockquote.invite{
-    margin: 0;
-    padding: 10px 15px 15px 15px;
+    margin: @share-invite-margin;
+    padding: @share-invite-padding;
 }
 .share blockquote.links{
-    margin: 10px 0 0 0;
-    padding: 10px 15px 10px 15px;
+    margin: @share-links-margin;
+    padding: @share-links-padding;
 }
 
 .share .access_control.standalone{
     position: absolute;
-    right: 100px;
-    top: 55px;
+    right: @share-access-right;
+    top: @share-access-top;
 }
 
 .share .subhead {
     display: inline-block;
-    width: 70px;
-    color: gray;
-    margin-top: 4px;
+    width: @share-label-subhead-width;
+    color: @share-label-subhead-color;
+    margin-top: @share-label-subhead-margin-top;
+    font-weight: @share-label-subhead-font-weight;
+}
+
+.share .searchbox {
+    width: @share-textbox-width;
+    margin: @share-textbox-margin !important;
+}
+.share .searchbox .sbtb_middle {
+    background-color: @share-textbox-background-color;
+    box-shadow: @share-textbox-box-shadow;
+    padding: @share-textbox-padding !important;
+    border-color: @share-textbox-border-color !important;
+}
+
+.share .btn-green{
+    position: absolute;
+    width: @share-invite-button-width;
+    height: @share-invite-button-height;
+    right: @share-invite-button-right;
+    bottom: @share-invite-button-bottom;
+}
+
+.share .btn-done{
+    position: absolute;
+    right: @share-done-button-right;
+    width: @share-done-button-width;
+    bottom: @share-done-button-bottom;
 }
