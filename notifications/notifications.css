@@ -98,20 +98,21 @@
     display: none;
     position: absolute;
     left: 5px;
-    background: red;
+    background: @collab-notification-background;
     border-radius: 10px;
     height: 11px;
     font-size: 10px;
-    font-weight: bold;
+    font-weight: @collab-notification-font-weight;
     text-align: center;
     -webkit-transform-origin: top left;
     -webkit-transform: rotate(-90deg);
     -moz-transform-origin: top left;
     -moz-transform: rotate(-90deg);
-    padding: 0px 3px 0 2px;
-    color: #f1f1f1;
-    box-shadow: -1px 1px 3px black;
+    padding: 1px 3px 1px 4px;
+    color: @collab-notification-color;
+    box-shadow: @collab-notification-box-shadow;
     line-height: 11px;
+    .font-smoothing(true);
 }
 
 .panelsbutton.collab .newnotifs.size1{
