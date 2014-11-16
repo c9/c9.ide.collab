@@ -30,16 +30,16 @@
 
 .chatText {
     overflow: auto;
-    font-size: 12px;
-    padding: 0 0 0 2px;
+    font-size: @collab-chat-font-size;
+    padding: 0 0 0 0;
     .flex(1);
-    background: #333;
+    background: @collab-chat-background;
 }
 .chatText p {
-    padding: 7px 7px 7px 10px;
+    padding: @collab-chat-item-padding;
     word-wrap: break-word;
-    border-bottom : 1px dotted #151515;
-    border-top : 1px dotted #444;
+    border-bottom : @collab-chat-item-border-bottom;
+    border-top : @collab-chat-item-border-top;
     position : relative;
     margin : 0;
 }
@@ -48,36 +48,36 @@
 }
 .chatText .chatBorder{
     position : absolute;
-    left : -2px;
+    left : 0;
     top : 0;
     bottom : 0;
     width : 0;
-    border-left : 1px solid white;
+    border-left : @collab-chat-color-size solid white;
 }
 .chatText .emoji {
     vertical-align: middle;
 }
 .chatText .authorName {
     text-decoration: none;
-    color: #f1f1f1;
+    color: @collab-chat-author-color;
     display : block;
 }
 .chatText .chatmessage {
-    color : #b1b4ba;
+    color : @collab-chat-message-color;
     display : block;
     padding: 3px 0 0 0;
 }
 .chatText .chattime {
     position : absolute;
-    right: 4px;
-    top: 4px;
-    color: #6C6E74;
+    right: @collab-chat-time-right;
+    top: @collab-chat-time-top;
+    color: ;
     font-size: 10px;
-    font-weight: normal;
-    text-shadow: 0 1px rgb(29, 29, 29);
+    font-weight: @collab-chat-time-font-weight;
+    text-shadow: @collab-chat-time-text-shadow;
 }
 .chatContainer .searchTxt.tb_console {
-    background: #292929;
+    background: @collab-chat-input-background;
     height:30px;
     padding: 0;
     cursor: text;
@@ -85,11 +85,11 @@
 .chatContainer .searchTxt.tb_console .sbtb_middle{
     min-height : 37px;
     
-    border-color: rgb(29, 29, 29);
+    border-color: @collab-chat-input-border-color;
     border-radius: 0;
     border-width: 1px 0 0 0;
-    box-shadow: 0 1px rgba(255, 255, 255, 0.06) inset;
-    background: rgb(61, 61, 61);
+    box-shadow: ;
+    background: @collab-chat-input-background;
     padding: 4px 4px 3px 4px;
 }
 .chatContainer .searchTxt.tb_textboxInitial .sbtb_middle .input{
@@ -97,14 +97,14 @@
     text-indent: 3px;
 }
 .chatContainer .searchbox .sbtb_middle .input{
-    color: #f1f1f1;
-    .font-smoothing(true);
+    color: @collab-chat-input-color;
+    .font-smoothing(@collab-chat-input-font-smoothing);
 }
 .chatContainer .ace-tm .ace_marker-layer .ace_selection {
-    background: rgb(76, 99, 18);
+    background: @collab-chat-input-selection-color;
 }
 .chatContainer .ace-tm .ace_cursor {
-    color : #f1f1f1;
+    color : @collab-chat-input-cursor-color;
 }
 
 #chatCounter {

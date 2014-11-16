@@ -13,9 +13,9 @@
 .notificationstree .tree-row {
     position: relative;
     pointer-events: auto;
-    box-shadow: 0 1px rgba(255, 255, 255, 0.06) inset;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.33);
-    padding: 0 10px 0 50px;
+    box-shadow: @collab-notification-item-box-shadow;
+    border-bottom: @collab-notification-item-border-bottom;
+    padding: @collab-notification-item-padding;
 }
 
 .notificationstree .tree-row:first-child{
@@ -38,19 +38,22 @@
 
 .notificationstree .actions {
     position: absolute;
-    right: 0px;
-    bottom: 3px;
+    left: 55px;
+    bottom: 5px;
 }
 
 .notificationstree .access_request .btn-default-css3 {
     display: inline-block;
-    line-height: 10px;
+    line-height: @collab-notification-button-line-height;
     font-size: 11px;
     margin-right: 5px;
+    position: relative;
+    top: @collab-notification-button-top;
 }
 
 .notificationstree .btn-default-css3 .caption {
     pointer-events: none;
+    padding: @collab-notification-button-padding;
 }
 
 .notificationstree .tree-row .body>.caption {
@@ -58,10 +61,13 @@
 }
 
 .notificationstree .tree-row .body {
-    font-size: 11px;
-    color: #f1f1f1;
+    font-size: @collab-notification-item-font-size;
+    color: @collab-notification-item-color;
     display: inline-block;
     margin: 5px 0 6px;
+    width: 100%;
+    text-overflow: ellipsis;
+    overflow: hidden;
 }
 
 .notificationstree .avatar {
@@ -72,10 +78,11 @@
 }
 
 .notificationstree .avatar img {
-    width: 37px;
-    height: 37px;
-    border: 1px solid black;
-    box-shadow: 1px 1px 0 rgba(255,255,255,0.06), 1px 1px 0 rgba(255,255,255,0.05) inset;
+    width: @collab-notification-width;
+    height: @collab-notification-height;
+    border: @collab-notification-border;
+    border-radius: @collab-notification-border-radius;
+    box-shadow: @collab-notification-box-shadow;
 }
 
 .notificationstree .tree-row:hover {
@@ -98,19 +105,19 @@
     display: none;
     position: absolute;
     left: 5px;
-    background: @collab-notification-background;
+    background: @collab-bubble-background;
     border-radius: 10px;
     height: 11px;
     font-size: 10px;
-    font-weight: @collab-notification-font-weight;
+    font-weight: @collab-bubble-font-weight;
     text-align: center;
     -webkit-transform-origin: top left;
     -webkit-transform: rotate(-90deg);
     -moz-transform-origin: top left;
     -moz-transform: rotate(-90deg);
     padding: 1px 3px 1px 4px;
-    color: @collab-notification-color;
-    box-shadow: @collab-notification-box-shadow;
+    color: @collab-bubble-color;
+    box-shadow: @collab-bubble-box-shadow;
     line-height: 11px;
     .font-smoothing(true);
 }

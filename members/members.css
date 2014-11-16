@@ -13,6 +13,8 @@
     /*pointer-events: auto;*/
     color : @color;
     padding-left : 42px;
+    cursor: default;
+    font-family: @collab-tree-font-family;
 }
 
 .memberstree .tree-row:first-child{
@@ -29,8 +31,8 @@
 .memberstree .tree-row .caption {
     position: absolute;
     left: 30px;
-    font-size: 11px;
-    top: 3px;
+    font-size: @collab-tree-font-size;
+    top: @collab-tree-item-caption-top;
     right: 93px;
     overflow: hidden;
     height: 16px;
@@ -86,8 +88,8 @@
     font-family : Arial;
     font-size : 10px;
     box-sizing: border-box;
-    background: rgba(0,0,0,0.26);
-    box-shadow: 0 1px 7px 0px rgba(0, 0, 0, 0.61) inset;
+    background: @collab-access-control-background;
+    box-shadow: @collab-access-control-box-shadow;
     cursor : pointer;
     pointer-events: auto;
     position: absolute;
@@ -99,10 +101,13 @@
     pointer-events: none;
     cursor: default;
 }
+.access_control.disabled when(@collab-access-control-flat){
+    background: @collab-tree-access-control-disabled-background;
+}
 
 .memberstree .selected .access_control {
-    background: rgba(0,0,0,0.41);
-    box-shadow: 0 1px 7px 0px rgba(0, 0, 0, 0.93) inset;
+    background: @collab-tree-access-control-background;
+    box-shadow: @collab-tree-access-control-box-shadow;
 }
 
 .memberstree .access_control.disabled{
@@ -117,20 +122,37 @@
     width: 24px;
     height : 16px;
     border-radius: 3px;
-    box-shadow: 0 1px rgba(255,255,255,0.2) inset, 0 0 2px rgba(0, 0, 0, 1);
-    .gradient(~"linear-gradient(top, #5F5F5F 0%, #333333 100%)");
+    box-shadow: @collab-access-control-inactive-box-shadow;
+    .gradient(~"@{collab-access-control-inactive-gradient}");
 
     /*text-shadow: 0 1px rgba(0,0,0,0.5);*/
-    color : transparent;
+    color : @collab-access-control-inactive-color;
     display : inline-block;
     text-align: center;
     box-sizing: border-box;
     padding-top : 2px;
     vertical-align : top;
 }
+.access_control.rw .readbutton when(@collab-access-control-flat){
+    margin: -1px 1px 0 -1px;
+    height: 18px;
+    border-radius: 3px 0 0 4px;
+    width: 24px;
+    line-height: 16px;
+    padding-left: 1px;
+}
+.access_control.r .writebutton when(@collab-access-control-flat){
+    margin: -1px -1px 0 -1px;
+    height: 18px;
+    border-radius: 0 3px 3px 0;
+    width: 26px;
+    line-height: 15px;
+    box-shadow: @collab-access-control-inactive-box-shadow-right;
+}
+    
 .memberstree.ace_tree_focus .selected .access_control.rw .readbutton,
 .memberstree.ace_tree_focus .selected .access_control.r .writebutton{
-    .gradient(~"linear-gradient(top, #80883e 0%, #677018 100%)");
+    .gradient(~"@{collab-tree-focus-access-control-active-gradient}");
 }
 
 .access_control.rw .writebutton,
@@ -138,19 +160,24 @@
 .access_control.disabled .readbutton,
 .access_control.disabled .writebutton {
     width: 24px;
-    height : 16px;
+    height : 14px;
     display : inline-block;
     text-align: center;
     box-sizing: border-box;
     padding-top : 2px;
     vertical-align : top;
-    color : #B3B3B3;
+    color : @collab-access-control-active-color;
+    line-height: 14px;
 }
 .memberstree.ace_tree_focus .selected .access_control.rw .writebutton,
 .memberstree.ace_tree_focus .selected .access_control.r .readbutton,
 .memberstree.ace_tree_focus .selected .access_control.disabled .readbutton,
 .memberstree.ace_tree_focus .selected .access_control.disabled .writebutton {
-    color : #BDCE63;
+    color : @collab-tree-focus-access-control-color;
+}
+.access_control.disabled .readbutton,
+.access_control.disabled .writebutton {
+    color : @collab-access-control-disabled-color;
 }
 
 .memberstree .tree-row.hover:not(.heading){
@@ -173,7 +200,8 @@
     position: absolute;
     left: 14px;
     top: 5px;
-    background: url(/static/plugins/c9.ide.collab/members/images/collab-led-states.png) 1px 0 no-repeat;
+    .image-2x("/static/plugins/c9.ide.collab/members/images/@{collab-tree-state-image}", @collab-tree-state-image-width, @collab-tree-state-image-height);
+    background-position: 1px 0;
 }
 
 .memberstree .collaborator_color {
@@ -182,7 +210,7 @@
     top: 2px;
     width: 3px;
     bottom: 2px;
-    border-radius: 0 3px 3px 0;
+    border-radius: @collab-tree-color-border-radius;
     box-shadow: inset 1px 0 rgba(255, 255, 255, 0.18);
 }
 
