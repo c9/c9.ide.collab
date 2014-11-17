@@ -74,7 +74,7 @@
     cursor: @time-slider-button-cursor;
 }
 
-#playpause_button_border when(@time-slider-play-border = true) {
+#playpause_button_border when(@time-slider-play-border-div = true) {
     display: block;
     border-radius: 40px;
     width: 41px;
