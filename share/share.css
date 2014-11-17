@@ -54,7 +54,7 @@
     border-radius: @share-members-border-radius;
 }
 .share .members .hover{
-    background: #333333;
+    background: @share-members-hover-background;
 }
 
 .share blockquote{
