@@ -65,7 +65,7 @@ define(function(require, module, exports) {
 
             ui.insertByIndex(layout.findParent({
                 name: "preferences"
-            }), btn, 600, plugin);
+            }), btn, 875, plugin);
 
             settings.on("read", function(){
                 settings.setDefaults("project/share", [
