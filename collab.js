@@ -190,11 +190,11 @@ define(function(require, exports, module) {
                     user = data.user;
                     if (!user)
                         break;
-                    workspace.joinClient(user, data.clientId);
+                    workspace.joinClient(user);
                     notifyUserOnline(user);
                     break;
                 case "USER_LEAVE":
-                    workspace.leaveClient(data.userId, data.clientId);
+                    workspace.leaveClient(data.userId);
                     notifyUserOffline(user);
                     break;
                 case "LEAVE_DOC":
@@ -220,10 +220,6 @@ define(function(require, exports, module) {
                 case "CLEAR_CHAT":
                     emit("chatClear", data);
                     break;
-                case "MESSAGE":
-                    if (emit("userMessage", data) !== false)
-                        handleUserMessage(data);
-                    break;
                 default:
                     if (!doc)
                         return console.warn("[OT] Received msg for file that is not open", docId, msg);
@@ -237,8 +233,7 @@ define(function(require, exports, module) {
         function notifyUserOffline(user) {
             clearTimeout(usersLeaving[user.fullname]);
             usersLeaving[user.fullname] = setTimeout(function() {
-                if (!user.online)
-                    bubbleNotification("went offline", user);
+                bubbleNotification("went offline", user);
                 delete usersLeaving[user.fullname];
             }, 4000);
         }
@@ -249,8 +244,8 @@ define(function(require, exports, module) {
                 clearTimeout(usersLeaving[user.fullname]);
                 return;
             }
-            if (user.online <= 1)
-                bubbleNotification("came online", user);
+            
+            bubbleNotification("came online", user);
         }
 
         /**
@@ -531,78 +526,7 @@ define(function(require, exports, module) {
                 md5Email + '?s=26&d='  + defaultImgUrl + '" /><span>' +
                 chatName + '<span class="notification_sub">' + msg + '</span></span>');
         }
-        
-        /***** sync tabs *****/
-        function getFocusedTabState() {
-            var tab = tabs.focussedTab;
-            if (!tab) return {};
-            var state = tab.getState();
-            var doc = state.document;
-            if (doc) {
-                doc.value = doc.undoManager = doc.meta = undefined;
-                if (doc.ace) {
-                    doc.ace.folds = doc.ace.options = undefined;
-                }
-            }
-            state.className = undefined;
-            return state;
-        }
-        var lastJump;
-        function revealUser(clientId) {
-            if (clientId == workspace.myClientId) {
-                handleUserMessage({
-                    action: "open",
-                    target: clientId,
-                    tabState: lastJump
-                });
-            } else {
-                connect.send("MESSAGE", {
-                    source: workspace.myClientId,
-                    target: clientId,
-                    action: "getTab",
-                });
-            }
-        }
-        function handleUserMessage(data) {
-            if (data.action == "getTab") {
-                if (data.target == workspace.myClientId) {
-                    connect.send("MESSAGE", {
-                        source: workspace.myClientId,
-                        target: data.source,
-                        action: "open",
-                        tabState: getFocusedTabState(),
-                    });
-                }
-            } else if (data.action == "open") {
-                if (data.target == workspace.myClientId) {
-                    if (data.tabState) {
-                        var tabState = getFocusedTabState();
-                        if (shouldUpdateLastJump(lastJump, tabState, data.tabState))
-                            lastJump = tabState;
-                        data.tabState.focus = true;
-                        tabs.open(data.tabState);
-                    }
-                }
-            }
-        }
-        
-        function shouldUpdateLastJump(prevState, state, newState) {
-            function getSelection(s) {
-                return s && s.document && s.document.ace && s.document.ace.selection;
-            }
-            if (!prevState) return true;
-            if (!newState.name) return false;
-            var prevSel = JSON.stringify(getSelection(prevState));
-            var sel = JSON.stringify(getSelection(state));
-            var newSel = JSON.stringify(getSelection(newState));
-            if (prevState.name == state.name && newSel == sel) {
-                return false;
-            }
-            if (state.name == newState.name && newSel == sel)
-                return false;
-            return true;
-        }
-        
+
         /***** Lifecycle *****/
         plugin.on("newListener", function(event, listener) {
             if (event == "connect" && connect.connected)
@@ -646,8 +570,6 @@ define(function(require, exports, module) {
                  * @param {Boolean}  e.increment  should the chat counter be incremented (not yet implemented)
                  */
                 "chatMessage",
-                
-                "message"
             ],
             /**
              * Get a clone of open collab documents
@@ -675,12 +597,7 @@ define(function(require, exports, module) {
              * @param  {String}     type    the type of the message
              * @param  {Object}     message the message body to send
              */
-            send: function(type, message) { connect.send(type, message); },
-            /**
-             * @ignore
-             */
-            revealUser: revealUser
-            
+            send: function(type, message) { connect.send(type, message); }
         });
 
         register(null, {

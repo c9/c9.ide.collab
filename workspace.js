@@ -110,20 +110,17 @@ define(function(require, exports, module) {
             for (var user in users)
                 onlineCount += user.online ? 1 : 0;
             onlineCount = Math.max(onlineCount, 1);
-            emit.sticky("sync");
+            emit("sync");
         }
 
-        function leaveClient(uid, clientId) {
+        function leaveClient(uid) {
             var user = users[uid];
             user.online = Math.max(user.online-1, 0);
-            if (!user.clients) user.clients = [];
-            var i = user.clients.indexOf(clientId);
-            if (i != -1) user.clients.splice(i, 1);
             onlineCount--;
-            emit.sticky("sync");
+            emit("sync");
         }
 
-        function joinClient(user, clientId) {
+        function joinClient(user) {
             var uid = user.uid;
             var authorId = user.author;
             users[uid] = user;
@@ -131,19 +128,29 @@ define(function(require, exports, module) {
             reversedAuthorPool[authorId] = uid;
             colorPool[uid] = user.color;
             onlineCount++;
-            emit.sticky("sync");
+            emit("sync");
         }
 
         function updateUserState(uid, state) {
             users[uid].state = state;
-            emit.sticky("sync");
+            emit("sync");
         }
 
         var cachedMembers;
         var cachedInfo;
         function loadMembers(callback) {
-            if (cachedMembers) {
-                return done(cachedMembers, cachedInfo);
+            if (!options.hosted || cachedMembers) {
+                // Use mock data
+                return done(
+                    cachedMembers || [
+                        { name: "John Doe", uid: -1, acl: "rw", role: "a", email: "johndoe@c9.io" },
+                        { name: "Mostafa Eweda", uid: -1, acl: "rw", color: "green", email: "mostafa@c9.io" },
+                        { name: "Lennart Kats", uid: 5, acl: "r", color: "yellow", onlineStatus: "online", email: "lennart@c9.io" },
+                        { name: "Ruben Daniels", uid: 2, acl: "rw", color: "blue", onlineStatus: "idle", email: "ruben@ajax.org" },
+                        { name: "Bas de Wachter", uid: 8, acl: "rw", color: "purple", email: "bas@c9.io" }
+                    ],
+                    cachedInfo || { admin: true, member: true, pending: false, private: false, appPublic: true, previewPublic: true }
+                );
             }
             api.collab.get("access_info", function (err, info) {
                 if (err && err.code === 0) {
@@ -165,11 +172,19 @@ define(function(require, exports, module) {
                 cachedMembers = members;
                 cachedInfo = info;
                 callback();
-                emit.sticky("sync");
+                emit("sync");
             }
         }
 
         function addMember(username, access, callback) {
+            if (!options.hosted) {
+                return addCachedMember({
+                    uid: Math.floor(Math.random()*100000),
+                    name: username,
+                    acl: access,
+                    email: "s@a.a"
+                }, callback);
+            }
             api.collab.post("members/add", {
                 body: {
                     username: username,
@@ -192,11 +207,14 @@ define(function(require, exports, module) {
                 return m.uid  != member.uid;
             });
             cachedMembers.push(member);
-            emit.sticky("sync");
+            emit("sync");
             next && next(null, member);
         }
 
         function removeMember(uid, callback) {
+            if (!options.hosted)
+                return removeCachedMember(uid, callback);
+
             api.collab.delete("members/remove", {
                 body: { uid : uid }
             }, function (err, data, res) {
@@ -213,11 +231,14 @@ define(function(require, exports, module) {
             cachedMembers = cachedMembers.filter(function (member) {
                 return member.uid  != uid;
             });
-            emit.sticky("sync");
+            emit("sync");
             next && next();
         }
 
         function updateAccess(uid, acl, callback) {
+            if (!options.hosted)
+                return updateCachedAccess(uid, acl, callback);
+
             api.collab.put("members/update_access", {
                 body: {
                     uid: uid,
@@ -237,7 +258,7 @@ define(function(require, exports, module) {
             (cachedMembers.filter(function (member) {
                 return member.uid  == uid;
             })[0] || {}).acl = acl;
-            emit.sticky("sync");
+            emit("sync");
             next && next();
         }
 
@@ -258,6 +279,11 @@ define(function(require, exports, module) {
 
         plugin.on("load", function(){
             load();
+        });
+
+        plugin.on("newListener", function(event, listener) {
+            if (event == "sync" && loadedWorkspace)
+                 listener();
         });
 
         /**

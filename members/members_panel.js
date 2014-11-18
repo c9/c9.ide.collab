@@ -2,9 +2,9 @@ define(function(require, exports, module) {
 "use strict";
 
     main.consumes = [
-        "Plugin", "ui", "util", "apf", "Menu", "MenuItem", "Divider",
+        "Plugin", "ui", "util", "apf", "Menu", "MenuItem",
         "collab.workspace", "info", "dialog.error", "dialog.confirm",
-        "accessControl", "collab"
+        "accessControl"
     ];
     main.provides = ["MembersPanel"];
     return main;
@@ -14,14 +14,12 @@ define(function(require, exports, module) {
         var c9Util = imports.util;
         var apf = imports.apf;
         var Menu = imports.Menu;
-        var Divider = imports.Divider;
         var MenuItem = imports.MenuItem;
         var workspace = imports["collab.workspace"];
         var info = imports.info;
         var showError = imports["dialog.error"].show;
         var confirm = imports["dialog.confirm"].show;
         var accessControl = imports.accessControl;
-        var collab = imports.collab;
         
         var cloneObject = c9Util.cloneObject;
         var Tree = require("ace_tree/tree");
@@ -55,7 +53,9 @@ define(function(require, exports, module) {
 
                 membersTree.on("mousedown", function(e) {
                     var domTarget = e.domEvent.target;
-                    var node = e.getNode();
+
+                    var pos = e.getDocumentPosition();
+                    var node = membersDataProvider.findItemAtOffset(pos.y);
                     if (!node || !domTarget)
                         return;
 
@@ -75,7 +75,9 @@ define(function(require, exports, module) {
                 });
                 membersTree.on("mouseup", function(e) {
                     var domTarget = e.domEvent.target;
-                    var node = e.getNode();
+
+                    var pos = e.getDocumentPosition();
+                    var node = membersDataProvider.findItemAtOffset(pos.y);
                     if (!node || !domTarget)
                         return;
 
@@ -86,18 +88,6 @@ define(function(require, exports, module) {
                     else if (className == "kickout")
                         removeMember();
                 });
-                
-                membersTree.on("dblclick", function(e) {
-                    var domTarget = e.domEvent.target;
-                    var node = e.getNode();
-                    if (!node || !domTarget)
-                        return;
-                    if (domTarget.classList.contains("ace_tree_cells")) {
-                        e.stop();
-                        revealUser();
-                    }
-                });
-                
 
                 var mnuCtxTree = new Menu({
                     id: "mnuMembers",
@@ -115,17 +105,6 @@ define(function(require, exports, module) {
                         new MenuItem({
                             caption: "Kick Out",
                             onclick: removeMember
-                        }),
-                        new Divider(),
-                        new MenuItem({
-                            caption: "Show Location",
-                            match: "online",
-                            onclick: revealUser
-                        }),
-                        new MenuItem({
-                            caption: "Load State",
-                            match: "online",
-                            onclick: loadUserState
                         })
                     ]
                 }, plugin);
@@ -151,9 +130,7 @@ define(function(require, exports, module) {
                     mnuCtxTreeEl.childNodes.forEach(function(item) {
                         var match = item.match;
                         var disabled = false;
-                        if (match == "online") {
-                            disabled = !node.clientId;
-                        } else if (node.isAdmin || (match && match !== node.acl))
+                        if (node.isAdmin || (match && match !== node.acl))
                             disabled = true;
                         item.setAttribute("disabled", disabled);
                     });
@@ -165,10 +142,32 @@ define(function(require, exports, module) {
                 
                 window.addEventListener('resize', resize, true);
                 
-                membersTree.container.style.position = "relative";
-                membersTree.container.style.top = "0px";
+                parent.on("afterstatechange", function () {
+                    update();
+                });
+                
+                membersDataProvider.on("change", function(){ update(); });
+                membersDataProvider.on("collapse", function(){ 
+                    setTimeout(update, 10); 
+                });
+                membersDataProvider.on("expand", function(){ 
+                    setTimeout(update, 10); 
+                });
+                
+                update();
             }
             
+            function update(){
+                var maxHeight = parent.parentNode.$int.offsetHeight * 0.5;
+                var treeHeight = parent.state == "minimized"
+                    ? 21
+                    : membersTree.renderer.layerConfig.maxHeight + 25;
+    
+                parent.$ext.style.height = Math.min(treeHeight, maxHeight) + "px";
+    
+                membersTree.resize(true);
+            }
+
             function hide() {
                 workspace.off("sync", onWorkspaceSync);
             }
@@ -181,15 +180,9 @@ define(function(require, exports, module) {
                 workspace.loadMembers(alertIfError);
                 workspace.off("sync", onWorkspaceSync);
                 workspace.on("sync", onWorkspaceSync);
-                setTimeout(resize);
             }
 
             function resize() {
-                var rowHeight = membersTree.provider.rowHeight;
-                var maxLines = Math.floor(
-                    Math.max(window.innerHeight / 2 - 60, 60) / rowHeight
-                );
-                membersTree.renderer.setOption("maxLines", maxLines);
                 membersTree.resize();
             }
 
@@ -213,19 +206,6 @@ define(function(require, exports, module) {
                     }, function(){ /* No */ }
                 );
             }
-            
-            function revealUser() {
-                var node = getSelectedMember();
-                var clientId = node && node.clientId;
-                if (!clientId)
-                    return;
-                collab.revealUser(clientId);
-            }
-            
-            function loadUserState() {
-                var node = getSelectedMember();
-                return node;
-            }
 
             function getSelectedMember() {
                 return membersTree.selection.getCursor();
@@ -235,10 +215,8 @@ define(function(require, exports, module) {
                 var me = info.getUser();
                 var members = {r: [], rw: []};
                 var myRow = {};
-                var myClientId = workspace.myClientId;
 
                 var cachedMembers = workspace.members;
-                var users = workspace.users;
                 
                 if (!cachedMembers.length) { // We're visiting a public workspace
                     cachedMembers = [{
@@ -257,25 +235,14 @@ define(function(require, exports, module) {
                     m.color = m.color || workspace.getUserColor(m.uid);
                     m.status = m.onlineStatus || workspace.getUserState(m.uid);
                     m.md5Email = m.email ? apf.crypto.MD5.hex_md5(m.email.trim().toLowerCase()) : "";
-                    members[m.acl == "rw" ? "rw" : "r"].push(m);
-                    
-                    var childList = users[m.uid] && users[m.uid].clients;
-                    m.items = childList && childList.length > 1 && childList.map(function(k, i) {
-                        return {
-                            clientId: k,
-                            name: "Tab " + i,
-                            user: m
-                        };
-                    });
-                    m.clientId = childList && childList[0];
-                    m.isOpen = false;
+                    members[m.acl].push(m);
 
                     if (m.uid == me.id) {
                         m.name = "0000"; // top in every sory
                         m.status = "online";
                         myRow = m;
                         // m.status = "online";
-                        m.clientId == myClientId;
+                        membersDataProvider.iAmAdmin = m.isAdmin;
                     }
                 });
 
@@ -286,30 +253,46 @@ define(function(require, exports, module) {
                 members.r.sort(memberCompartor);
                 members.rw.sort(memberCompartor);
                 myRow.name = "You";
-                
-                var oldRoot = membersDataProvider.root.items || [];
-                membersDataProvider.setRoot([{
-                    name: "Read+Write",
-                    items: members.rw,
-                    noSelect: true,
-                    clickAction: "toggle",
-                    className: "caption",
-                    isOpen: oldRoot[0] ? oldRoot[0].isOpen : true
-                }, {
-                    name: "Read Only",
-                    items: members.r,
-                    noSelect: true,
-                    clickAction: "toggle",
-                    className: "caption",
-                    isOpen: oldRoot[0] ? oldRoot[0].isOpen : false
-                }].filter(function(x) {
-                    return x.items.length;
-                }));
+
+                if (!members.rw.length) {
+                    membersDataProvider.setRoot([{
+                        name: "Read",
+                        items: members.r,
+                        noSelect: true,
+                        className: "heading"
+                    }]);
+                }
+                else if (!members.r.length) {
+                    membersDataProvider.setRoot([{
+                        name: "Read+Write",
+                        items: members.rw,
+                        noSelect: true,
+                        className: "heading"
+                    }]);
+                }
+                else {
+                    membersDataProvider.setRoot([
+                        {
+                            name: "Read+Write",
+                            items: members.rw,
+                            noSelect: true,
+                            className: "heading"
+                        },
+                        {
+                            name: "Read Only",
+                            items: members.r,
+                            noSelect: true,
+                            className: "heading"
+                        }
+                    ]);
+                }
                 
                 if (workspace.accessInfo.member)
                     parent.setAttribute("contextmenu", mnuCtxTreeEl);
                 else
                     parent.setAttribute("contextmenu", mnuCtxTreePublicEl);
+                
+                update();
             }
 
              /***** Register and define API *****/

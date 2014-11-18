@@ -10,8 +10,8 @@ function IndexCache(doc) {
     doc.icache = [];
     doc.rcache = [];
 
-    doc.on("change", function(delta) {
-        var row = delta.start.row;
+    doc.on("change", function(e) {
+        var row = e.data.range.start.row;
         doc.icache.splice(row, doc.icache.length);
         for (var i = doc.rcache.length; i--;) {
             if (doc.rcache[i].row >= row)

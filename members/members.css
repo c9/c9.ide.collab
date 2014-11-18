@@ -11,8 +11,7 @@
     /*border-bottom: 1px solid rgba(0, 0, 0, 0.33);*/
 
     /*pointer-events: auto;*/
-    color : @color;
-    /*padding-left : 42px;*/
+    padding-left : 42px;
 }
 
 .memberstree .tree-row:first-child{
@@ -20,7 +19,7 @@
 }
 
 .memberstree .tree-row .toggler {
-    background-image: url("@{image-path}/@{tree-arrow}");
+    background-image: url("@{image-path}/tree_close_arrow_small.png");
     position: absolute;
     left: 3px;
     top: 7px
@@ -31,6 +30,7 @@
     left: 30px;
     font-size: 11px;
     top: 3px;
+    color: #f1f1f1;
     right: 93px;
     overflow: hidden;
     height: 16px;
@@ -190,8 +190,14 @@
 .memberstree .status.idle { background-position : 0 0; }
 .memberstree .status.offline { background-position : 0 -12px; }
 
+.memberstree {
+    background : #303130;
+    color: #AAA;
+}
+
 .memberstree.ace_tree .message{
     font-family: Arial;
     font-size: 11px;
+    color: #f1f1f1;
     margin: 20px 0 0 0;
 }
