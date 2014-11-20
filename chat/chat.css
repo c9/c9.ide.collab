@@ -88,7 +88,7 @@
     border-color: @collab-chat-input-border-color;
     border-radius: 0;
     border-width: 1px 0 0 0;
-    box-shadow: ;
+    box-shadow: @collab-chat-input-box-shadow;
     background: @collab-chat-input-background;
     padding: 4px 4px 3px 4px;
 }
