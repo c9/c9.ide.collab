@@ -71,7 +71,7 @@
     position : absolute;
     right: @collab-chat-time-right;
     top: @collab-chat-time-top;
-    color: ;
+    color: @collab-chat-time-color;
     font-size: 10px;
     font-weight: @collab-chat-time-font-weight;
     text-shadow: @collab-chat-time-text-shadow;
