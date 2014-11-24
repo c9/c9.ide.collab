@@ -192,11 +192,7 @@ define(function(require, exports, module) {
         var throbTimeout;
 
         function scrollDown() {
-            var chatMessages = chatText.getElementsByTagName("p");
-            if (!chatMessages.length)
-                return;
-            var lastMessage = chatMessages[chatMessages.length-1];
-            lastMessage.scrollIntoView();
+            chatText.scrollTop = chatText.scrollHeight;
         }
 
         function isOpen() {

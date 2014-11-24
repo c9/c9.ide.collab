@@ -22,19 +22,9 @@ define(function(require, exports, module) {
             return "Loading Members...";
         };
 
-        this.setRoot = function(root) {
-            if (Array.isArray(root))
-                root = {items: root};
-            this.root = root || {};
-            this.visibleItems = [];
-            this.open(this.root, true);
-
-            this._signal("change");
-        };
-
         this.getContentHTML = function (datarow) {
             if (!datarow.uid)
-                return "<span class='root caption'>" + datarow.name + "</span>";
+                return "<span class='root " + (datarow.className || "") + "'>" + datarow.name + "</span>";
             var access = datarow.acl || "r";
             var canAccessControl = this.iAmAdmin && !datarow.isAdmin;
             var disabledLabel = access == "r" ? "<div class='readbutton'>R</div>" : "<div class='writebutton'>RW</div>";
@@ -50,12 +40,14 @@ define(function(require, exports, module) {
                 "<span class='avatar'>" + avatarImg + "</span>\n",
                 "<span class='status ", status, "'></span>\n",
                 "<span class='collaborator_color' style='background-color: ", color, ";'></span>\n",
-                 canAccessControl ?
-                    ("<div class='access_control "  + access  + "'>" +
+                 canAccessControl
+                    ? ("<div class='access_control "  + access  + "'>" +
                         "<div class='readbutton'>R</div>" +
                         "<div class='writebutton'>RW</div></div>" +
-                    "<div class='kickout'></div>\n") :
-                    ("<div class='access_control disabled'>" + disabledLabel + "</div>\n"),
+                    "<div class='kickout'></div>\n")
+                    : ("<div class='access_control disabled'>" + disabledLabel + "</div>\n" +
+                        (datarow.name == "You" ? "<div class='kickout'></div>\n" : "")
+                    ),
             ];
 
             return html.join("");

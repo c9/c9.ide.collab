@@ -12,7 +12,7 @@
 
     /*pointer-events: auto;*/
     color : @color;
-    padding-left : 42px;
+    /*padding-left : 42px;*/
     cursor: default;
     font-family: @collab-tree-font-family;
 }
