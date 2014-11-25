@@ -22,7 +22,7 @@
 }
 
 .memberstree .tree-row .toggler {
-    .image-2x("@{image-path}/@{tree-arrow}", 20px, 10px);
+    .image-2x("@{tree-arrow}", 20px, 10px);
     position: absolute;
     left: 3px;
     top: 7px
