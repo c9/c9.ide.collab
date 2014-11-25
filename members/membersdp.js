@@ -46,7 +46,7 @@ define(function(require, exports, module) {
                         "<div class='writebutton'>RW</div></div>" +
                     "<div class='kickout'></div>\n")
                     : ("<div class='access_control disabled'>" + disabledLabel + "</div>\n" +
-                        (datarow.name == "You" ? "<div class='kickout'></div>\n" : "")
+                        (datarow.name == "You" && !datarow.isAdmin ? "<div class='kickout'></div>\n" : "")
                     ),
             ];
 
