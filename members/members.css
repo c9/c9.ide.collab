@@ -22,7 +22,7 @@
 }
 
 .memberstree .tree-row .toggler {
-    background-image: url("@{image-path}/@{tree-arrow}");
+    .image-2x("@{image-path}/@{tree-arrow}", 20px, 10px);
     position: absolute;
     left: 3px;
     top: 7px
@@ -71,7 +71,7 @@
 .memberstree .kickout {
     width: 12px;
     height : 16px;
-    background-image: url(/static/plugins/c9.ide.collab/members/images/trash-icon.png);
+    .image-2x(@collab-tree-kickout-image, @collab-tree-kickout-image-width, @collab-tree-kickout-image-height);
     cursor: pointer;
     pointer-events: auto;
     position: absolute;
