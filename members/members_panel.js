@@ -287,6 +287,7 @@ define(function(require, exports, module) {
                 members.rw.sort(memberCompartor);
                 myRow.name = "You";
                 
+                membersDataProvider.iAmAdmin = myRow.isAdmin;
                 var oldRoot = membersDataProvider.root.items || [];
                 membersDataProvider.setRoot([{
                     name: "Read+Write",
