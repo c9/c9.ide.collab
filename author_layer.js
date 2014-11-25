@@ -263,6 +263,7 @@ define(function(require, module, exports) {
             }
 
             plugin.freezePublicAPI({
+                get colorPool(){ return workspace.colorPool; },
                 refresh: refresh,
                 dispose: dispose
             });

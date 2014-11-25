@@ -18,25 +18,21 @@
 
 .cool_tooltip_cursor {
     position: absolute;
-    height: 20px;
+    height: @collab-tooltip-height;
     width: auto;
-    background: url(/static/plugins/c9.ide.collab/images/tooltip_elements.png) repeat-x 0 -80px !important;
-    -webkit-border-radius: 6px;
-    -moz-border-radius: 6px;
-    border-radius: 6px;
-    -moz-box-shadow: 0px 3px 15px 0px rgba(0, 0, 0, 0.65);
-    -webkit-box-shadow: 0px 3px 15px 0px rgba(0, 0, 0, 0.65);
-    box-shadow: 0px 3px 15px 0px rgba(0, 0, 0, 0.65);
+    background: @collab-tooltip-background;
+    border-radius: @collab-tooltip-border-radius;
+    box-shadow: @collab-tooltip-border-box-shadow;
 
-    border: 1px solid #000101;
+    border: @collab-tooltip-border;
     vertical-align: middle;
-    line-height: 20px;
-    padding: 0;
-    margin: 0;
+    line-height: @collab-tooltip-line-height;
+    padding: @collab-tooltip-border-padding;
+    margin: @collab-tooltip-border-margin;
     z-index: 200001;
 }
 
-.cool_tooltip_cursor_arrow {
+.cool_tooltip_cursor_arrow when (@collab-tooltip-arrow = true){
     position: absolute;
     background: url(/static/plugins/c9.ide.collab/images/tooltip_elements.png) no-repeat 0 -100px;
     padding: 0;
@@ -47,10 +43,12 @@
 }
 
 .cool_tooltip_cursor_caption {
-    height: 20px;
+    /*height: @collab-tooltip-height;*/
     margin: 0 8px 0 8px;
-    color: #ccc;
+    color: @collab-tooltip-color;
     cursor: default;
+    font-size: @collab-tooltip-font-size;
+    font-weight: @collab-tooltip-font-weight;
 }
 /* Cursor tooltip end */
 

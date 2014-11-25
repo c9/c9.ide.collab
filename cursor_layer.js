@@ -289,7 +289,11 @@ define(function(require, module, exports) {
                 selection.arrow.style.left = x + "px";
 
                 selection.tooltip.style.top = (y - 21) + "px";
-                selection.tooltip.style.left = (coords.pageX - (selection.tooltip.offsetWidth / 2)) + "px";
+                selection.tooltip.style.left = (coords.pageX 
+                    - (selection.arrow.offsetHeight ? selection.tooltip.offsetWidth / 2 : 0)) + "px";
+                
+                var color = session.collabDoc.authorLayer.colorPool[selection.uid];
+                selection.tooltip.style.backgroundColor = util.formatColor(color);
 
                 tooltipIsOpen = selection.tooltipIsOpen = true;
             }
