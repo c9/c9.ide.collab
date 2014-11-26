@@ -168,7 +168,8 @@ define(function(require, module, exports) {
                             : "Close " + words[field][0] + " to everyone but the listed users?")),
                     (value
                         ? "Are you sure you want to make this change? Anyone with "
-                            + "the url will be able to access " + words[field] + "."
+                            + "the url will have read-only access to " + words[field] + ". "
+                            + "Only users that you authorize have write access."
                         : "Are you sure you want to make this change? Only users "
                             + "with read-only or read-write access will be able to "
                             + "access " + words[field] + "."),
