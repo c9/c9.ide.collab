@@ -39,23 +39,11 @@ define(function(require, module, exports) {
                 var aml = e.aml;
 
                 amlFrame.on("afterstatechange", function () {
-                    // var state = amlFrame.state;
-                    // var otherFrame = amlFrame == aml.firstChild ? aml.lastChild : aml.firstChild;
-                    // var otherState = otherFrame.state;
-                    // if (state === "minimized") {
-                    //     amlFrame.setHeight(22);
-                    //     if (otherState === "normal")
-                    //         otherFrame.setHeight();
-                    // }
-                    // else if (state === "normal") {
-                    //     if (otherState === "normal") {
-                    //         amlFrame.setHeight("50%");
-                    //         otherFrame.setHeight("50%");
-                    //     }
-                    //     else {
-                    //         amlFrame.setHeight();
-                    //     }
-                    // }
+                    if (amlFrame.parentNode) {
+                        amlFrame.parentNode.childNodes.forEach(function(n) {
+                            n.emit("resize");
+                        });
+                    }
                 });
 
                 if (index == 100)

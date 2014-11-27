@@ -164,6 +164,7 @@ define(function(require, exports, module) {
                     parent.setAttribute("contextmenu", mnuCtxTreePublicEl);
                 
                 window.addEventListener('resize', resize, true);
+                parent.on("resize", resize);
                 
                 membersTree.container.style.position = "relative";
                 membersTree.container.style.top = "0px";
@@ -185,10 +186,26 @@ define(function(require, exports, module) {
             }
 
             function resize() {
+                var next = parent;
+                var h = 0;
+                if (!parent.parentNode || !parent.parentNode.visible)
+                    return;
+                if (next.tagName == "frame") {
+                    var m1 = next.state[0] == "m";
+                    next = next.nextSibling;
+                    var m2 = next && next.state[0] == "m";
+                    next = next && next.nextSibling;
+                    var m3 = next && next.state[0] == "m";
+                    if (m1) return;
+                    if (m2 && m3) {
+                        membersTree.renderer.setOption("maxLines", 0);
+                        h = parent.$ext.parentNode.clientHeight - 3 * parent.$ext.firstElementChild.clientHeight;
+                    }
+                }
+                
                 var rowHeight = membersTree.provider.rowHeight;
-                var maxLines = Math.floor(
-                    Math.max(window.innerHeight / 2 - 60, 60) / rowHeight
-                );
+                var maxLines = Math.max(h || (window.innerHeight / 2 - 60), 60)
+                    / rowHeight;
                 membersTree.renderer.setOption("maxLines", maxLines);
                 membersTree.resize();
             }
