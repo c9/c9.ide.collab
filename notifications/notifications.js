@@ -75,6 +75,8 @@ define(function(require, exports, module) {
 
             frame = options.aml;
             
+            
+            
             // Notifications panel
             notificationsTree = new Tree(notificationsParent);
             notificationsDataProvider = new TreeData();
@@ -109,7 +111,7 @@ define(function(require, exports, module) {
             // onNotificationsLoaded();
             // notificationsDataProvider.emptyMessage = "Loading Notifications ...";
             // loadNotifications();
-            
+            setTimeout(function() {frame.minimize();}, 10);
             postLoadedNotifications();
         }
 
@@ -179,6 +181,7 @@ define(function(require, exports, module) {
         function addNotifications(notifs) {
             if (!Array.isArray(notifs))
                 notifs = [notifs];
+            frame.restore();
             notifs.forEach(function(notif) {
                 var NotifConstructor = NOTIFICATION_TYPES[notif.type];
                 if (!NotifConstructor)
