@@ -305,24 +305,30 @@ define(function(require, exports, module) {
                 myRow.name = "You";
                 
                 membersDataProvider.iAmAdmin = myRow.isAdmin;
-                var oldRoot = membersDataProvider.root.items || [];
-                membersDataProvider.setRoot([{
-                    name: "Read+Write",
-                    items: members.rw,
-                    noSelect: true,
-                    clickAction: "toggle",
-                    className: "caption",
-                    isOpen: oldRoot[0] ? oldRoot[0].isOpen : true
-                }, {
-                    name: "Read Only",
-                    items: members.r,
-                    noSelect: true,
-                    clickAction: "toggle",
-                    className: "caption",
-                    isOpen: oldRoot[0] ? oldRoot[0].isOpen : false
-                }].filter(function(x) {
+                var root = membersDataProvider.root;
+                if (!root.rw) {
+                    root.rw = {
+                        name: "Read+Write",
+                        items: members.rw,
+                        noSelect: true,
+                        clickAction: "toggle",
+                        className: "caption",
+                        isOpen: true
+                    };
+                    root.r = {
+                        name: "Read Only",
+                        noSelect: true,
+                        clickAction: "toggle",
+                        className: "caption",
+                        isOpen: false
+                    };
+                }
+                root.rw.items = members.rw;
+                root.r.items = members.r;
+                root.children = [root.rw, root.r].filter(function(x) {
                     return x.items.length;
-                }));
+                });
+                membersDataProvider.setRoot(root);
                 
                 if (workspace.accessInfo.member)
                     parent.setAttribute("contextmenu", mnuCtxTreeEl);
