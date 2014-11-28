@@ -552,6 +552,7 @@ define(function(require, exports, module) {
             state.className = undefined;
             return state;
         }
+        
         var lastJump;
         function revealUser(clientId) {
             if (clientId == workspace.myClientId) {
@@ -568,6 +569,7 @@ define(function(require, exports, module) {
                 });
             }
         }
+        
         function handleUserMessage(data) {
             if (data.action == "getTab") {
                 if (data.target == workspace.myClientId) {
@@ -608,7 +610,7 @@ define(function(require, exports, module) {
             return true;
         }
         
-       function scheduleUpdateUserBadges() {
+        function scheduleUpdateUserBadges() {
             if (scheduleUpdateUserBadges.timer) return;
             scheduleUpdateUserBadges.timer = setTimeout(function() {
                 scheduleUpdateUserBadges.timer = null;
@@ -629,8 +631,8 @@ define(function(require, exports, module) {
                 addButton(id, user.fullname, user.email);
             });
             
-            function addButton(id, name, email) {
-                menus.remove(id);
+            function addButton(uid, name, email) {
+                menus.remove(uid);
                 var parent = layout.getElement("barExtras");
                 
                 // Create Menu
@@ -639,22 +641,23 @@ define(function(require, exports, module) {
                 
                 // Add named button
                 var icon = util.getGravatarUrl(email, 32, "");
-                menus.addItemByPath(id + "/", mnuUser, 110000, plugin);
+                menus.addItemByPath(uid + "/", mnuUser, 110000, plugin);
                 
                 // Add sub menu items
                 var c = 500;
-                menus.addItemByPath(id + "/Open Active File", new ui.item({
+                menus.addItemByPath(uid + "/Open Active File", new ui.item({
                     onclick: function() {
-                        var user = workspace.users[id];
+                        var user = workspace.users[uid];
                         revealUser(user.clients[0]);
                     }
                 }), c += 100, plugin);
                 
-                var button = menus.get(id).item;
+                var button = menus.get(uid).item;
                 button.setAttribute("class", "btnName");
                 button.setAttribute("icon", icon);
                 button.setAttribute("iconsize", "16px 16px");
                 button.$ext.setAttribute("title", name);
+                button.$ext.style.color = collabUtil.formatColor(workspace.colorPool[uid]);
                 ui.insertByIndex(parent, button, 550, plugin);
             }
         }
