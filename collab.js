@@ -5,7 +5,7 @@ define(function(require, exports, module) {
         "Panel", "tabManager", "fs", "metadata", "ui", "apf", "settings", 
         "preferences", "ace", "util", "collab.connect", "collab.workspace", 
         "timeslider", "OTDocument", "notification.bubble", "dialog.error",
-        "collab.util", "error_handler"
+        "collab.util", "error_handler", "layout", "menus"
     ];
     main.provides = ["collab"];
     return main;
@@ -29,6 +29,8 @@ define(function(require, exports, module) {
         var OTDocument = imports.OTDocument;
         var showError = imports["dialog.error"].show;
         var errorHandler = imports.error_handler;
+        var layout = imports.layout;
+        var menus = imports.menus;
 
         var css = require("text!./collab.css");
         var staticPrefix = options.staticPrefix;
@@ -125,6 +127,9 @@ define(function(require, exports, module) {
             settings.on("user/collab", function () {
                 refreshActiveDocuments();
             }, plugin);
+            
+            workspace.on("sync", scheduleUpdateUserBadges);
+            scheduleUpdateUserBadges();
         }
 
         var drawn = false;
@@ -547,6 +552,7 @@ define(function(require, exports, module) {
             state.className = undefined;
             return state;
         }
+        
         var lastJump;
         function revealUser(clientId) {
             if (clientId == workspace.myClientId) {
@@ -563,6 +569,7 @@ define(function(require, exports, module) {
                 });
             }
         }
+        
         function handleUserMessage(data) {
             if (data.action == "getTab") {
                 if (data.target == workspace.myClientId) {
@@ -602,6 +609,59 @@ define(function(require, exports, module) {
                 return false;
             return true;
         }
+        
+        function scheduleUpdateUserBadges() {
+            if (scheduleUpdateUserBadges.timer) return;
+            scheduleUpdateUserBadges.timer = setTimeout(function() {
+                scheduleUpdateUserBadges.timer = null;
+                updateUserBadges();
+            }, 10);
+        }
+        
+        function updateUserBadges() {
+            var users = workspace.users;
+            var myId = workspace.myUserId;
+            Object.keys(users).forEach(function(id) {
+                if (id == myId) return;
+                var user = users[id];
+                if (!user.online)
+                    return menus.remove(id);
+                if (menus.getMenuId(id)) 
+                    return;
+                addButton(id, user.fullname, user.email);
+            });
+            
+            function addButton(uid, name, email) {
+                menus.remove(uid);
+                var parent = layout.getElement("barExtras");
+                
+                // Create Menu
+                var mnuUser = new ui.menu();
+                plugin.addElement(mnuUser);
+                
+                // Add named button
+                var icon = util.getGravatarUrl(email, 32, "");
+                menus.addItemByPath(uid + "/", mnuUser, 110000, plugin);
+                
+                // Add sub menu items
+                var c = 500;
+                menus.addItemByPath(uid + "/Open Active File", new ui.item({
+                    onclick: function() {
+                        var user = workspace.users[uid];
+                        revealUser(user.clients[0]);
+                    }
+                }), c += 100, plugin);
+                
+                var button = menus.get(uid).item;
+                button.setAttribute("class", "btnName");
+                button.setAttribute("icon", icon);
+                button.setAttribute("iconsize", "16px 16px");
+                button.$ext.setAttribute("title", name);
+                button.$ext.style.color = collabUtil.formatColor(workspace.colorPool[uid]);
+                ui.insertByIndex(parent, button, 550, plugin);
+            }
+        }
+        
         
         /***** Lifecycle *****/
         plugin.on("newListener", function(event, listener) {

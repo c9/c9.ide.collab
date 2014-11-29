@@ -164,6 +164,7 @@ define(function(require, exports, module) {
                     parent.setAttribute("contextmenu", mnuCtxTreePublicEl);
                 
                 window.addEventListener('resize', resize, true);
+                parent.on("resize", resize);
                 
                 membersTree.container.style.position = "relative";
                 membersTree.container.style.top = "0px";
@@ -185,10 +186,26 @@ define(function(require, exports, module) {
             }
 
             function resize() {
+                var next = parent;
+                var h = 0;
+                if (!parent.parentNode || !parent.parentNode.visible)
+                    return;
+                if (next.tagName == "frame") {
+                    var m1 = next.state[0] == "m";
+                    next = next.nextSibling;
+                    var m2 = next && next.state[0] == "m";
+                    next = next && next.nextSibling;
+                    var m3 = next && next.state[0] == "m";
+                    if (m1) return;
+                    if (m2 && m3) {
+                        membersTree.renderer.setOption("maxLines", 0);
+                        h = parent.$ext.parentNode.clientHeight - 3 * parent.$ext.firstElementChild.clientHeight;
+                    }
+                }
+                
                 var rowHeight = membersTree.provider.rowHeight;
-                var maxLines = Math.floor(
-                    Math.max(window.innerHeight / 2 - 60, 60) / rowHeight
-                );
+                var maxLines = Math.max(h || (window.innerHeight / 2 - 60), 60)
+                    / rowHeight;
                 membersTree.renderer.setOption("maxLines", maxLines);
                 membersTree.resize();
             }
@@ -288,24 +305,30 @@ define(function(require, exports, module) {
                 myRow.name = "You";
                 
                 membersDataProvider.iAmAdmin = myRow.isAdmin;
-                var oldRoot = membersDataProvider.root.items || [];
-                membersDataProvider.setRoot([{
-                    name: "Read+Write",
-                    items: members.rw,
-                    noSelect: true,
-                    clickAction: "toggle",
-                    className: "caption",
-                    isOpen: oldRoot[0] ? oldRoot[0].isOpen : true
-                }, {
-                    name: "Read Only",
-                    items: members.r,
-                    noSelect: true,
-                    clickAction: "toggle",
-                    className: "caption",
-                    isOpen: oldRoot[0] ? oldRoot[0].isOpen : false
-                }].filter(function(x) {
+                var root = membersDataProvider.root;
+                if (!root.rw) {
+                    root.rw = {
+                        name: "Read+Write",
+                        items: members.rw,
+                        noSelect: true,
+                        clickAction: "toggle",
+                        className: "caption",
+                        isOpen: true
+                    };
+                    root.r = {
+                        name: "Read Only",
+                        noSelect: true,
+                        clickAction: "toggle",
+                        className: "caption",
+                        isOpen: false
+                    };
+                }
+                root.rw.items = members.rw;
+                root.r.items = members.r;
+                root.children = [root.rw, root.r].filter(function(x) {
                     return x.items.length;
-                }));
+                });
+                membersDataProvider.setRoot(root);
                 
                 if (workspace.accessInfo.member)
                     parent.setAttribute("contextmenu", mnuCtxTreeEl);
