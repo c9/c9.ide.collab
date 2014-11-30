@@ -64,7 +64,7 @@ define(function(require, exports, module) {
 
         /***** Methods *****/
 
-        function popup(message, persistent) {
+        function popup(message, persistent, callback) {
             if (!settings.getBool("user/collab/@showbubbles"))
                 return;
             
@@ -78,7 +78,7 @@ define(function(require, exports, module) {
             else
                 ntNotifications.setAttribute("start-padding", 45);
                 
-            ntNotifications.popup(message, null, null, persistent);
+            return ntNotifications.popup(message, null, null, persistent, callback);
         }
 
         /***** Lifecycle *****/
