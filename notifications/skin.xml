@@ -38,7 +38,10 @@
             }
 
             .notifications-bubble .close-notifier:hover {
-                background-position: 0 -19px;
+                background-position: @bubble-close-hover;
+            }
+            .notifications-bubble .close-notifier:active {
+                background-position: @bubble-close-active;
             }
             
             .notifications-bubble .gravatar-image {
