@@ -75,8 +75,6 @@ define(function(require, exports, module) {
 
             frame = options.aml;
             
-            
-            
             // Notifications panel
             notificationsTree = new Tree(notificationsParent);
             notificationsDataProvider = new TreeData();
@@ -181,7 +179,8 @@ define(function(require, exports, module) {
         function addNotifications(notifs) {
             if (!Array.isArray(notifs))
                 notifs = [notifs];
-            frame.restore();
+            if (frame)
+                frame.restore();
             notifs.forEach(function(notif) {
                 var NotifConstructor = NOTIFICATION_TYPES[notif.type];
                 if (!NotifConstructor)
