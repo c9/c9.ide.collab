@@ -723,6 +723,7 @@ define(function(require, module, exports) {
                     applyEdit(msg, session.doc);
                     if (session.$undoManager.lastDeltas[0])
                         session.$undoManager.lastDeltas[0].disabled = true;
+                    session.$undoManager.lastDeltas = null;
                     sel.anchor.$insertRight = sel.lead.$insertRight = false;
                     // reset the right cursor/selection behaviour
                     cursorLayer.setInsertRight(msg.clientId, true);
