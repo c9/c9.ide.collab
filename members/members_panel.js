@@ -113,7 +113,7 @@ define(function(require, exports, module) {
                             onclick: updateAccess.bind(null, "r")
                         }),
                         new MenuItem({
-                            caption: "Kick Out",
+                            caption: "Revoke Access",
                             onclick: removeMember
                         }),
                         new Divider(),
@@ -121,11 +121,6 @@ define(function(require, exports, module) {
                             caption: "Show Location",
                             match: "online",
                             onclick: revealUser
-                        }),
-                        new MenuItem({
-                            caption: "Load State",
-                            match: "online",
-                            onclick: loadUserState
                         })
                     ]
                 }, plugin);
@@ -188,19 +183,18 @@ define(function(require, exports, module) {
             function resize() {
                 var next = parent;
                 var h = 0;
-                if (!parent.parentNode || !parent.parentNode.visible)
+                if (!parent.parentNode || !parent.parentNode.visible || parent.tagName != "frame")
                     return;
-                if (next.tagName == "frame") {
-                    var m1 = next.state[0] == "m";
-                    next = next.nextSibling;
-                    var m2 = next && next.state[0] == "m";
-                    next = next && next.nextSibling;
-                    var m3 = next && next.state[0] == "m";
-                    if (m1) return;
-                    if (m2 && m3) {
-                        membersTree.renderer.setOption("maxLines", 0);
-                        h = parent.$ext.parentNode.clientHeight - 3 * parent.$ext.firstElementChild.clientHeight;
-                    }
+                
+                var m1 = next.state[0] == "m";
+                next = next.nextSibling;
+                var m2 = next && next.state[0] == "m";
+                next = next && next.nextSibling;
+                var m3 = next && next.state[0] == "m";
+                if (m1) return;
+                if (m2 && m3) {
+                    membersTree.renderer.setOption("maxLines", 0);
+                    h = parent.$ext.parentNode.clientHeight - 3 * parent.$ext.firstElementChild.clientHeight;
                 }
                 
                 var rowHeight = membersTree.provider.rowHeight;
@@ -218,12 +212,14 @@ define(function(require, exports, module) {
 
             function removeMember() {
                 var node = getSelectedMember();
+                var isPublic = workspace.accessInfo.private == false;
                 confirm(
-                    "Kickout Member?",
-                    "Are you sure you want to kick '" + node.name
-                        + "' out of your workspace '" + info.getWorkspace().name + "'?",
-                    "By kicking out a member of a workspace, they can no longer "
-                        + "read, write or collaborate on that workspace ",
+                    "Remove Member?",
+                    "Are you sure you want to " 
+                        + (node.name == "You" ? "leave " : "remove '" + node.name + "' out of your ")
+                        + "workspace '" + info.getWorkspace().name + "'?",
+                    "People who are not members of a workspace, can not "
+                        + (isPublic ? "" : "read, ") + "write or collaborate on that workspace ",
                     function(){ // Yes
                         var uid = node.uid;
                         workspace.removeMember(uid, alertIfError);
@@ -280,7 +276,7 @@ define(function(require, exports, module) {
                     m.items = childList && childList.length > 1 && childList.map(function(k, i) {
                         return {
                             clientId: k,
-                            name: "Tab " + i,
+                            name: "Ide instance " + i,
                             user: m
                         };
                     });
@@ -320,13 +316,13 @@ define(function(require, exports, module) {
                         noSelect: true,
                         clickAction: "toggle",
                         className: "caption",
-                        isOpen: false
+                        isOpen: true
                     };
                 }
-                root.rw.items = members.rw;
-                root.r.items = members.r;
+                root.rw.children = members.rw;
+                root.r.children = members.r;
                 root.children = [root.rw, root.r].filter(function(x) {
-                    return x.items.length;
+                    return x.children.length;
                 });
                 membersDataProvider.setRoot(root);
                 
