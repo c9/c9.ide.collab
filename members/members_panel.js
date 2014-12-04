@@ -323,10 +323,10 @@ define(function(require, exports, module) {
                         isOpen: false
                     };
                 }
-                root.rw.items = members.rw;
-                root.r.items = members.r;
+                root.rw.children = members.rw;
+                root.r.children = members.r;
                 root.children = [root.rw, root.r].filter(function(x) {
-                    return x.items.length;
+                    return x.children.length;
                 });
                 membersDataProvider.setRoot(root);
                 

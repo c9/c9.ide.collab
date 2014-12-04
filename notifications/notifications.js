@@ -179,8 +179,6 @@ define(function(require, exports, module) {
         function addNotifications(notifs) {
             if (!Array.isArray(notifs))
                 notifs = [notifs];
-            if (frame)
-                frame.restore();
             notifs.forEach(function(notif) {
                 var NotifConstructor = NOTIFICATION_TYPES[notif.type];
                 if (!NotifConstructor)
@@ -191,6 +189,8 @@ define(function(require, exports, module) {
 
         function onNotificationsLoaded() {
             notificationsDataProvider.setRoot(cachedNotifications);
+            if (frame)
+                frame.restore();
         }
 
         /***** Notification Object *****/
