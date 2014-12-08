@@ -656,8 +656,9 @@ define(function(require, exports, module) {
                 button.setAttribute("class", "btnName");
                 button.setAttribute("icon", icon);
                 button.setAttribute("iconsize", "16px 16px");
-                button.$ext.setAttribute("title", name);
-                button.$ext.style.color = collabUtil.formatColor(workspace.colorPool[uid]);
+                button.setAttribute("tooltip", name);
+                if (button.$ext)
+                    button.$ext.style.color = collabUtil.formatColor(workspace.colorPool[uid]);
                 ui.insertByIndex(parent, button, 550, plugin);
             }
         }
