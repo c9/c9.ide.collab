@@ -170,7 +170,7 @@ define(function(require, module, exports) {
             function renderRange(html, markerLayer, session, config, screenRange, bgColor) {
                 var className = "ace_selection";
                 var selectStyle = settings.get("user/ace/@selectionStyle");
-                var selectionStyle = "background-color:" + util.formatColor(bgColor, 0.5) + ";" + "z-index:10;";
+                var selectionStyle = "background-color:" + util.formatColor(bgColor, 0.25) + ";" + "z-index:10;";
 
                 if (screenRange.isMultiLine()) {
                     if (selectStyle === "line")
