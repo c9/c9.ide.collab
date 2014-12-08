@@ -31,7 +31,10 @@ define(function(require, exports, module) {
             // Import CSS
             ui.insertCss(css, staticPrefix, plugin);
             
-            membersPanel = new MembersPanel("Ajax.org", main.consumes, {});
+            membersPanel = new MembersPanel("Ajax.org", main.consumes, {
+                showTabs: true,
+                autoSize: true
+            });
             plugin.on("resize", membersPanel.resize.bind(membersPanel));
 
             collab.on("show", membersPanel.show.bind(membersPanel));

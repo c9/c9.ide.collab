@@ -194,7 +194,7 @@ define(function(require, exports, module) {
 
         function onNotificationsLoaded() {
             notificationsDataProvider.setRoot(cachedNotifications);
-            if (frame)
+            if (frame && cachedNotifications.length)
                 frame.restore();
         }
 

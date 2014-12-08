@@ -21,6 +21,7 @@ define(function(require, exports, module) {
         var authorPool = {};
         var colorPool = {};
         var users = {};
+        var clients = {};
         var onlineCount = 0;
 
         var myUserId = info.getUser().id;
@@ -131,6 +132,44 @@ define(function(require, exports, module) {
             reversedAuthorPool[authorId] = uid;
             colorPool[uid] = user.color;
             onlineCount++;
+            emit.sticky("sync");
+        }
+        
+        function updateOpenDocs(data, action) {
+            var user = users[data.userId];
+            if (!user) return;
+            var client = user.clients[data.clientId];
+            if (action == "leave" && !client)
+                return;
+            if (!client) {
+                client = user.clients[data.clientId] = {
+                    documents: [],
+                    active: -1,
+                    status: "pending"
+                };
+            }
+            
+            if (action == "set") {
+                user.clients[data.clientId] = data.fileList;
+                data.fileList.status = "loaded";
+                emit.sticky("sync");
+                return;
+            }
+            
+            var i = client.documents.indexOf(data.docId);
+            if (action == "join") {
+                client.documents.push(data.docId);
+            } else if (action == "leave") {
+                if (i != -1)
+                    client.documents.splice(i, 1);
+            } else if (action == "activate") {
+                if (i == -1) {
+                    client.status = "pending";
+                    i = client.documents.push(data.docId) - 1;
+                }
+                client.active = i;
+            }
+                
             emit.sticky("sync");
         }
 
@@ -408,6 +447,7 @@ define(function(require, exports, module) {
              * @param {User} user - the user id who is leaving the workspace
              */
             joinClient: joinClient,
+            updateOpenDocs: updateOpenDocs,
             /**
              * Synchronize the workspace metadata that a user is joining the collaborative workspace
              *

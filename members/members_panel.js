@@ -93,10 +93,25 @@ define(function(require, exports, module) {
                     if (!node || !domTarget)
                         return;
                     if (domTarget.classList.contains("ace_tree_cells")) {
-                        e.stop();
-                        revealUser();
+                        if (node.type == "file") {
+                            e.stop();
+                            revealUser();
+                        }
                     }
                 });
+                
+                membersDataProvider.loadChildren = function(node, cb) {
+                    if (node.clientId) {
+                        if (node.client)
+                            node.client.status = "loading";
+                        node.children.status = "loading";
+                        collab.listOpenFiles(node.clientId, function() {
+                            cb && cb();
+                            node.children.status = "loaded";
+                            onWorkspaceSync();
+                        });
+                    }
+                };
                 
 
                 var mnuCtxTree = new Menu({
@@ -183,8 +198,11 @@ define(function(require, exports, module) {
             function resize() {
                 var next = parent;
                 var h = 0;
-                if (!parent.parentNode || !parent.parentNode.visible || parent.tagName != "frame")
+                if (!parent.parentNode || !parent.parentNode.visible)
                     return;
+                
+                if (!options.autoSize || parent.tagName != "frame")
+                    return membersTree.resize();
                 
                 var m1 = next.state[0] == "m";
                 next = next.nextSibling;
@@ -212,7 +230,7 @@ define(function(require, exports, module) {
 
             function removeMember() {
                 var node = getSelectedMember();
-                var isPublic = workspace.accessInfo.private == false;
+                var isPublic = workspace.accessInfo.private === false;
                 confirm(
                     "Remove Member?",
                     "Are you sure you want to " 
@@ -232,7 +250,7 @@ define(function(require, exports, module) {
                 var clientId = node && node.clientId;
                 if (!clientId)
                     return;
-                collab.revealUser(clientId);
+                collab.revealUser(clientId, node.tabId);
             }
             
             function loadUserState() {
@@ -246,6 +264,7 @@ define(function(require, exports, module) {
 
             function onWorkspaceSync() {
                 var me = info.getUser();
+                var membersById = membersDataProvider.byId || (membersDataProvider.byId = {});
                 var members = {r: [], rw: []};
                 var myRow = {};
                 var myClientId = workspace.myClientId;
@@ -264,32 +283,78 @@ define(function(require, exports, module) {
                     }];
                 }
                 
-                cachedMembers.forEach(function (m) {
-                    m = cloneObject(m);
+                cachedMembers.forEach(function(m) {
+                    if (!membersById[m.uid])
+                        membersById[m.uid] = cloneObject(m);
+                    m = membersById[m.uid];
+                    
                     m.isAdmin = m.role == ROLE_ADMIN;
-                    m.color = m.color || workspace.getUserColor(m.uid);
+                    m.color = workspace.getUserColor(m.uid);
                     m.status = m.onlineStatus || workspace.getUserState(m.uid);
-                    m.md5Email = m.email ? apf.crypto.MD5.hex_md5(m.email.trim().toLowerCase()) : "";
+                    if (!m.md5Email)
+                        m.md5Email = m.email ? apf.crypto.MD5.hex_md5(m.email.trim().toLowerCase()) : "";
                     members[m.acl == "rw" ? "rw" : "r"].push(m);
                     
-                    var childList = users[m.uid] && users[m.uid].clients;
-                    m.items = childList && childList.length > 1 && childList.map(function(k, i) {
+                    var user = users[m.uid];
+                    var clientIds = user && user.clients;
+                    m.children = clientIds && clientIds.length && clientIds.map(function(k, i) {
+                        var children = null, client;
+                        if (options.showTabs) {
+                            client = clientIds[k];
+                            if (client) {
+                                if (!client.status)
+                                    client.status = "pending";
+                                children = client.documents.map(function(x, i) {
+                                    return {
+                                        type: "file",
+                                        name: x,
+                                        tabId: x,
+                                        className: i == client.active ? "active" : "",
+                                        id: k + "::" + x,
+                                        clientId: k
+                                    };
+                                });
+                                client.status = client.status || "pending";
+                            } else if (user.online) {
+                                children = [];
+                                children.status = "pending";
+                            }
+                        }
                         return {
+                            type: "ide",
+                            pending: true,
                             clientId: k,
                             name: "Ide instance " + i,
-                            user: m
+                            user: m,
+                            children: children,
+                            id: k
                         };
                     });
-                    m.clientId = childList && childList[0];
-                    m.isOpen = false;
-
+                    
                     if (m.uid == me.id) {
-                        m.name = "0000"; // top in every sory
+                        m.name = "0000"; // top in every sort
                         m.status = "online";
                         myRow = m;
-                        // m.status = "online";
-                        m.clientId == myClientId;
+                        
+                        m.clientId = myClientId;
+                        m.client = null;
+                        if (m.children) {
+                            m.children = m.children.filter(function(ide) {
+                                return ide.clientId !== myClientId;
+                            });
+                            if (!m.children.length) {
+                                m.children = null;
+                            }
+                        }
+                    } else {
+                        m.clientId = clientIds && clientIds[0];
+                        m.client = clientIds && clientIds[m.clientId];
+                        if (m.children && m.children.length == 1) {
+                            m.pending = true;
+                            m.children = m.children[0].children;
+                        }
                     }
+                    
                 });
 
                 function memberCompartor (m1, m2) {
@@ -305,7 +370,7 @@ define(function(require, exports, module) {
                 if (!root.rw) {
                     root.rw = {
                         name: "Read+Write",
-                        items: members.rw,
+                        children: members.rw,
                         noSelect: true,
                         clickAction: "toggle",
                         className: "caption",

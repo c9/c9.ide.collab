@@ -1,12 +1,15 @@
 define(function(require, exports, module) {
     var oop = require("ace/lib/oop");
     var BaseClass = require("ace_tree/data_provider");
+    var escapeHTML = require("ace/lib/lang").escapeHTML;
 
     function DataProvider(root) {
         BaseClass.call(this, root || {});
 
         this.rowHeight = 22;
         this.rowHeightInner = 20;
+        this.expandedList = Object.create(null);
+        this.selectedList = Object.create(null);
 
         Object.defineProperty(this, "loaded", {
             get: function(){ return this.visibleItems.length; }
@@ -23,8 +26,9 @@ define(function(require, exports, module) {
         };
 
         this.getContentHTML = function (datarow) {
+            var nameHTML = escapeHTML(datarow.name);
             if (!datarow.uid)
-                return "<span class='root " + (datarow.className || "") + "'>" + datarow.name + "</span>";
+                return "<span class='root " + (datarow.className || "") + "'>" + nameHTML + "</span>";
             var access = datarow.acl || "r";
             var canAccessControl = this.iAmAdmin && !datarow.isAdmin;
             var disabledLabel = access == "r" ? "<div class='readbutton'>R</div>" : "<div class='writebutton'>RW</div>";
@@ -36,7 +40,7 @@ define(function(require, exports, module) {
                 datarow.md5Email + '?s=38&d='  + defaultImgUrl + '" />';
 
             var html = [
-                "<span class='caption'>" + datarow.name + "</span>\n",
+                "<span class='caption'>" + nameHTML + "</span>\n",
                 "<span class='avatar'>" + avatarImg + "</span>\n",
                 "<span class='status ", status, "'></span>\n",
                 "<span class='collaborator_color' style='background-color: ", color, ";'></span>\n",
@@ -51,6 +55,43 @@ define(function(require, exports, module) {
             ];
 
             return html.join("");
+        };
+        
+        this.setOpen = function(node, val) {
+            if (!node.id)
+                return (node.isOpen = val);
+            if (val)
+                this.expandedList[node.id] = val;
+            else
+                delete this.expandedList[node.id];
+        };
+        this.isOpen = function(node) {
+            if (!node.id)
+                return node.isOpen;
+            return this.expandedList[node.id];
+        };
+        this.isSelected = function(node) {
+            if (!node.id)
+                return node.isSelected;
+            return this.selectedList[node.id];
+        };
+        this.setSelected = function(node, val) {
+            if (!node.id)
+                return (node.isSelected = !!val);
+            if (val)
+                this.selectedList[node.id] = !!val;
+            else
+                delete this.selectedList[node.id];
+        };
+        this.loadChildren = function(node) {
+        };
+        this.shouldLoadChildren = function(node, ch) {
+            return node.client ? node.client.status === "pending"
+                : node.children && node.children.status === "pending";
+        };
+        
+        this.hasChildren = function(node) {
+            return node.children;
         };
 
     }).call(DataProvider.prototype);
