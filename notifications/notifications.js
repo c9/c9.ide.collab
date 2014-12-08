@@ -109,7 +109,8 @@ define(function(require, exports, module) {
             // onNotificationsLoaded();
             // notificationsDataProvider.emptyMessage = "Loading Notifications ...";
             // loadNotifications();
-            setTimeout(function() {frame.minimize();}, 10);
+            if (!cachedNotifications.length)
+                setTimeout(function() {frame.minimize();}, 10);
             postLoadedNotifications();
         }
 
@@ -179,6 +180,10 @@ define(function(require, exports, module) {
         function addNotifications(notifs) {
             if (!Array.isArray(notifs))
                 notifs = [notifs];
+                
+            if (frame)
+                frame.restore();
+                
             notifs.forEach(function(notif) {
                 var NotifConstructor = NOTIFICATION_TYPES[notif.type];
                 if (!NotifConstructor)

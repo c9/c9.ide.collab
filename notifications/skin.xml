@@ -3,34 +3,22 @@
     <a:notifier name="notifications-bubble">
         <a:style><![CDATA[
             .notifications-bubble {
-                position : relative;
-                border : 1px solid #000;
-                -moz-border-radius : 8px;
-                -webkit-border-radius : 8px;
-                border-radius : 8px;
-                background : -webkit-gradient(linear,left bottom,left top,color-stop(0, #202020),color-stop(1, #2f2f2f));
-                background : -moz-linear-gradient(center bottom,#202020 0%, #2f2f2f 100%);
-                padding : 15px 13px;
-
-                color: #ffffff;
-
-                margin-top : 10px;
-                border : 1px solid #000;
-
-                -webkit-box-shadow: -3px 3px 8px rgba(0, 0, 0, 0.2);
-                -moz-box-shadow: -3px 3px 8px rgba(0, 0, 0, 0.2);
-                box-shadow: -3px 3px 8px rgba(0, 0, 0, 0.2);
-
-                -webkit-box-shadow: inset 0px 1px 0px 0px #424242;
-                -moz-box-shadow: inset 0px 1px 0px 0px #424242;
-                box-shadow: inset 0px 1px 0px 0px #424242;
-
-                font-weight: bold;
-                
+                position: relative;
+                border: @bubble-border;
+                border-radius: @bubble-border-radius;
+                .gradient(~"@{bubble-gradient}");
+                padding: @bubble-padding;
+                color: @bubble-color;
+                margin-top: @bubble-margin-top;
+                box-shadow: @bubble-box-shadow;
+                font-weight: @bubble-font-weight;
+            }
+            .notifications-bubble.notifier_hidden{
+                opacity: 0;
             }
 
-            .notifications-bubble .noise_bg {
-                background: url(images/noise_pattern_transparent.png) 0 0;
+            .notifications-bubble .noise_bg when(@bubble-with-noise = true){
+                background: url("images/noise_pattern_transparent.png") 0 0;
                 bottom: 0;
                 left: 0;
                 opacity: 0.1;
@@ -40,7 +28,8 @@
             }
 
             .notifications-bubble .close-notifier {
-                background: url(images/bk-close-btn.png)  no-repeat 0 0;
+                .image-2x(@bubble-close-image, @bubble-close-image-width, @bubble-close-image-height);
+                background-position: 0 0;
                 width: 13px;
                 height: 13px;
                 position: absolute;
@@ -49,7 +38,10 @@
             }
 
             .notifications-bubble .close-notifier:hover {
-                background-position: 0 -19px;
+                background-position: @bubble-close-hover;
+            }
+            .notifications-bubble .close-notifier:active {
+                background-position: @bubble-close-active;
             }
             
             .notifications-bubble .gravatar-image {
@@ -69,10 +61,10 @@
         ]]></a:style>
 
         <a:presentation>
-            <a:notification message="." body="div[3]">
+            <a:notification message="." body="div[3]" close="div[2]">
                 <div class="notifications-bubble">
                     <div class="noise_bg"></div>
-                    <div class="close-notifier" onclick="event.currentTarget.parentNode.style.display='none'"></div>
+                    <div class="close-notifier"></div>
                     <div class="notifications-content"> </div>
                 </div>
             </a:notification>
