@@ -632,7 +632,7 @@ define(function(require, exports, module) {
             });
             
             function addButton(uid, name, email) {
-                menus.remove(uid);
+                menus.remove("user_" + uid);
                 var parent = layout.getElement("barExtras");
                 
                 // Create Menu
@@ -641,18 +641,18 @@ define(function(require, exports, module) {
                 
                 // Add named button
                 var icon = util.getGravatarUrl(email, 32, "");
-                menus.addItemByPath(uid + "/", mnuUser, 110000, plugin);
+                menus.addItemByPath("user_" + uid + "/", mnuUser, 110000, plugin);
                 
                 // Add sub menu items
                 var c = 500;
-                menus.addItemByPath(uid + "/Open Active File", new ui.item({
+                menus.addItemByPath("user_" + uid + "/Open Active File", new ui.item({
                     onclick: function() {
                         var user = workspace.users[uid];
                         revealUser(user.clients[0]);
                     }
                 }), c += 100, plugin);
                 
-                var button = menus.get(uid).item;
+                var button = menus.get("user_" + uid).item;
                 button.setAttribute("class", "btnName");
                 button.setAttribute("icon", icon);
                 button.setAttribute("iconsize", "16px 16px");
