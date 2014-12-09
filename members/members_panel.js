@@ -290,7 +290,7 @@ define(function(require, exports, module) {
                     
                     m.isAdmin = m.role == ROLE_ADMIN;
                     m.color = workspace.getUserColor(m.uid);
-                    m.status = m.onlineStatus || workspace.getUserState(m.uid);
+                    m.onlineStatus = workspace.getUserState(m.uid);
                     if (!m.md5Email)
                         m.md5Email = m.email ? apf.crypto.MD5.hex_md5(m.email.trim().toLowerCase()) : "";
                     members[m.acl == "rw" ? "rw" : "r"].push(m);

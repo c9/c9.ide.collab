@@ -31,6 +31,7 @@ define(function(require, exports, module) {
         var ROLE_ADMIN = "a";
 
         var plugin = new CollabPanel("Ajax.org", main.consumes, {
+            name: "chat",
             index: 200,
             caption: "Group Chat",
             textselect: true,

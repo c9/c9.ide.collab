@@ -1,5 +1,5 @@
 define(function(require, module, exports) {
-    main.consumes = ["Plugin", "ui", "collab"];
+    main.consumes = ["Plugin", "ui", "collab", "settings"];
     main.provides = ["CollabPanel"];
     return main;
 
@@ -7,6 +7,7 @@ define(function(require, module, exports) {
         var Plugin = imports.Plugin;
         var ui = imports.ui;
         var collab = imports.collab;
+        var settings = imports.settings;
 
         function CollabPanel(developer, deps, options) {
             // Editor extends ext.Plugin
@@ -38,13 +39,6 @@ define(function(require, module, exports) {
                 
                 var aml = e.aml;
 
-                amlFrame.on("afterstatechange", function () {
-                    if (amlFrame.parentNode) {
-                        amlFrame.parentNode.childNodes.forEach(function(n) {
-                            n.emit("resize");
-                        });
-                    }
-                });
 
                 if (index == 100)
                     aml.insertBefore(amlFrame, aml.firstChild);
@@ -58,6 +52,23 @@ define(function(require, module, exports) {
 
                 amlFrame.on("prop.height", function(){
                     emit("resize");
+                });
+                
+                amlFrame.on("afterstatechange", function () {
+                    if (amlFrame.parentNode) {
+                        amlFrame.parentNode.childNodes.forEach(function(n) {
+                            n.emit("resize");
+                        });
+                        var closed = amlFrame.state != "normal";
+                        settings.set("state/collab/panel/" + options.name
+                            + "/@closed", closed);
+                    }
+                });
+                settings.once("read", function() {
+                    var closed = settings.get("state/collab/panel/" + options.name
+                        + "/@closed", closed);
+                    if (closed)
+                        setTimeout(function() {amlFrame.minimize();}, 10);
                 });
             }
 

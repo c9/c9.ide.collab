@@ -101,6 +101,16 @@ define(function(require, exports, module) {
                 }
             });
             
+            plugin.on("userMessage", function(e) {
+                if (e.action == "focus") {
+                    workspace.updateOpenDocs(e, "activate");
+                }
+            });
+            
+            tabs.on("open", function(e) {
+                
+            });
+            
             ui.insertCss(css, staticPrefix, plugin);
 
             window.addEventListener("unload", function() {
@@ -576,12 +586,15 @@ define(function(require, exports, module) {
         }
         
         function getTabId(tab) {
-            if (!tab) 
+            if (!tab || !tab.document)
                 return;
-            if (tab.editor.type == "ace") 
-                return tab.path;
+            var meta = tab.document.meta;
+            if (meta.preview || meta.newfile)
+                return;
             if (tab.editor.type == "terminal")
                 return "terminal:" + tab.document.getSession().id;
+            if (tab.path)
+                return tab.path;
         }
         
         var lastJump;

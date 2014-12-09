@@ -26,13 +26,16 @@ define(function(require, exports, module) {
         };
 
         this.getContentHTML = function (datarow) {
-            var nameHTML = escapeHTML(datarow.name);
+            var nameHTML = escapeHTML(datarow.name || "");
+            
+            if (datarow.type == "file")
+                return "<span style='line-height:" + this.rowHeightInner + "px'>" + nameHTML + "</span>";
             if (!datarow.uid)
                 return "<span class='root " + (datarow.className || "") + "'>" + nameHTML + "</span>";
             var access = datarow.acl || "r";
             var canAccessControl = this.iAmAdmin && !datarow.isAdmin;
             var disabledLabel = access == "r" ? "<div class='readbutton'>R</div>" : "<div class='writebutton'>RW</div>";
-            var status = datarow.status || "offline";
+            var status = datarow.onlineStatus || "offline";
             var color = datarow.color || "transparent";
 
             var defaultImgUrl = encodeURIComponent("https://www.aiga.org/uploadedImages/AIGA/Content/About_AIGA/Become_a_member/generic_avatar_300.gif");
@@ -55,6 +58,10 @@ define(function(require, exports, module) {
             ];
 
             return html.join("");
+        };
+        
+        this.getClassName = function(node) {
+            return (node.className || "");
         };
         
         this.setOpen = function(node, val) {

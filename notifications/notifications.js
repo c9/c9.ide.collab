@@ -23,6 +23,7 @@ define(function(require, exports, module) {
         var TreeData = require("./notificationsdp");
 
         var plugin = new CollabPanel("Ajax.org", main.consumes, {
+            name: "notifications",
             index: 150,
             caption: "Notifications",
             height: "20%"
