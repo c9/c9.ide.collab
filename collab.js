@@ -591,7 +591,7 @@ define(function(require, exports, module) {
             var meta = tab.document.meta;
             if (meta.preview || meta.newfile)
                 return;
-            if (tab.editor.type == "terminal")
+            if (tab.editor.type == "terminal" || tab.editor.type == "output")
                 return "terminal:" + tab.document.getSession().id;
             if (tab.path)
                 return tab.path;
