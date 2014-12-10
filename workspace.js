@@ -163,17 +163,17 @@ define(function(require, exports, module) {
             
             var i = client.documents.indexOf(tabId);
             if (action == "join") {
-                client.documents.push(tabId);
+                if (i == -1)
+                    client.documents.push(tabId);
             } else if (action == "leave") {
                 if (i != -1)
                     client.documents.splice(i, 1);
             } else if (action == "activate") {
-                if (i == -1) {
+                if (i == -1)
                     i = client.documents.push(tabId) - 1;
-                }
                 client.active = i;
             }
-                
+            
             emit.sticky("sync");
         }
 
