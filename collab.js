@@ -107,10 +107,6 @@ define(function(require, exports, module) {
                 }
             });
             
-            tabs.on("open", function(e) {
-                
-            });
-            
             ui.insertCss(css, staticPrefix, plugin);
 
             window.addEventListener("unload", function() {
@@ -591,8 +587,13 @@ define(function(require, exports, module) {
             var meta = tab.document.meta;
             if (meta.preview || meta.newfile)
                 return;
-            if (tab.editor.type == "terminal" || tab.editor.type == "output")
+            if (tab.editor.type == "terminal")
                 return "terminal:" + tab.document.getSession().id;
+            if (tab.editor.type == "output") {
+                var state = tab.document.getState().output;
+                var config = state.config || {};
+                return "run-config:" + (config.name || state.id);
+            }
             if (tab.path)
                 return tab.path;
         }
