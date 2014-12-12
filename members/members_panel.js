@@ -281,6 +281,7 @@ define(function(require, exports, module) {
                         uid: me.id,
                         email: me.email
                     }];
+                    membersDataProvider.byId = null;
                 }
                 
                 cachedMembers.forEach(function(m) {
