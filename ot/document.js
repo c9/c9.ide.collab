@@ -719,11 +719,9 @@ define(function(require, module, exports) {
                     cursorLayer.setInsertRight(msg.clientId, false);
                     sel.anchor.$insertRight = sel.lead.$insertRight = true;
                     // do not include remote changes in the open undo group
-                    session.$undoManager.lastDeltas = null;
+                    var rev = session.$undoManager.startNewGroup();
                     applyEdit(msg, session.doc);
-                    if (session.$undoManager.lastDeltas[0])
-                        session.$undoManager.lastDeltas[0].disabled = true;
-                    session.$undoManager.lastDeltas = null;
+                    session.$undoManager.markIgnored(rev);
                     sel.anchor.$insertRight = sel.lead.$insertRight = false;
                     // reset the right cursor/selection behaviour
                     cursorLayer.setInsertRight(msg.clientId, true);
