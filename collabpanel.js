@@ -70,6 +70,8 @@ define(function(require, module, exports) {
                     if (closed)
                         setTimeout(function() {amlFrame.minimize();}, 10);
                 });
+                collab.on("show", function() { emit("show"); }, plugin);
+                collab.on("hide", function() { emit("hide"); }, plugin);
             }
 
             /***** Methods *****/

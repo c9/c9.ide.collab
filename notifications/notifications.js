@@ -107,6 +107,14 @@ define(function(require, exports, module) {
                 notif.handleMouseUp(e);
             });
             
+            plugin.on("hide", function(e) {
+                notificationsTree.renderer.freeze();
+            });
+            plugin.on("show", function(e) {
+                notificationsTree.renderer.unfreeze();
+                notificationsTree.renderer.$loop.schedule(notificationsTree.renderer.CHANGE_FULL);
+            });
+            
             // onNotificationsLoaded();
             // notificationsDataProvider.emptyMessage = "Loading Notifications ...";
             // loadNotifications();
