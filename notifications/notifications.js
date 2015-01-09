@@ -233,9 +233,8 @@ define(function(require, exports, module) {
         (function () {
             this.getHTML = function () {
                 var datarow = this.datarow;
-                var defaultImgUrl = encodeURIComponent("http://www.aiga.org/uploadedImages/AIGA/Content/About_AIGA/Become_a_member/generic_avatar_300.gif");
                 var avatarImg = '<img class="gravatar-image" src="https://secure.gravatar.com/avatar/' +
-                    datarow.md5Email + '?s=37&d='  + defaultImgUrl + '" />';
+                    datarow.md5Email + '?s=37&d=retro" />';
                 var html = [
                     "<span class='avatar'>", avatarImg, "</span>",
                     "<span class='body'>", "<span class='caption'>", datarow.name, "</span>", 

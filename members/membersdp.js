@@ -37,14 +37,9 @@ define(function(require, exports, module) {
             var disabledLabel = access == "r" ? "<div class='readbutton'>R</div>" : "<div class='writebutton'>RW</div>";
             var status = datarow.onlineStatus || "offline";
             var color = datarow.color || "transparent";
-
-            var defaultImgUrl = encodeURIComponent("https://www.aiga.org/uploadedImages/AIGA/Content/About_AIGA/Become_a_member/generic_avatar_300.gif");
-            var avatarImg = '<img class="gravatar-image" src="https://secure.gravatar.com/avatar/' +
-                datarow.md5Email + '?s=38&d='  + defaultImgUrl + '" />';
-
+            
             var html = [
                 "<span class='caption'>" + nameHTML + "</span>\n",
-                "<span class='avatar'>" + avatarImg + "</span>\n",
                 "<span class='status ", status, "'></span>\n",
                 "<span class='collaborator_color' style='background-color: ", color, ";'></span>\n",
                  canAccessControl
