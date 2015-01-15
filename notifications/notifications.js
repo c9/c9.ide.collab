@@ -142,7 +142,7 @@ define(function(require, exports, module) {
         function postLoadedNotifications() {
             if (!bubble && cachedNotifications.length) {
                 // Make sure collab panel is enabled
-                panels.enablePanel("collab");
+                if (!panels.enablePanel("collab")) return false;
                 
                 // Notification Bubble
                 panelButton = document.querySelector(".panelsbutton.collab");
