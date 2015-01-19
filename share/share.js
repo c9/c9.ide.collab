@@ -280,7 +280,7 @@ define(function(require, module, exports) {
                 alert("Invitation Sent",
                     "Workspace Member Added",
                     "You have granted " + member.name + " " + accessString
-                        + "access to this workspace!");
+                        + " access to this workspace!");
             });
         }
 

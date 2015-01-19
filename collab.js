@@ -87,7 +87,26 @@ define(function(require, exports, module) {
                     docSession && otDoc.setSession(docSession.session);
                 }
             });
-
+            
+            tabs.on("focus", function(e){
+                var tab = e.tab;
+                if (tab && tab.editor) {
+                    var id = getTabId(tab);
+                    id && connect.send("MESSAGE", {
+                        action: "focus",
+                        clientId: workspace.myClientId,
+                        userId: workspace.myUserId,
+                        tabId: id
+                    });
+                }
+            });
+            
+            plugin.on("userMessage", function(e) {
+                if (e.action == "focus") {
+                    workspace.updateOpenDocs(e, "activate");
+                }
+            });
+            
             ui.insertCss(css, staticPrefix, plugin);
 
             window.addEventListener("unload", function() {
@@ -203,12 +222,12 @@ define(function(require, exports, module) {
                     notifyUserOffline(user);
                     break;
                 case "LEAVE_DOC":
+                    workspace.updateOpenDocs(data, "leave");
                     doc && doc.clientLeave(data.clientId);
-                    // bubbleNotification("closed file: " + docId, user);
                     break;
                 case "JOIN_DOC":
+                    workspace.updateOpenDocs(data, "join");
                     if (workspace.myClientId !== data.clientId)
-                        // bubbleNotification("opened file: " + docId, user);
                         return;
                     if (!doc)
                         return console.warn("[OT] Received msg for file that is not open - docId:", docId, "open docs:", Object.keys(documents));
@@ -538,9 +557,18 @@ define(function(require, exports, module) {
         }
         
         /***** sync tabs *****/
-        function getFocusedTabState() {
-            var tab = tabs.focussedTab;
-            if (!tab) return {};
+        function getTabState(tabId) {
+            var tab;
+            if (tabId) {
+                tabs.getTabs().some(function(t) {
+                    if (getTabId(t) == tabId) {
+                        return (tab = t);
+                    }
+                });
+            } else {
+                tab = tabs.focussedTab;
+            }
+            if (!tab) return;
             var state = tab.getState();
             var doc = state.document;
             if (doc) {
@@ -553,8 +581,27 @@ define(function(require, exports, module) {
             return state;
         }
         
+        function getTabId(tab) {
+            if (!tab || !tab.document)
+                return;
+            var meta = tab.document.meta;
+            if (meta.preview || meta.newfile)
+                return;
+            if (tab.editorType == "terminal")
+                return "terminal:" + tab.document.getSession().id;
+            if (tab.editorType == "output") {
+                var state = tab.document.getState().output;
+                var config = state.config || {};
+                return "run-config:" + (config.name || state.id);
+            }
+            if (tab.editorType == "preview")
+                return tab.name;
+            if (tab.path)
+                return tab.path;
+        }
+        
         var lastJump;
-        function revealUser(clientId) {
+        function revealUser(clientId, tabId) {
             if (clientId == workspace.myClientId) {
                 handleUserMessage({
                     action: "open",
@@ -566,8 +613,17 @@ define(function(require, exports, module) {
                     source: workspace.myClientId,
                     target: clientId,
                     action: "getTab",
+                    tabId: tabId
                 });
             }
+        }
+        
+        function listOpenFiles(clientId) {
+            connect.send("MESSAGE", {
+                source: workspace.myClientId,
+                target: clientId,
+                action: "listOpenFiles"
+            });
         }
         
         function handleUserMessage(data) {
@@ -577,18 +633,41 @@ define(function(require, exports, module) {
                         source: workspace.myClientId,
                         target: data.source,
                         action: "open",
-                        tabState: getFocusedTabState(),
+                        tabState: getTabState(data.tabId),
                     });
                 }
             } else if (data.action == "open") {
                 if (data.target == workspace.myClientId) {
                     if (data.tabState) {
-                        var tabState = getFocusedTabState();
+                        var tabState = getTabState() || {};
                         if (shouldUpdateLastJump(lastJump, tabState, data.tabState))
                             lastJump = tabState;
                         data.tabState.focus = true;
                         tabs.open(data.tabState);
                     }
+                }
+            } else if (data.action == "listOpenFiles") {
+                if (data.fileList) {
+                    workspace.updateOpenDocs({
+                        clientId: data.source,
+                        userId: data.userId,
+                        fileList: data.fileList
+                    }, "set");
+                } else if (data.target == workspace.myClientId) {
+                    var openFiles = tabs.getTabs().map(function(tab) {
+                        return getTabId(tab);
+                    }).filter(Boolean);
+                    var active = openFiles.indexOf(getTabId(tabs.focussedTab));
+                    connect.send("MESSAGE", {
+                        userId: workspace.myUserId,
+                        source: workspace.myClientId,
+                        target: data.source,
+                        action: "listOpenFiles",
+                        fileList: {
+                            active: active,
+                            documents: openFiles
+                        }
+                    });
                 }
             }
         }
@@ -662,7 +741,7 @@ define(function(require, exports, module) {
                 ui.insertByIndex(parent, button, 550, plugin);
             }
         }
-        
+
         
         /***** Lifecycle *****/
         plugin.on("newListener", function(event, listener) {
@@ -740,7 +819,8 @@ define(function(require, exports, module) {
             /**
              * @ignore
              */
-            revealUser: revealUser
+            revealUser: revealUser,
+            listOpenFiles: listOpenFiles
             
         });
 

@@ -44,7 +44,9 @@
     top: 4px;
     font-weight: bold;
 }
-
+.memberstree .tree-row.active {
+    font-weight: bold;
+}
 .memberstree .tree-row .name {
     margin-left: -23px;
     color: #f1f1f1;

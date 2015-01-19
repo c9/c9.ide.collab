@@ -59,6 +59,10 @@ define(function(require, exports, module) {
             ui.insertMarkup(layout.findParent(plugin), markup, plugin);
             ntNotifications = plugin.getElement("ntNotifications");
             
+            ntNotifications.on("closed", function(e){
+               emit("closed", { html: e.html });
+            });
+            
             emit("draw");
         }
 

@@ -23,6 +23,7 @@ define(function(require, exports, module) {
         var TreeData = require("./notificationsdp");
 
         var plugin = new CollabPanel("Ajax.org", main.consumes, {
+            name: "notifications",
             index: 150,
             caption: "Notifications",
             height: "20%"
@@ -104,6 +105,14 @@ define(function(require, exports, module) {
                     return;
 
                 notif.handleMouseUp(e);
+            });
+            
+            plugin.on("hide", function(e) {
+                notificationsTree.renderer.freeze();
+            });
+            plugin.on("show", function(e) {
+                notificationsTree.renderer.unfreeze();
+                notificationsTree.renderer.$loop.schedule(notificationsTree.renderer.CHANGE_FULL);
             });
             
             // onNotificationsLoaded();
@@ -194,7 +203,7 @@ define(function(require, exports, module) {
 
         function onNotificationsLoaded() {
             notificationsDataProvider.setRoot(cachedNotifications);
-            if (frame)
+            if (frame && cachedNotifications.length)
                 frame.restore();
         }
 
@@ -232,9 +241,8 @@ define(function(require, exports, module) {
         (function () {
             this.getHTML = function () {
                 var datarow = this.datarow;
-                var defaultImgUrl = encodeURIComponent("http://www.aiga.org/uploadedImages/AIGA/Content/About_AIGA/Become_a_member/generic_avatar_300.gif");
                 var avatarImg = '<img class="gravatar-image" src="https://secure.gravatar.com/avatar/' +
-                    datarow.md5Email + '?s=37&d='  + defaultImgUrl + '" />';
+                    datarow.md5Email + '?s=37&d=retro" />';
                 var html = [
                     "<span class='avatar'>", avatarImg, "</span>",
                     "<span class='body'>", "<span class='caption'>", datarow.name, "</span>", 

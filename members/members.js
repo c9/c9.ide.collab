@@ -18,6 +18,7 @@ define(function(require, exports, module) {
         var membersPanel;
 
         var plugin = new CollabPanel("Ajax.org", main.consumes, {
+            name: "members",
             index: 100,
             caption: "Workspace Members",
             height: "50%"
@@ -31,7 +32,10 @@ define(function(require, exports, module) {
             // Import CSS
             ui.insertCss(css, staticPrefix, plugin);
             
-            membersPanel = new MembersPanel("Ajax.org", main.consumes, {});
+            membersPanel = new MembersPanel("Ajax.org", main.consumes, {
+                showTabs: true,
+                autoSize: true
+            });
             plugin.on("resize", membersPanel.resize.bind(membersPanel));
 
             collab.on("show", membersPanel.show.bind(membersPanel));
