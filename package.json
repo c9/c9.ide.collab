@@ -9,21 +9,19 @@
         "url": "http://github.com/c9/c9.ide.collab.git"
     },
     "plugins": {
-        "plugin": {
-            "author_layer": {},
-            "collab": {},
-            "collabpanel": {},
-            "connect": {},
-            "cursor_layer": {},
-            "synctabs": {},
-            "util": {},
-            "workspace": {}
-        }
+        "author_layer": {},
+        "collab": {},
+        "collabpanel": {},
+        "connect": {},
+        "cursor_layer": {},
+        "synctabs": {},
+        "util": {},
+        "workspace": {}
     },
     "categories": [
         "core"
     ],
     "licenses": [
-        ""
+        "AGPL"
     ]
 }
