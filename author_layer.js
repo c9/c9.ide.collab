@@ -185,7 +185,7 @@ define(function(require, module, exports) {
 
                 var gutterWidth = ("" + lastLineNumber).length * config.characterWidth;
                 var padding = _self.$padding || _self.$computePadding();
-                gutterWidth += padding.left + padding.right;
+                gutterWidth += padding.left + padding.right + (isCollabGutter ? 5 : 0);
                 if (gutterWidth !== _self.gutterWidth && !isNaN(gutterWidth)) {
                     _self.gutterWidth = gutterWidth;
                     _self.element.style.width = Math.ceil(_self.gutterWidth) + "px";
@@ -357,7 +357,7 @@ define(function(require, module, exports) {
             });
 
             function updateTooltip() {
-                delete editor.authorTooltipTimeout;
+                editor.authorTooltipTimeout = null;
                 var session = editor.session;
                 var otDoc = session.collabDoc;
                 if (!otDoc)
