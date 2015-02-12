@@ -441,10 +441,6 @@ define(function(require, exports, module) {
          * e.progress
          */
         function beforeReadFile(e) {
-            // Load using XHR while collab not connected
-            if (!connect.connected)
-                return;
-            
             var path = e.path;
             var progress = e.progress;
             var callback = e.callback;
@@ -457,6 +453,14 @@ define(function(require, exports, module) {
             otDoc.on("joined", onJoined);
             otDoc.on("largeDocument", reportLargeDocument.bind(null, otDoc) );
             otDoc.on("joinProgress", startWatchDog);
+            
+            // Load using XHR while collab not connected
+            if (!connect.connected) {
+                // Someone else listening to beforeReadFile
+                // will have to call our callback
+                callback = null;
+                return;
+            }
             
             startWatchDog();
 
@@ -489,11 +493,11 @@ define(function(require, exports, module) {
                     return fsOpenFallback();
                 }
                 console.log("[OT] Joined", otDoc.id);
-                callback(e.err, e.contents, e.metadata);
+                callback && callback(e.err, e.contents, e.metadata);
             }
 
             function fsOpenFallback() {
-                var xhr = fs.readFileWithMetadata(path, "utf8", callback, progress) || {};
+                var xhr = fs.readFileWithMetadata(path, "utf8", callback || function() {}, progress) || {};
                 fallbackXhrAbort = ((xhr && xhr.abort) || function(){}).bind(xhr);
             }
         }
