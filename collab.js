@@ -441,6 +441,10 @@ define(function(require, exports, module) {
          * e.progress
          */
         function beforeReadFile(e) {
+            // Load using XHR while collab not connected
+            if (!connect.connected)
+                return;
+            
             var path = e.path;
             var progress = e.progress;
             var callback = e.callback;
@@ -453,10 +457,6 @@ define(function(require, exports, module) {
             otDoc.on("joined", onJoined);
             otDoc.on("largeDocument", reportLargeDocument.bind(null, otDoc) );
             otDoc.on("joinProgress", startWatchDog);
-
-            // Load using XHR while collab not connected
-            if (!connect.connected)
-                return;
             
             startWatchDog();
 
