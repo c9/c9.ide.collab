@@ -95,7 +95,7 @@ require(["lib/architect/architect", "lib/chai/chai", "/vfs-root"],
         {
             consumes: ["apf", "ui", "Plugin"],
             provides: [
-                "commands", "commands", "layout", "watcher", "Panel", "info", "save", "dialog.filesave",
+                "commands", "commands", "layout", "watcher", "Panel", "info", "save", "dialog.file",
                 // "menus", "Menu", "MenuItem", "Divider", - "plugins/c9.ide.ui/menus",
                 "dialog.alert", "dialog.confirm", "dialog.error", "dialog.question", "dialog.fileoverwrite",
                 "panels", "preferences", "clipboard", "auth.bootstrap", "anims", "debugger", "run.gui"
