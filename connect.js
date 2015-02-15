@@ -1,7 +1,7 @@
 /**
  * Collab module for the Cloud9 that uses collab
  *
- * @copyright 2012, Ajax.org B.V.
+ * @copyright 2013, Ajax.org B.V.
  */
 define(function(require, exports, module) {
     main.consumes = [
