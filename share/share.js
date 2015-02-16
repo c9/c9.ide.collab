@@ -138,6 +138,9 @@ define(function(require, module, exports) {
                 div.addEventListener("click", function(e){
                     mnuLink.meta.linkText = this.innerHTML;
                     mnuLink.show(e.x, e.y);
+                    if (!mnuLink.aml.zindex) {
+                        mnuLink.aml.setProperty("zindex", 400009);
+                    }
                 });
             });
 
