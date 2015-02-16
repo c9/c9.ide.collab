@@ -51,7 +51,7 @@ define(function(require, exports, module) {
         var openFallbackTimeouts = {};
         var saveFallbackTimeouts = {};
         var usersLeaving = {};
-        var lastSaveSuccess = true;
+        var failedSaveAttempts = 0;
         var OPEN_FILESYSTEM_FALLBACK_TIMEOUT = 6000;
         var SAVE_FILESYSTEM_FALLBACK_TIMEOUT = 30000;
         var SAVE_FILESYSTEM_FALLBACK_TIMEOUT_REPEATED = 15000;
@@ -353,9 +353,9 @@ define(function(require, exports, module) {
                 console.warn("[OT] collab saveFallbackTimeout while trying to save file", docId, "- trying fallback approach instead");
                 fsSaveFallback();
                 doc.off("saved", onSaved);
-                lastSaveSuccess = false;
-            }, lastSaveSuccess ? SAVE_FILESYSTEM_FALLBACK_TIMEOUT : SAVE_FILESYSTEM_FALLBACK_TIMEOUT_REPEATED);
-
+                failedSaveAttempts++;
+            }, SAVE_FILESYSTEM_FALLBACK_TIMEOUT * Math.pow(2, -Math.min(failedSaveAttempts, 5)));
+            
             function onSaved(e) {
                 doc.off("saved", onSaved);
                 clearTimeout(saveFallbackTimeouts[docId]);
@@ -364,7 +364,8 @@ define(function(require, exports, module) {
                     console.warn("[OT] collab error:", e.code, "trying to save file", docId, "- trying fallback approach instead");
                     return fsSaveFallback({ code: e.code, err: e.err });
                 }
-                lastSaveSuccess = !e.err;
+                if (!e.err)
+                    failedSaveAttempts = 0;
                 callback(e.err);
             }
 
@@ -381,13 +382,20 @@ define(function(require, exports, module) {
                     state: doc && doc.state,
                     joinError: joinError,
                     connected: connect.connected,
-                    attempt: attempt
+                    attempt: attempt,
+                    failedSaveAttempts: failedSaveAttempts
                 }, ["collab"]);
                 
                 fallbackFn.apply(null, fallbackArgs);
             }
 
             if (!doc.loaded || !connect.connected) {
+                if (connect.connected && !doc.loaded && !doc.loading) {
+                    // broken state we are not joined and not trying to join
+                    clearTimeout(saveFallbackTimeouts[docId]);
+                    fsSaveFallback("document not joined and not trying to join");
+                    return;
+                }
                 doc.once("joined", function(e) {
                     joinError = e && e.err;
                     if (e && !e.err)
@@ -545,6 +553,13 @@ define(function(require, exports, module) {
             console.log("[OT] detected rename/save as from", oldpath, "to", path);
             leaveDocument(oldpath);
             joinDocument(path, tab.document);
+            // TODO this is flaky, there should be rename command in the server
+            documents[path].once("joined", function(e) {
+                if (e.err) {
+                    leaveDocument(oldpath);
+                    setTimeout(joinDocument(path, tab.document), SAVE_FILESYSTEM_FALLBACK_TIMEOUT_REPEATED);
+                }
+            });
         }
 
         function bubbleNotification(msg, user) {
@@ -824,7 +839,9 @@ define(function(require, exports, module) {
              * @ignore
              */
             revealUser: revealUser,
-            listOpenFiles: listOpenFiles
+            listOpenFiles: listOpenFiles,
+            leaveDocument: leaveDocument,
+            joinDocument: joinDocument,
             
         });
 
