@@ -100,6 +100,7 @@ define(function(require, exports, module) {
         function extendCollab(callback) {
             if (collab)
                 return callback();
+            var t = debug && Date.now();
             if (extended)
                 return plugin.once("available", callback);
             extended = true;
@@ -122,6 +123,8 @@ define(function(require, exports, module) {
                         extended = false;
                         return callback(err);
                     }
+                    if (debug)
+                        console.log("loaded collab server in ", Date.now() - t, "ms");
                     collab = api;
     
                     emit.sticky("available");
