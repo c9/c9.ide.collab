@@ -110,7 +110,7 @@ define(function(require, module, exports) {
             accessButton = plugin.getElement("access").$int;
 
             var mnuLink = new Menu({
-                zindex: 10000000,
+                zindex: 500000,
                 items: [
                     new MenuItem({ caption: "Open", onclick: function(){
                         window.open(mnuLink.meta.linkText);
