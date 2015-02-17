@@ -110,6 +110,7 @@ define(function(require, module, exports) {
             accessButton = plugin.getElement("access").$int;
 
             var mnuLink = new Menu({
+                zindex: 10000000,
                 items: [
                     new MenuItem({ caption: "Open", onclick: function(){
                         window.open(mnuLink.meta.linkText);
@@ -138,9 +139,6 @@ define(function(require, module, exports) {
                 div.addEventListener("click", function(e){
                     mnuLink.meta.linkText = this.innerHTML;
                     mnuLink.show(e.x, e.y);
-                    if (!mnuLink.aml.zindex) {
-                        mnuLink.aml.setProperty("zindex", 400009);
-                    }
                 });
             });
 
