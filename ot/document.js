@@ -411,6 +411,7 @@ define(function(require, module, exports) {
                     if (err.code == "ELARGE")
                         emit("largeDocument");
                     loading = false;
+                    reportError(new Error("Couldn't join to document"), err);
                     return emit.sticky("joined", {err: err});
                 }
                 
@@ -1039,8 +1040,10 @@ define(function(require, module, exports) {
                 if (pendingSave) {
                     var value = getRevisionContents(data.revNum);
                     if (!value) {
-                        // Unclear if this is really an error or when it happens
-                        reportError("File saved, unable to confirm checksum");
+                        // value can be null if doc is just loaded and there are no revisions
+                        // but then fsHash should match
+                        if (plugin.docHash !== data.fsHash)
+                            reportError("File saved, unable to confirm checksum");
                     }
                     else if (apf.crypto.MD5.hex_md5(value) !== data.fsHash) {
                         reportError("File saving checksum failed; retrying with XHR");
