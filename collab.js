@@ -354,6 +354,7 @@ define(function(require, exports, module) {
                 fsSaveFallback();
                 doc.off("saved", onSaved);
                 failedSaveAttempts++;
+                emit("saveFallbackStart", {path: docId});
             }, SAVE_FILESYSTEM_FALLBACK_TIMEOUT * Math.pow(2, -Math.min(failedSaveAttempts, 5)));
             
             function onSaved(e) {
