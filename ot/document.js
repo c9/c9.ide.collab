@@ -1039,7 +1039,7 @@ define(function(require, module, exports) {
                 // otherwise: other collaborator save
                 if (pendingSave) {
                     var value = getRevisionContents(data.revNum);
-                    if (!value) {
+                    if (value == undefined) {
                         // value can be null if doc is just loaded and there are no revisions
                         // but then fsHash should match
                         if (plugin.docHash !== data.fsHash)
