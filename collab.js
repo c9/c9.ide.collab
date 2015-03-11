@@ -39,8 +39,8 @@ define(function(require, exports, module) {
             index: 45,
             width: 250,
             caption: "Collaborate",
-            className: "collab",
-            elementName: "winCollab",
+            buttonCSSClass: "collab",
+            panelCSSClass: "collab-bar",
             minWidth: 130,
             where: "right"
         });
@@ -156,13 +156,7 @@ define(function(require, exports, module) {
             if (drawn) return;
             drawn = true;
 
-            var bar = options.aml.appendChild(new ui.bar({
-                "id"    : "winCollab",
-                "skin"  : "panel-bar",
-                "class" : "collab-bar"
-            }));
-            plugin.addElement(bar);
-
+            var bar = options.aml;
             var html = bar.$int;
             emit.sticky("drawPanels", { html: html, aml: bar });
         }
