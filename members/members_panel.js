@@ -81,7 +81,7 @@ define(function(require, exports, module) {
 
                     var className = domTarget.classList;
                     membersDataProvider.selection.selectNode(node);
-                    if (className.contains("access_control")) 
+                    if (className.contains("access_control"))
                         updateAccess(node.acl == "rw" ? "r" : "rw");
                     else if (className == "kickout")
                         removeMember();
