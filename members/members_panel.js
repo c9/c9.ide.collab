@@ -81,7 +81,7 @@ define(function(require, exports, module) {
 
                     var className = domTarget.classList;
                     membersDataProvider.selection.selectNode(node);
-                    if (className.contains("access_control"))
+                    if (className.contains("access_control")) 
                         updateAccess(node.acl == "rw" ? "r" : "rw");
                     else if (className == "kickout")
                         removeMember();
@@ -284,10 +284,10 @@ define(function(require, exports, module) {
                     membersDataProvider.byId = null;
                 }
                 
-                cachedMembers.forEach(function(m) {
-                    if (!membersById[m.uid])
-                        membersById[m.uid] = cloneObject(m);
-                    m = membersById[m.uid];
+                cachedMembers.forEach(function(newM) {
+                    var m = membersById[newM.uid] || {}
+                    for (var i in newM)
+                        m[i] = newM[i];
                     
                     m.isAdmin = m.role == ROLE_ADMIN;
                     m.color = workspace.getUserColor(m.uid);
