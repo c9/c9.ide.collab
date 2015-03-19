@@ -602,7 +602,7 @@ define(function(require, exports, module) {
             if (meta.preview || meta.newfile)
                 return;
             if (tab.editorType == "terminal")
-                return "terminal:" + tab.document.getSession().id;
+                return "terminal:" + (tab.document.getState().terminal || {}).id;
             if (tab.editorType == "output") {
                 var state = tab.document.getState().output;
                 var config = state.config || {};
