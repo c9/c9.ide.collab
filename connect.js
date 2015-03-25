@@ -109,32 +109,20 @@ define(function(require, exports, module) {
                 return plugin.once("available", callback);
             extended = true;
             
-            if (localServerFile)
-                return extend();
-            
-            require(["text!./server/collab-server.js"], function(code) {
-                extend(code);
+            ext.loadRemotePlugin("collab", {
+                file: "collab-server.js"
+            }, function(err, api) {
+                if (!api) {
+                    extended = false;
+                    return callback(err);
+                }
+                if (debug)
+                    console.log("loaded collab server in ", Date.now() - t, "ms");
+                collab = api;
+
+                emit.sticky("available");
+                callback();
             });
-            
-            function extend(code) {
-                ext.loadRemotePlugin("collab", {
-                    file: !code && "collab-server.js",
-                    code: code,
-                    extendToken: extendToken,
-                    redefine: true
-                }, function(err, api) {
-                    if (err) {
-                        extended = false;
-                        return callback(err);
-                    }
-                    if (debug)
-                        console.log("loaded collab server in ", Date.now() - t, "ms");
-                    collab = api;
-    
-                    emit.sticky("available");
-                    callback();
-                });
-            }
         }
 
         function onDisconnect() {
