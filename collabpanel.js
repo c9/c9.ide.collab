@@ -39,12 +39,14 @@ define(function(require, module, exports) {
                 
                 var aml = e.aml;
 
-
                 if (index == 100)
                     aml.insertBefore(amlFrame, aml.firstChild);
                 else
                     aml.appendChild(amlFrame);
-                    
+                
+                if (height)
+                    amlFrame.setHeight(height);
+                
                 // ui.insertByIndex(e.html, amlFrame.$ext, index, false);
                 plugin.addElement(amlFrame);
 

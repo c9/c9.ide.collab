@@ -20,8 +20,7 @@ define(function(require, exports, module) {
         var plugin = new CollabPanel("Ajax.org", main.consumes, {
             name: "members",
             index: 100,
-            caption: "Workspace Members",
-            height: "50%"
+            caption: "Workspace Members"
         });
 
         var loaded = false;
