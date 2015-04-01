@@ -1,26 +1,22 @@
 define(function(require, exports, module) {
     
 module.exports = function(session, options){
+    // Dependencies for the collaboration features of Cloud9
+    
     session.install({
-        "name": "collab-deps",
-        "description": "Dependencies for the collaboration features of Cloud9",
+        "name": "SQLite",
+        "description": "SQLite Database and NPM module",
         "cwd": "~/.c9",
         "optional": true
     }, [
         {
-            "npm": ["sqlite3@2.1.18", "sequelize@2.0.0-beta.0"]
+            "npm": ["sqlite3@2.1.18"]
         },
         {
-            "tar.gz": [
-                {
-                    "url": "https://raw.githubusercontent.com/c9/install/master/packages/sqlite3/linux/sqlite3.tar.gz",
-                    "target": "~/.c9/lib/sqlite3"
-                },
-                { 
-                    "url": "https://raw.githubusercontent.com/c9/install/master/packages/extend/c9-vfs-extend.tar.gz",
-                    "target": "~/.c9/c9-vfs-extend"
-                }
-            ]
+            "tar.gz": {
+                "url": "https://raw.githubusercontent.com/c9/install/master/packages/sqlite3/linux/sqlite3.tar.gz",
+                "target": "~/.c9/lib/sqlite3"
+            }
         },
         {
             "symlink": {
@@ -29,6 +25,27 @@ module.exports = function(session, options){
             }
         }
     ]);
+    
+    session.install({
+        "name": "Sequelize",
+        "description": "Sequalize NPM module",
+        "cwd": "~/.c9",
+        "optional": true
+    }, {
+        "npm": ["sequelize@2.0.0-beta.0"]
+    });
+    
+    session.install({
+        "name": "Collab Server",
+        "description": "A small Node.js collaboration server",
+        "cwd": "~/.c9",
+        "optional": true
+    }, {
+        "tar.gz": { 
+            "url": "https://raw.githubusercontent.com/c9/install/master/packages/extend/c9-vfs-extend.tar.gz",
+            "target": "~/.c9/c9-vfs-extend"
+        }
+    });
 
     // Show the installation screen
     session.start();
