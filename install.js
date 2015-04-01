@@ -15,7 +15,7 @@ module.exports = function(session, options){
         {
             "tar.gz": {
                 "url": "https://raw.githubusercontent.com/c9/install/master/packages/sqlite3/linux/sqlite3.tar.gz",
-                "target": "~/.c9/lib/sqlite3"
+                "target": "~/.c9/lib"
             }
         },
         {
@@ -43,7 +43,7 @@ module.exports = function(session, options){
     }, {
         "tar.gz": { 
             "url": "https://raw.githubusercontent.com/c9/install/master/packages/extend/c9-vfs-extend.tar.gz",
-            "target": "~/.c9/c9-vfs-extend"
+            "target": "~/.c9"
         }
     });
 
