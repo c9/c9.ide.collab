@@ -15,7 +15,8 @@ module.exports = function(session, options){
         {
             "tar.gz": {
                 "url": "https://raw.githubusercontent.com/c9/install/master/packages/sqlite3/linux/sqlite3.tar.gz",
-                "target": "~/.c9/lib"
+                "target": "~/.c9/lib/sqlite3",
+                "dir": "sqlite3"
             }
         },
         {
