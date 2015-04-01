@@ -5,7 +5,7 @@ define(function(require, exports, module) {
         "Panel", "tabManager", "fs", "metadata", "ui", "apf", "settings", 
         "preferences", "ace", "util", "collab.connect", "collab.workspace", 
         "timeslider", "OTDocument", "notification.bubble", "dialog.error",
-        "collab.util", "error_handler", "layout", "menus"
+        "collab.util", "error_handler", "layout", "menus", "installer", "c9"
     ];
     main.provides = ["collab"];
     return main;
@@ -14,7 +14,9 @@ define(function(require, exports, module) {
         var Panel = imports.Panel;
         var tabs = imports.tabManager;
         var fs = imports.fs;
+        var c9 = imports.c9;
         var metadata = imports.metadata;
+        var installer = imports.installer;
         var ui = imports.ui;
         var apf = imports.apf;
         var ace = imports.ace;
@@ -55,6 +57,10 @@ define(function(require, exports, module) {
         var OPEN_FILESYSTEM_FALLBACK_TIMEOUT = 6000;
         var SAVE_FILESYSTEM_FALLBACK_TIMEOUT = 30000;
         var SAVE_FILESYSTEM_FALLBACK_TIMEOUT_REPEATED = 15000;
+        
+        // Check that all the dependencies are installed
+        var VERSION = c9.version || "3.0.0";
+        installer.createSession("c9.ide.collab", VERSION, require("./install"));
 
         var loaded = false;
         function load() {
