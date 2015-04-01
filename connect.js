@@ -271,7 +271,7 @@ define(function(require, exports, module) {
                 "Cloud9 detected you are missing one or more collab dependencies." +
                 " Would you like to open the installer to update to the latest version?",
                 function(){ // Yes
-                    installer.show();
+                    installer.reinstall("c9.ide.collab");
                 },
                 function(){ // No
                     // Do nothing
