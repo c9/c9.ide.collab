@@ -28,7 +28,7 @@ module.exports = function(session, options){
     ]);
     
     session.install({
-        "name": "Sequelize",
+        "name": "Sequalize",
         "description": "Sequalize NPM module",
         "cwd": "~/.c9",
         "optional": true
