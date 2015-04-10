@@ -52,4 +52,6 @@ module.exports = function(session, options){
     session.start();
 };
 
+module.exports.version = 1;
+
 });

@@ -59,8 +59,7 @@ define(function(require, exports, module) {
         var SAVE_FILESYSTEM_FALLBACK_TIMEOUT_REPEATED = 15000;
         
         // Check that all the dependencies are installed
-        var VERSION = c9.version || "3.0.0";
-        installer.createSession("c9.ide.collab", VERSION, require("./install"));
+        installer.createSession("c9.ide.collab", require("./install"));
 
         var loaded = false;
         function load() {
