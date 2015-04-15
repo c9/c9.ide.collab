@@ -1,17 +1,17 @@
+"use strict";
 "use server";
+"use mocha";
+
+require("c9/inline-mocha")(module);
 
 if (typeof process !== "undefined") {
     require("amd-loader");
     require("../../../test/setup_paths");
 }
 
-define(function(require, exports, module) {
-"use strict";
 
 var assert = require("ace/test/assertions");
 var operations = require("./operations");
-
-function noop () {}
 
 var packedCs;
 
@@ -140,13 +140,10 @@ var handleChangesTests = [
     ]
 ];
 
-handleChangesTests.forEach(function(test) {
-    exports["test handleUserChanges '" + test[0] + "' --> " + test[2].join(",")] = function(){
-        testHandleUserChanges.apply(null, test);
-    };
+describe(__filename, function() {
+    handleChangesTests.forEach(function(test) {
+        it("should handleUserChanges '" + test[0] + "' --> " + test[2].join(","), function() {
+            testHandleUserChanges.apply(null, test);
+        });
+    });
 });
-
-});
-
-if (typeof module !== "undefined" && module === require.main)
-    require("asyncjs").test.testcase(module.exports).exec();

@@ -1,12 +1,12 @@
+"use strict";
 "use server";
+"use mocha";
 
+require("c9/inline-mocha")(module);
 if (typeof process !== "undefined") {
     require("amd-loader");
     require("../../../test/setup_paths");
 }
-
-define(function(require, exports, module) {
-"use strict";
 
 var Document = require("ace/document").Document;
 var assert = require("ace/test/assertions");
@@ -26,18 +26,13 @@ function test(str, result) {
     assert.equal(resultAce, result, "applyContents failed");
 }
 
-module.exports = {
-    "test different apply cases" : function() {
+describe(__filename, function() {
+    it("should test different apply cases", function() {
         test("abc", "abcd");
         test("abc", "abdef");
         test("abc-def", "c-efiy");
         test("abc-def", "");
         test("", "fly");
         test("abc\ndef\njhi", "def\nabc\njhi");
-    }
-};
-
+    });
 });
-
-if (typeof module !== "undefined" && module === require.main)
-    require("asyncjs").test.testcase(module.exports).exec();

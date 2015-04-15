@@ -1,12 +1,12 @@
+"use strict";
 "use server";
+"use mocha";
 
+require("c9/inline-mocha")(module);
 if (typeof process !== "undefined") {
     require("amd-loader");
     require("../../../test/setup_paths");
 }
-
-define(function(require, exports, module) {
-"use strict";
 
 var Document = require("ace/document").Document;
 var assert = require("ace/test/assertions");
@@ -29,8 +29,8 @@ function test(pos, index) {
     ].join("|"));
 }
 
-module.exports = {
-    "test index to position" : function() {
+describe(__filename, function() {
+    it("should index to position", function() {
         createDoc("par\na\na");
         assert.equal(doc.getNewLineCharacter().length, 1);
         test({row: 1, column: 0}, 4);
@@ -42,8 +42,8 @@ module.exports = {
         doc.removeNewLine(0);
         test({row: 2, column: 0}, 6);
         test({row: 1, column: 0}, 4);
-    },
-    "test document with \\r\\n" : function() {
+    });
+    it("should document with \\r\\n", function() {
         createDoc("par\r\na\r\na");
         assert.equal(doc.getNewLineCharacter().length, 2);
         test({row: 1, column: 0}, 5);
@@ -55,10 +55,5 @@ module.exports = {
         doc.removeNewLine(0);
         test({row: 2, column: 0}, 8);
         test({row: 1, column: 0}, 5);
-    }
-};
-
+    });
 });
-
-if (typeof module !== "undefined" && module === require.main)
-    require("asyncjs").test.testcase(module.exports).exec();
