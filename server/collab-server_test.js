@@ -2,7 +2,7 @@
 "use server";
 "use mocha";
 
-require("c9/inline-mocha")(module);
+require("c9/inline-mocha")(module, null, {globals: ["db", "columnTypes"]});
 
 var assert = require("assert");
 var async = require("async");
@@ -134,7 +134,7 @@ describe(__filename, function() {
     });
 
     it("should broadcasting server", function(next) {
-        this.collab1.stream.on("data", function (data) {
+        this.collab1.stream.once("data", function (data) {
             console.log("Stream data:", data.toString());
             next();
         });
@@ -142,7 +142,7 @@ describe(__filename, function() {
     });
 
     it("should stream end on dispose", function(next) {
-        this.collab1.stream.on("end", function (data) {
+        this.collab1.stream.once("end", function (data) {
             next();
         });
         this.collab1.dispose(user1.clientId);
