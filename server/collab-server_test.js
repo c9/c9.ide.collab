@@ -1,11 +1,6 @@
-#!/usr/bin/env node
-/*global describe it before after beforeEach afterEach */
 "use strict";
-
 "use server";
 "use mocha";
-
-/** This unfortunately doesn't work yet and I have no idea why :( If you see this plz make this work **/
 
 require("c9/inline-mocha")(module);
 
@@ -18,6 +13,7 @@ var fs = require("fs");
 var vfsCollab = require("./collab-server");
 var execFile = require("child_process").execFile;
 var path = require("path");
+
 
 var TEST_PID = 800;
 
@@ -74,8 +70,9 @@ function initCollab(user, next) {
     });
 }
 
-describe("collab-server-test", function() {
-    this.timeout(10000);
+describe(__filename, function() {
+
+    this.timeout(60000);
 
     before(function (next) {
         execFile("rm", ["-rf", path.join(process.env.HOME, "/.c9/" + TEST_PID)], function(code, stdout, stderr) {
@@ -85,13 +82,10 @@ describe("collab-server-test", function() {
         });
     });
 
-    after(function (next) {
+    after(function(next) {
         fs.unlinkSync(__dirname + "/test.txt");
-        execFile("rm", ["-rf", path.join(process.env.HOME, "/.c9/" + TEST_PID)], function(code, stdout, stderr) {
-            if (!code)
-                return next();
-            next(stderr);
-        });
+        next();
+        //module.exports.setUpSuite(next);
     });
 
     beforeEach(function(next) {
@@ -114,7 +108,9 @@ describe("collab-server-test", function() {
                 vfsCollab.Store.newDocument({
                     path: path,
                     contents: text
-                }, next);
+                }, function() {
+                    next();
+                });
             });
         });
     });
@@ -128,7 +124,7 @@ describe("collab-server-test", function() {
         }, 100);
     });
 
-    it("test 2 clients collab initialization", function() {
+    it("should 2 clients collab initialization", function() {
         var collab1 = this.collab1;
         var collab2 = this.collab2;
         assert.ok(collab1);
@@ -137,7 +133,7 @@ describe("collab-server-test", function() {
         assert.ok(!collab2.meta.isMaster);
     });
 
-    it("test broadcasting server", function(next) {
+    it("should broadcasting server", function(next) {
         this.collab1.stream.on("data", function (data) {
             console.log("Stream data:", data.toString());
             next();
@@ -145,14 +141,14 @@ describe("collab-server-test", function() {
         this.collab1.send(user1.clientId, {type:"PING"});
     });
 
-    it("test stream end on dispose", function (next) {
+    it("should stream end on dispose", function(next) {
         this.collab1.stream.on("end", function (data) {
             next();
         });
         this.collab1.dispose(user1.clientId);
     });
 
-    var joinDocument = function (docPath, toJoin, otherCollab, next) {
+    function joinDocument(docPath, toJoin, otherCollab, next) {
         var initatorMsg, collabMsg;
         var joinerStream = toJoin.stream;
         var collabStream = otherCollab.stream;
@@ -196,17 +192,17 @@ describe("collab-server-test", function() {
             type: "JOIN_DOC",
             data: {docId: docPath}
         });
-    };
+    }
 
-    it("test join document from master", function (next) {
+    it("should join document from master", function(next) {
         joinDocument("test.txt", this.collab1, this.collab2, next);
     });
 
-    it("test join document from slave", function (next) {
+    it("should join document from slave", function(next) {
         joinDocument("test.txt", this.collab2, this.collab1, next);
     });
 
-    xit("test leave document", function (next) {
+    xit("should leave document", function (next) {
         var _self = this;
 
         var docPath = "test.txt";
@@ -250,7 +246,8 @@ describe("collab-server-test", function() {
         });
     });
 
-    it("test editing document - sync commit error", function (next) {
+
+    it("should editing document - sync commit error", function(next) {
         var _self = this;
 
         var docPath = "test.txt";
@@ -277,7 +274,7 @@ describe("collab-server-test", function() {
         });
     });
 
-    it("test editing document - a single commit", function (next) {
+    it("should editing document - a single commit", function(next) {
         var _self = this;
 
         var docPath = "test.txt";
@@ -313,7 +310,7 @@ describe("collab-server-test", function() {
         });
     });
 
-    it("test the master leaving and re-connecting", function (next) {
+    it("should the master leaving and re-connecting", function(next) {
         var _self = this;
         this.collab1.dispose(user1.clientId);
         setTimeout(function () {
@@ -325,7 +322,7 @@ describe("collab-server-test", function() {
         }, 1000);
     });
 
-    it("test a participant leaving and re-connecting", function (next) {
+    it("should a participant leaving and re-connecting", function(next) {
         var _self = this;
         this.collab2.dispose(user2.clientId);
         initCollab(user2, function(err, collab2) {
