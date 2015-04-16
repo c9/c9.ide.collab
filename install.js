@@ -28,8 +28,8 @@ module.exports = function(session, options){
     ]);
     
     session.install({
-        "name": "Sequalize",
-        "description": "Sequalize NPM module",
+        "name": "Sequelize",
+        "description": "Sequelize NPM module",
         "cwd": "~/.c9",
         "optional": true
     }, {
