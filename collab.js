@@ -63,10 +63,6 @@ define(function(require, exports, module) {
 
         var loaded = false;
         function load() {
-            if (!installer.isInstalled("c9.ide.collab", function(){
-                load();
-            })) return;
-            
             if (loaded) return;
             loaded = true;
 
