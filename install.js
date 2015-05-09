@@ -3,7 +3,8 @@ define(function(require, exports, module) {
 module.exports = function(session, options){
     // Dependencies for the collaboration features of Cloud9
     
-    session.install({
+    var win32 = options.platform == "win32";
+    win32 || session.install({
         "name": "SQLite",
         "description": "SQLite Database and NPM module",
         "cwd": "~/.c9",
