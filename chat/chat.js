@@ -80,6 +80,16 @@ define(function(require, exports, module) {
                 // clearbutton      : "true",
                 focusselect: "true"
             });
+            
+            chatInput.$ext.classList.remove("ace_searchbox");
+            chatInput.ace.setOptions({
+                wrap: "free",
+                indentedSoftWrap: false,
+                maxLines: 5,
+                minLines: 2,
+                fontFamily: "inherit"
+            });
+            chatInput.ace.session.$setFontMetrics(chatInput.ace.renderer.$fontMetrics);
 
             plugin.addElement(chatInput);
 
@@ -95,7 +105,6 @@ define(function(require, exports, module) {
                 chatCounter.innerHTML = chatHistory.length;
             }
 
-            chatInput.ace.setOption("wrap", "free");
             chatInput.ace.commands.addCommands([
                 {
                     bindKey: "ESC",
