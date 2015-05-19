@@ -681,7 +681,7 @@ define(function(require, module, exports) {
             // An edit message can also have a piggy-packed selection update - optimization
             function handleIncomingEdit(msg) {
                 if (msg.revNum !== latestRevNum + 1) {
-                    reportError(new Error("Collab: Incoming edit revNum mismatch"), { serverRevNum: msg.revNum });
+                    reportError(new Error("Collab: Incoming edit revNum mismatch"), { serverRevNum: msg.revNum, latestRevNum: latestRevNum });
                     return;
                 }
                 
