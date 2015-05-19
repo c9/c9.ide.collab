@@ -532,7 +532,7 @@ define(function(require, module, exports) {
                 
                 // Reset state
                 latestRevNum = serverRevNum;
-
+                
                 // No one else edited the document: send any local changes to server
                 var otherMembersNums = Object.keys(doc.selections).length;
                 if (clientRevNum === serverRevNum || (!otherMembersNums && clientContents)) {
@@ -546,17 +546,22 @@ define(function(require, module, exports) {
                 }
                 // Seems document wasn't loaded yet; set server contents
                 else if (!clientRevNum) {
-                    if (rejoinReason && clientContents && clientContents !== serverContents)
-                        reportError(new Error("Collab: reverting local changes on uninited document"));
+                    if (rejoinReason && clientContents && clientContents !== serverContents) {
+                        reportError(new Error("Collab: reverting local changes on uninited document"), {rejoinReason: rejoinReason, clientRevNum: clientRevNum, serverRevNum: serverRevNum, clientContents: clientContents, serverContents: serverContents});
+                    }
                     
                     setValue(serverContents, clean, clean); // reset and bookmark if clean
                 }
                 // Other people edited the document, or there was a newer version on the server
                 // Restore consistency by overwiting any local changes
                 else {
+                    if (clientRevNum > serverRevNum) {
+                        reportError(new Error("Collab: clientRevNum is higher than serverRevNum"), {rejoinReason: rejoinReason, clientRevNum: clientRevNum, serverRevNum: serverRevNum, clientContents: clientContents, serverContents: serverContents});
+                    }
+
                     if (rejoinReason && clientContents && clientContents !== serverContents) {
                         // TODO: nicely merge local and remote edits
-                        reportError(new Error("Collab: reverting local changes on collaborative document"));
+                        reportError(new Error("Collab: reverting local changes on collaborative document"), {rejoinReason: rejoinReason, clientRevNum: clientRevNum, serverRevNum: serverRevNum, clientContents: clientContents, serverContents: serverContents});
                     }
                     
                     // Will auto-aptimize to use 'patchedSetValue'
@@ -676,7 +681,7 @@ define(function(require, module, exports) {
             // An edit message can also have a piggy-packed selection update - optimization
             function handleIncomingEdit(msg) {
                 if (msg.revNum !== latestRevNum + 1) {
-                    reportError(new Error("Incoming edit revNum mismatch"), { serverRevNum: msg.revNum });
+                    reportError(new Error("Collab: Incoming edit revNum mismatch"), { serverRevNum: msg.revNum });
                     return;
                 }
                 
@@ -698,6 +703,7 @@ define(function(require, module, exports) {
                         // a- a file watcher caused this document sync on (overriding my changes)
                         // b- my changes may lead to inconsist state or can fail to be applied to the new synced document state
                         console.log("Received new document, discarding any pending changes");
+                        reportError(new Error("Collab: Received new document, discarding any pending changes"), {msg: msg, latestRevNum: latestRevNum})
                         try {
                             revertMyPendingChanges(msg.userId);
                         } catch (e) {
@@ -965,7 +971,7 @@ define(function(require, module, exports) {
                 if (!outgoing.length)
                     return;
                 // TODO: determine when is this an error exactly? good to log it anyway now
-                reportError("Collab: reverting pending changes to document because of server sync commit");
+                reportError("Collab: reverting pending changes to document because of server sync commit", {outgoing: outgoing, doc: session.doc});
                 userId = userId || workspace.myUserId;
                 for (var i = outgoing.length - 1; i >= 0; i--) {
                     applyEdit(
@@ -1014,7 +1020,7 @@ define(function(require, module, exports) {
                 
                 // this can happen if another users change reached server before ours, do not report error in that case
                 if (data.code == "VERSION_E" && latestRevNum !== data.revNum) {
-                    reportError(new Error("OT version inconsistency"), { serverRevNum: data.revNum });
+                    reportError(new Error("OT version inconsistency"), {serverRevNum: data.revNum, latestRevNum: latestRevNum});
                     latestRevNum = data.revNum;
                 }
                 
