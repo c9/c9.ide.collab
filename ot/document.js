@@ -1045,8 +1045,9 @@ define(function(require, module, exports) {
                     if (value == undefined) {
                         // value can be null if doc is just loaded and there are no revisions
                         // but then fsHash should match
-                        if (plugin.docHash !== data.fsHash)
-                            reportError("File saved, unable to confirm checksum");
+                        if (plugin.docHash !== data.fsHash) {
+                            reportError("File saved, unable to confirm checksum", {docHash: plugin.docHash, fsHash: data.fsHash, revNum: data.revNum, docId: docId});
+                        }
                     }
                     else if (apf.crypto.MD5.hex_md5(value) !== data.fsHash) {
                         reportError("File saving checksum failed; retrying with XHR");
