@@ -1020,17 +1020,17 @@ define(function(require, module, exports) {
                 
                 // this can happen if another users change reached server before ours, do not report error in that case
                 if (data.code == "VERSION_E" && latestRevNum !== data.revNum) {
-                    reportError(new Error("OT version inconsistency"), {serverRevNum: data.revNum, latestRevNum: latestRevNum});
+                    reportError(new Error("Collab: OT version inconsistency"), {serverRevNum: data.revNum, latestRevNum: latestRevNum});
                     latestRevNum = data.revNum;
                 }
                 
                 if (data.code == "OT_E" || commitTrials > MAX_COMMIT_TRIALS) {
                     console.warn("[OT] Local document inconsistent with server; attempting rejoin -- SYNC_COMMIT", data.reason, data.code);
-                    reportError(new Error("Non-fatal: sync commit because of OT error; attempting rejoin"), { data: data });
+                    reportError(new Error("Collab: Non-fatal: sync commit because of OT error; attempting rejoin"), { data: data });
                     rejoin("OT_E");
                 }
                 else {
-                    console.warn("[OT] Local document inconsistent with server; reapplying changes -- SYNC_COMMIT", data.reason, data.code);
+                    console.warn("Collab: [OT] Local document inconsistent with server; reapplying changes -- SYNC_COMMIT", data.reason, data.code);
                     scheduleSend();
                 }
             }
