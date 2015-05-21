@@ -176,7 +176,14 @@ define(function(require, module, exports) {
                             + "access " + words[field] + "."),
                     function(){ // Yes
                         cb.disable();
-                        api.project.put("access/" + field + "/" + to, function(err){
+                        var key = field == "visibility" ? field : field + "Access";
+                        var body = {};
+                        body[key] = to;
+                        
+                        api.project.patch("", {
+                            body: body,
+                            contentType: "application/json"
+                        }, function(err) {
                             cb.enable();
                             
                             if (callback)
