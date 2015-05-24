@@ -285,7 +285,7 @@ define(function(require, exports, module) {
                 }
                 
                 cachedMembers.forEach(function(newM) {
-                    var m = membersById[newM.uid] || {}
+                    var m = membersById[newM.uid] || (membersById[newM.uid] = {});
                     for (var i in newM)
                         m[i] = newM[i];
                     
