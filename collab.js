@@ -723,8 +723,8 @@ define(function(require, exports, module) {
                 if (id == myId) return;
                 var user = users[id];
                 if (!user.online)
-                    return menus.remove(id);
-                if (menus.getMenuId(id)) 
+                    return menus.remove("user_" + id);
+                if (menus.getMenuId("user_" + id)) 
                     return;
                 addButton(id, user.fullname, user.email);
             });
