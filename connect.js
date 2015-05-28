@@ -110,7 +110,7 @@ define(function(require, exports, module) {
             extended = true;
             
             ext.loadRemotePlugin("collab", {
-                file: "collab-server.js"
+                file: "c9.ide.collab/server/collab-server.js"
             }, function(err, api) {
                 if (!api) {
                     extended = false;
