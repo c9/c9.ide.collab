@@ -11,6 +11,7 @@ var exists = Fs.exists || Path.exists;
 var localfsAPI; // Set on VFS register
 var DEFAULT_NL_CHAR_FILE = "\n";
 var DEFAULT_NL_CHAR_DOC = "";
+var MAX_WRITE_ATTEMPTS = 3;
 
 // Models
 var User, Document, Revision, Workspace, ChatMessage;
@@ -21,6 +22,8 @@ var dbFilePath;
 // Cache the workspace state got from the database
 var cachedWS;
 var cachedUsers;
+
+var totalWriteAttempts = 0;
 
 var Sequelize;
 
@@ -260,15 +263,27 @@ function initDB(readonly, callback) {
     ], function(err) {
         if (!err)
             return callback();
-        console.error("[vfs-collab] initDB attemp failed:", err);
+        console.error("[vfs-collab] initDB attempt failed:", err);
         if (err.code !== "SQLITE_CORRUPT" && err.code !== "SQLITE_NOTADB")
             return callback(err); // not sure how to handle any other errors if any
         console.error("[vfs-collab] initDB found a corrupted database - backing up and starting with a fresh collab database");
-        Fs.rename(dbFilePath, dbFilePath + ".old", function (err) {
-            if (err)
-                return callback(err);
+        resetDB(function() {
             initDB(readonly, callback);
         });
+    });
+}
+
+/** 
+ * Resets the database back to default state deleting all collab changes. 
+ * This is useful if the database somehow becomes corrupt and can no longer be written to
+ **/
+
+function resetDB(callback) {
+    console.error("[vfs-collab] Resetting Database");
+    Fs.rename(dbFilePath, dbFilePath + ".old", function (err) {
+        if (err)
+            return callback(err);
+        callback();
     });
 }
 
@@ -1268,8 +1283,14 @@ function handleEditUpdate(userIds, client, data) {
     function done(err) {
         unlock(docId);
         if (err) {
-            console.error("[vfs-collab]", err);
+            console.error("[vfs-collab] handleEditUpdate error. Total attempts: " + totalWriteAttempts);
+            totalWriteAttempts++;
+            if (totalWriteAttempts >= MAX_WRITE_ATTEMPTS) {
+                resetDB(); 
+            }
             syncCommit(err);
+        } else {
+            totalWriteAttempts = 0; // On a successful save reset this to zero so we don't reset the DB from entropy over time.
         }
     }
 
