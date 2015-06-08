@@ -1286,7 +1286,7 @@ function handleEditUpdate(userIds, client, data) {
             console.error("[vfs-collab] handleEditUpdate error. Total attempts: " + totalWriteAttempts);
             totalWriteAttempts++;
             if (totalWriteAttempts >= MAX_WRITE_ATTEMPTS) {
-                resetDB(); 
+                initDB(); 
             }
             syncCommit(err);
         } else {
