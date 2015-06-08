@@ -12,6 +12,7 @@ var localfsAPI; // Set on VFS register
 var DEFAULT_NL_CHAR_FILE = "\n";
 var DEFAULT_NL_CHAR_DOC = "";
 var MAX_WRITE_ATTEMPTS = 3;
+var RESETTING_DATABASE = false;
 
 // Models
 var User, Document, Revision, Workspace, ChatMessage;
@@ -24,6 +25,7 @@ var cachedWS;
 var cachedUsers;
 
 var totalWriteAttempts = 0;
+var lastFailedWrite = 0;
 
 var Sequelize;
 
@@ -73,7 +75,36 @@ function installServer(callback) {
 function wrapSeq(fun, next) {
     return fun.success(function () {
         next.apply(null, [null].concat(Array.prototype.slice.apply(arguments)));
-    }).error(next);
+    }).error(function (err) {
+        checkDBCorruption(err, next)
+    });
+}
+
+/** 
+ * Check for DB corruption errors in SQL Query and if we have some then run initDB again
+ **/
+function checkDBCorruption (err, callback) {
+    if (!err) {
+        return callback();
+    }
+    
+    console.error("[vfs-collab] CheckDBCorruption encountered error: ", err);
+    if (err.code === "SQLITE_CORRUPT" || err.code === "SQLITE_NOTADB") {
+        return resetDB(callback); 
+    }
+    
+    if (err.code == "SQLITE_READONLY") {
+        if (lastFailedWrite < (Date.now() - 5000)) {
+            totalWriteAttempts = 0;
+        }
+        totalWriteAttempts++;
+        lastFailedWrite = Date.now();
+        if (totalWriteAttempts >= MAX_WRITE_ATTEMPTS) {
+            return resetDB(callback);
+        }
+    }
+    
+    callback(err); 
 }
 
 /**
@@ -267,9 +298,7 @@ function initDB(readonly, callback) {
         if (err.code !== "SQLITE_CORRUPT" && err.code !== "SQLITE_NOTADB")
             return callback(err); // not sure how to handle any other errors if any
         console.error("[vfs-collab] initDB found a corrupted database - backing up and starting with a fresh collab database");
-        resetDB(function() {
-            initDB(readonly, callback);
-        });
+        resetDB(callback);
     });
 }
 
@@ -279,11 +308,19 @@ function initDB(readonly, callback) {
  **/
 
 function resetDB(callback) {
+    if (RESETTING_DATABASE) return callback();
     console.error("[vfs-collab] Resetting Database");
+    RESETTING_DATABASE = true;
     Fs.rename(dbFilePath, dbFilePath + ".old", function (err) {
-        if (err)
+        if (err) {
+            RESETTING_DATABASE = false; 
             return callback(err);
-        callback();
+        }
+        
+        initDB(false, function() {
+            RESETTING_DATABASE = false;     
+            callback();
+        });
     });
 }
 
@@ -1283,14 +1320,7 @@ function handleEditUpdate(userIds, client, data) {
     function done(err) {
         unlock(docId);
         if (err) {
-            console.error("[vfs-collab] handleEditUpdate error. Total attempts: " + totalWriteAttempts);
-            totalWriteAttempts++;
-            if (totalWriteAttempts >= MAX_WRITE_ATTEMPTS) {
-                initDB(false, function(){}); 
-            }
             syncCommit(err);
-        } else {
-            totalWriteAttempts = 0; // On a successful save reset this to zero so we don't reset the DB from entropy over time.
         }
     }
 
