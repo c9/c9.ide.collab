@@ -100,27 +100,20 @@ function checkDBCorruption (err, callback) {
         totalWriteAttempts++;
         lastFailedWrite = Date.now();
         if (totalWriteAttempts >= MAX_WRITE_ATTEMPTS) {
-            return resetDB(callback);
+            console.error("[vfs-collab] Failed to write " + MAX_WRITE_ATTEMPTS + " times, checking if database is corrupt");
+            
+            // If the database is really corrupt this should return a corruption error which will be caught above
+            var sequelize = connectToDB();
+            wrapSeq(sequelize.query("PRAGMA synchronous = 0;"), function() {
+                sequelize.close();
+            }); 
         }
     }
     
     callback(err); 
 }
 
-/**
- * Initialize the collab server sqlite3 database
- *  - Define modules mapping to tables
- *  - Declare relationships
- *  - Sync sequelize modules
- *  - Create and cache the Workspace metadata
- *  - Set synchronous = 0 for fastest IO performance
- *  - Create indices, if not existing
- * 
- * @param {Boolean} readonly    Whether the intention is only to read from the
- *                              database (if true, initialization is skipped)
- * @param {Function} callback
- */
-function initDB(readonly, callback) {
+function connectToDB() {
     var MAX_LOG_LINE_LENGTH = 151;
 
     dbFilePath = dbFilePath || Path.join(getProjectWD(), "collab.db");
@@ -163,6 +156,25 @@ function initDB(readonly, callback) {
         // currently only for mysql and postgresql (since v1.5.0)
         pool: { maxConnections: 5, maxIdleTime: 30}
     });
+    
+    return sequelize;
+}
+
+/**
+ * Initialize the collab server sqlite3 database
+ *  - Define modules mapping to tables
+ *  - Declare relationships
+ *  - Sync sequelize modules
+ *  - Create and cache the Workspace metadata
+ *  - Set synchronous = 0 for fastest IO performance
+ *  - Create indices, if not existing
+ * 
+ * @param {Boolean} readonly    Whether the intention is only to read from the
+ *                              database (if true, initialization is skipped)
+ * @param {Function} callback
+ */
+function initDB(readonly, callback) {
+    var sequelize = connectToDB();
 
     Store.User = User = sequelize.define("User", {
         uid: { type: Sequelize.STRING, primaryKey: true },
