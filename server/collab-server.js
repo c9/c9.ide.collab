@@ -89,7 +89,7 @@ function checkDBCorruption (err, callback) {
     }
     
     console.error("[vfs-collab] CheckDBCorruption encountered error: ", err);
-    if (err.code === "SQLITE_CORRUPT" || err.code === "SQLITE_NOTADB") {
+    if (err.code === "SQLITE_CORRUPT" || err.code === "SQLITE_NOTADB" || err.code === "SQLITE_IOERR") {
         return resetDB(callback); 
     }
     
@@ -295,10 +295,7 @@ function initDB(readonly, callback) {
         if (!err)
             return callback();
         console.error("[vfs-collab] initDB attempt failed:", err);
-        if (err.code !== "SQLITE_CORRUPT" && err.code !== "SQLITE_NOTADB")
-            return callback(err); // not sure how to handle any other errors if any
-        console.error("[vfs-collab] initDB found a corrupted database - backing up and starting with a fresh collab database");
-        resetDB(callback);
+        checkDBCorruption(err, callback);
     });
 }
 
@@ -309,7 +306,7 @@ function initDB(readonly, callback) {
 
 function resetDB(callback) {
     if (RESETTING_DATABASE) return callback();
-    console.error("[vfs-collab] Resetting Database");
+    console.error("[vfs-collab] found a corrupted database - backing up and starting with a fresh collab database");
     RESETTING_DATABASE = true;
     Fs.rename(dbFilePath, dbFilePath + ".old", function (err) {
         if (err) {
