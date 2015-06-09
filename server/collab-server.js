@@ -323,7 +323,7 @@ function resetDB(callback) {
     console.error("[vfs-collab] found a corrupted database - backing up and starting with a fresh collab database");
     RESETTING_DATABASE = true;
     Fs.rename(dbFilePath, dbFilePath + ".old", function (err) {
-        if (err) {
+        if (err && err.code !== "ENOENT") {
             RESETTING_DATABASE = false; 
             return callback(err);
         }
