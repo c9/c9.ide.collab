@@ -105,7 +105,9 @@ function checkDBCorruption (err, callback) {
             // If the database is really corrupt this should return a corruption error which will be caught above
             var sequelize = connectToDB();
             wrapSeq(sequelize.query("PRAGMA synchronous = 0;"), function() {
-                sequelize.close();
+                if (sequelize.close) {
+                    sequelize.close();
+                }
             }); 
         }
     }
