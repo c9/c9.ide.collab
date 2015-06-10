@@ -2643,7 +2643,7 @@ function initSocket(userIds, callback) {
         });
 
         client.on("error", function (err) {
-            if (err && (err.code === "ECONNREFUSED" || err.code === "ENOENT")) {
+            if (err && (err.code === "ECONNREFUSED" || err.code === "ENOENT" || err.code === "EAGAIN")) {
                 startServer();
             }
             else {
