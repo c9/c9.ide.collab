@@ -23,7 +23,7 @@ var cachedWS;
 var cachedUsers;
 
 var Sequelize;
-var nodePath = getHomeDir() + "/.c9/node_modules/";
+var nodePath = getHomeDir() + "/.c9/node_modules";
 
 var debug = false;
 
@@ -52,9 +52,9 @@ function installServer(callback) {
             return false;
         }
     }
-    if (!Sequelize && !checkInstalled(nodePath) && !checkInstalled("")) {
+    if (!Sequelize && !checkInstalled(nodePath + "/") && !checkInstalled("")) {
         var err = new Error("[vfs-collab] Couldn't load node modules sqlite3 and sequelize "
-            + "from " + getHomeDir() + "/.c9/node_modules/; "
+            + "from " + nodePath + " "
             + "node version: " + process.version + "; "
             + "node execPath " + process.execPath
             );
