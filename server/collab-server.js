@@ -321,7 +321,7 @@ function initDB(readonly, callback) {
  **/
 
 function resetDB(callback) {
-    if (RESETTING_DATABASE) return callback();
+    if (RESETTING_DATABASE || !isMaster) return callback();
     console.error("[vfs-collab] found a corrupted database - backing up and starting with a fresh collab database");
     RESETTING_DATABASE = true;
     Fs.rename(dbFilePath, dbFilePath + ".old", function (err) {
@@ -938,6 +938,7 @@ var Store = (function () {
             savedWS.authorPool = authorPool;
             savedWS.colorPool = colorPool;
             cachedWS = savedWS;
+            console.error("Saved workspace, authorpool: ", ws.authorPool, " colorPool: ", ws.colorPool)
             callback(null, savedWS);
         });
     }
@@ -1123,6 +1124,8 @@ function handleConnect(userIds, client) {
 
         var fullname = userIds.fullname;
         var email = userIds.email;
+        
+        console.error("[vfs-collab] in syncUserInfo. fullname: " + fullname + " email: " + email);
 
         wrapSeq(User.find({where: {uid: userId}}), function (err, user) {
             if (err)
@@ -1161,6 +1164,7 @@ function handleConnect(userIds, client) {
             var authorPool = ws.authorPool;
             var colorPool = ws.colorPool;
 
+            console.error("[vfs-collab] in augmentWorkspaceInfo userId: ", userId, " authorPool: ", authorPool, " colorPool: ", colorPool);
             if (authorPool[userId] && colorPool[userId])
                 return doConnect(authorPool, colorPool);
 
@@ -2566,7 +2570,6 @@ function initSocket(userIds, callback) {
 
     var projectWD = getProjectWD();
     var server;
-    var isServer = false;
 
     // startServer();
     // file sockets can have multiple servers open on the same path
@@ -2621,7 +2624,7 @@ function initSocket(userIds, callback) {
             }
 
             server.listen(sockPath, function () {
-                isServer = true;
+                isMaster = true;
                 server.collabInited = false;
 
                 // init server state
@@ -2702,7 +2705,7 @@ function initSocket(userIds, callback) {
             });
 
             client.write(JSON.stringify(userIds), "utf8", function() {
-                callback(null, client, isServer && server);
+                callback(null, client, isMaster && server);
             });
         });
 
@@ -2772,7 +2775,6 @@ var exports = module.exports = function(vfs, options, register) {
 
             cleanOldClient();
             vfsClientMap[clientId] = client;
-            isMaster = !!server;
 
             callback(null, {
                 stream: client.clientStream,
