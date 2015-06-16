@@ -27,6 +27,8 @@ var cachedUsers;
 var totalWriteAttempts = 0;
 var lastFailedWrite = 0;
 
+var isMaster = false;
+
 var Sequelize;
 
 var debug = false;
@@ -233,7 +235,7 @@ function initDB(readonly, callback) {
     Document.hasMany(Revision);
     Revision.belongsTo(Document);
     
-    if (readonly)
+    if (readonly || !isMaster)
         return callback();
 
     // Add migrations here e.g. ALTER TABLE ... ADD COLUMN ...
@@ -2732,8 +2734,6 @@ function initSocket(userIds, callback) {
 var exports = module.exports = function(vfs, options, register) {
 
     var vfsClientMap = {};
-    var isMaster;
-
     localfsAPI = vfs;
 
     function connect(opts, callback) {
