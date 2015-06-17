@@ -946,7 +946,6 @@ var Store = (function () {
             savedWS.authorPool = authorPool;
             savedWS.colorPool = colorPool;
             cachedWS = savedWS;
-            console.error("Saved workspace, authorpool: ", ws.authorPool, " colorPool: ", ws.colorPool)
             callback(null, savedWS);
         });
     }
@@ -1133,8 +1132,6 @@ function handleConnect(userIds, client) {
         var fullname = userIds.fullname;
         var email = userIds.email;
         
-        console.error("[vfs-collab] in syncUserInfo. fullname: " + fullname + " email: " + email);
-
         wrapSeq(User.find({where: {uid: userId}}), function (err, user) {
             if (err)
                 return done("[vfs-collab] syncUserInfo " + String(err));
@@ -1172,7 +1169,6 @@ function handleConnect(userIds, client) {
             var authorPool = ws.authorPool;
             var colorPool = ws.colorPool;
 
-            console.error("[vfs-collab] in augmentWorkspaceInfo userId: ", userId, " authorPool: ", authorPool, " colorPool: ", colorPool);
             if (authorPool[userId] && colorPool[userId])
                 return doConnect(authorPool, colorPool);
 
@@ -2573,13 +2569,9 @@ function createServer() {
 
 
 function initSocket(userIds, callback) {
-    // var COLLAB_PORT = 33366;
-    // var COLLAB_HOST = process.env.OPENSHIFT_DIY_IP || "localhost";
-
     var projectWD = getProjectWD();
     var server;
 
-    // startServer();
     // file sockets can have multiple servers open on the same path
     // So, we connect first
     var sockPath = process.platform == "win32"
