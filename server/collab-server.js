@@ -2778,7 +2778,7 @@ var exports = module.exports = function(vfs, options, register) {
 
             callback(null, {
                 stream: client.clientStream,
-                isMaster: isMaster
+                isMaster: isMaster && !!server
             });
         });
     }
