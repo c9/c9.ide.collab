@@ -86,12 +86,17 @@ function wrapSeq(fun, next) {
  * Check for DB corruption errors in SQL Query and if we have some then run initDB again
  **/
 function checkDBCorruption (err, callback) {
-    if (!err) {
+    if (!err || !isMaster) {
         return callback();
     }
     
     console.error("[vfs-collab] CheckDBCorruption encountered error: ", err);
     if (err.code === "SQLITE_CORRUPT" || err.code === "SQLITE_NOTADB" || err.code === "SQLITE_IOERR") {
+        console.error("[vfs-collab] found a corrupted database - backing up and starting with a fresh collab database");
+        broadcast({
+            type: "ERROR",
+            err: new Error("Collab database corrupt")
+        });
         return resetDB(callback); 
     }
     
@@ -322,7 +327,7 @@ function initDB(readonly, callback) {
 
 function resetDB(callback) {
     if (RESETTING_DATABASE || !isMaster) return callback();
-    console.error("[vfs-collab] found a corrupted database - backing up and starting with a fresh collab database");
+    console.error("[vfs-collab] resetting collab database");
     RESETTING_DATABASE = true;
     Fs.rename(dbFilePath, dbFilePath + ".old", function (err) {
         if (err && err.code !== "ENOENT") {
@@ -332,6 +337,9 @@ function resetDB(callback) {
         
         initDB(false, function() {
             RESETTING_DATABASE = false;     
+            broadcast({
+                type: "RESET_DB",
+            });
             callback();
         });
     });
