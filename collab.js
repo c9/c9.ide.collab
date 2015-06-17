@@ -259,7 +259,7 @@ define(function(require, exports, module) {
                 case "RESET_DB":
                     showAlert("Workspace issue encountered",
                         "An issue was detected with your workspace which we've recovered from. Your data is intact however your file revision history may have been lost.",
-                        "Cloud9 will now reload to resync information.", function() { 
+                        "Cloud9 will now reload to complete the recovery.", function() { 
                             setTimeout(function() { 
                                 window.location.reload()
                             }, 1000); 
