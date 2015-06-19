@@ -1,8 +1,6 @@
 define(function(require, exports, module) {
 "use strict";
 
-    var _ = require("lodash");
-
     main.consumes = [
         "Panel", "tabManager", "fs", "metadata", "ui", "apf", "settings", 
         "preferences", "ace", "util", "collab.connect", "collab.workspace", 
@@ -253,13 +251,16 @@ define(function(require, exports, module) {
                 case "ERROR":
                     errorHandler.log(
                         data.err || new Error("Collab error"), 
-                        _.extend({}, {users: workspace.users, userId: workspace.myUserId, clientId: workspace.myClientId}, data)
+                        util.extend({}, {users: workspace.users, userId: workspace.myUserId, clientId: workspace.myClientId}, data)
                     );
                     break;
                 case "RESET_DB":
-                    showAlert("Workspace issue encountered",
-                        "An issue was detected with your workspace which we've recovered from. Your data is intact however your file revision history may have been lost.",
-                        "Cloud9 will now reload to complete the recovery.", function() { 
+                    showAlert("Uh oh!",
+                        "Workspace issue encountered",
+                        "Your workspace encountered an issue, but don’t worry, we’ve resolved it. " +
+                        "Your data is still intact, however your file revision history may have been lost. " +
+                        "Give us just a moment to complete the recovery so you can get back to your project. ", 
+                        function() { 
                             setTimeout(function() { 
                                 window.location.reload()
                             }, 1000); 
