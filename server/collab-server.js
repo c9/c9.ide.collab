@@ -30,6 +30,7 @@ var lastFailedWrite = 0;
 var isMaster = false;
 
 var Sequelize;
+var nodePath = getHomeDir() + "/.c9/node_modules";
 
 var debug = false;
 
@@ -58,10 +59,9 @@ function installServer(callback) {
             return false;
         }
     }
-
-    if (!Sequelize && !checkInstalled(getHomeDir() + "/.c9/node_modules/") && !checkInstalled("")) {
+    if (!Sequelize && !checkInstalled(nodePath + "/") && !checkInstalled("")) {
         var err = new Error("[vfs-collab] Couldn't load node modules sqlite3 and sequelize "
-            + "from " + getHomeDir() + "/.c9/node_modules/; "
+            + "from " + nodePath + " "
             + "node version: " + process.version + "; "
             + "node execPath " + process.execPath
             );
@@ -1936,7 +1936,7 @@ function handleSaveFile(userIds, client, data) {
     function done(err) {
         unlock(docId);
         if (err) {
-            console.error("[vfs-collab]", err);
+            console.error("[vfs-collab] Failed to save file. docID: " + docId + " Err: ", err);
             client.send({
                 type: "FILE_SAVED",
                 data: {
@@ -2717,7 +2717,7 @@ function initSocket(userIds, callback) {
         });
 
         client.on("error", function (err) {
-            if (err && (err.code === "ECONNREFUSED" || err.code === "ENOENT")) {
+            if (err && (err.code === "ECONNREFUSED" || err.code === "ENOENT" || err.code === "EAGAIN")) {
                 startServer();
             }
             else {
@@ -2745,6 +2745,9 @@ var exports = module.exports = function(vfs, options, register) {
 
     var vfsClientMap = {};
     localfsAPI = vfs;
+    
+    if (options.nodePath)
+        nodePath = options.nodePath;
 
     function connect(opts, callback) {
         var user = options.user;
