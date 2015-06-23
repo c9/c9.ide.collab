@@ -1857,7 +1857,7 @@ function handleSaveFile(userIds, client, data) {
     function done(err) {
         unlock(docId);
         if (err) {
-            console.error("[vfs-collab]", err);
+            console.error("[vfs-collab] Failed to save file. docID: " + docId + " Err: ", err);
             client.send({
                 type: "FILE_SAVED",
                 data: {

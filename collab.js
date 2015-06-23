@@ -359,13 +359,17 @@ define(function(require, exports, module) {
             function onSaved(e) {
                 doc.off("saved", onSaved);
                 clearTimeout(saveFallbackTimeouts[docId]);
-                if ((e.code == "ETIMEOUT" || e.code == "EMISMATCH") && fallbackFn) {
-                    // The vfs socket is probably dead ot stale
-                    console.warn("[OT] collab error:", e.code, "trying to save file", docId, "- trying fallback approach instead");
-                    return fsSaveFallback({ code: e.code, err: e.err });
+                if (e.err) {
+                    if ((e.code == "ETIMEOUT" || e.code == "EMISMATCH") && fallbackFn) {
+                        // The vfs socket is probably dead ot stale
+                        console.warn("[OT] collab error:", e.code, "trying to save file", docId, "- trying fallback approach instead");
+                        return fsSaveFallback({ code: e.code, err: e.err });
+                    } else {
+                        sendSaveError({code: e.code, err: e.err }, "Collab saving failed on unexpected error");
+                    }
+                } else {
+                    failedSaveAttempts = 0
                 }
-                if (!e.err)
-                    failedSaveAttempts = 0;
                 callback(e.err);
             }
 
@@ -373,6 +377,11 @@ define(function(require, exports, module) {
                 var message = doc && doc.loaded
                     ? "Warning: using fallback saving on loaded document"
                     : "Warning: using fallback saving on unloaded document";
+                sendSaveError(attempt, message);
+                fallbackFn.apply(null, fallbackArgs);
+            }
+            
+            function sendSaveError(attempt, message) {
                 errorHandler.reportError(new Error(message), {
                     docId: docId,
                     loading: doc && doc.loading,
@@ -385,8 +394,6 @@ define(function(require, exports, module) {
                     attempt: attempt,
                     failedSaveAttempts: failedSaveAttempts
                 }, ["collab"]);
-                
-                fallbackFn.apply(null, fallbackArgs);
             }
 
             if (!doc.loaded || !connect.connected) {
