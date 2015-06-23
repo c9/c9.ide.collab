@@ -90,6 +90,13 @@ function checkDBCorruption (err, callback) {
         return callback();
     }
     
+    var errMessage = err && err.message ? " " + err.message : "";
+    broadcast({
+        type: "ERROR",
+        err: new Error("Collab encountered error" + errMessage),
+        collabError: err
+    });
+    
     console.error("[vfs-collab] CheckDBCorruption encountered error: ", err);
     if (err.code === "SQLITE_CORRUPT" || err.code === "SQLITE_NOTADB" || err.code === "SQLITE_IOERR") {
         console.error("[vfs-collab] found a corrupted database - backing up and starting with a fresh collab database");
