@@ -258,13 +258,13 @@ define(function(require, module, exports) {
                     var opIdx = opOff;
                     var nextOp = packedCs[opIdx];
                     
-                    if (!nextOp) {
-                        // Seems like we're in an inconsistent state; rejoin
-                        reportError("Collab: failed to remove text past end of document; rejoining", { data: delta });
-                        return rejoin();
-                    }
-                    
                     while (remainingText.length) {
+                        if (!nextOp) {
+                            // Seems like we're in an inconsistent state; rejoin
+                            reportError("Collab: failed to remove text past end of document; rejoining", { data: delta });
+                            return rejoin();
+                        }
+                    
                         var opLen = operations.length(nextOp);
                         var toRem = Math.min(remainingText.length, opLen);
                         switch(operations.type(nextOp)) {
