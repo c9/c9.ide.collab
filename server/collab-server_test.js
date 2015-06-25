@@ -156,22 +156,22 @@ describe(__filename, function() {
         async.parallel([
             function (next) {
                 joinerStream.on("data", function collab2Stream(msg) {
-                    joinerStream.removeListener("data", collab2Stream);
                     msg = JSON.parse(msg);
                     if (msg.type !== "JOIN_DOC")
                         return console.log("unexpected message:", msg);
                     assert.equal(msg.type, "JOIN_DOC");
+                    joinerStream.removeListener("data", collab2Stream);
                     initatorMsg = msg.data;
                     next();
                 });
             },
             function (next) {
                 collabStream.on("data", function collab1Stream(msg) {
-                    collabStream.removeListener("data", collab1Stream);
                     msg = JSON.parse(msg);
                     if (msg.type !== "JOIN_DOC")
                         return console.log("unexpected message:", msg);
                     assert.equal(msg.type, "JOIN_DOC");
+                    collabStream.removeListener("data", collab1Stream);
                     collabMsg = msg.data;
                     next();
                 });

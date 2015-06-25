@@ -12,7 +12,6 @@ var localfsAPI; // Set on VFS register
 var DEFAULT_NL_CHAR_FILE = "\n";
 var DEFAULT_NL_CHAR_DOC = "";
 var MAX_WRITE_ATTEMPTS = 3;
-var RESETTING_DATABASE = false;
 
 // Models
 var User, Document, Revision, Workspace, ChatMessage;
@@ -26,6 +25,7 @@ var cachedUsers;
 
 var totalWriteAttempts = 0;
 var lastFailedWrite = 0;
+var resettingDatabase = false;
 
 var isMaster = false;
 
@@ -333,17 +333,17 @@ function initDB(readonly, callback) {
  **/
 
 function resetDB(callback) {
-    if (RESETTING_DATABASE || !isMaster) return callback();
+    if (resettingDatabase || !isMaster) return callback();
     console.error("[vfs-collab] resetting collab database");
-    RESETTING_DATABASE = true;
+    resettingDatabase = true;
     Fs.rename(dbFilePath, dbFilePath + ".old", function (err) {
         if (err && err.code !== "ENOENT") {
-            RESETTING_DATABASE = false; 
+            resettingDatabase = false; 
             return callback(err);
         }
         
         initDB(false, function() {
-            RESETTING_DATABASE = false;     
+            resettingDatabase = false;     
             broadcast({
                 type: "RESET_DB",
             });
