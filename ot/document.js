@@ -59,7 +59,8 @@ define(function(require, module, exports) {
             var ignoreChanges;
             var packedCs;
             var loaded, loading, inited;
-            var state, saveStateDebugging;
+            var state;
+            var stateWhenSaveCalled, saveStateDebugging; // Debug variables, for tracking down errors in prod 
             var pendingSave;
             var readonly;
             var reqId;
@@ -1146,6 +1147,7 @@ define(function(require, module, exports) {
             function save(silent) {
                 saveWatchDog();
                 
+                stateWhenSaveCalled = state; 
                 saveStateDebugging = null;
                 var isUnity = isPackedUnity();
                 if (!isUnity)
@@ -1307,6 +1309,11 @@ define(function(require, module, exports) {
                  * @property {String} state
                  */
                 get state()        { return state; },
+                /**
+                 * The current saveStateDebugging
+                 * @property {String} saveStateDebugging
+                 */
+                get stateWhenSaveCalled()        { return stateWhenSaveCalled; },
                 /**
                  * The current saveStateDebugging
                  * @property {String} saveStateDebugging
