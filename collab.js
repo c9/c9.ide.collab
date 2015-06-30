@@ -370,7 +370,6 @@ define(function(require, exports, module) {
                 } else {
                     failedSaveAttempts = 0
                 }
-                doc.state = "IDLE";
                 callback(e.err);
             }
 
@@ -390,6 +389,7 @@ define(function(require, exports, module) {
                     inited: doc && doc.inited,
                     rejoinReason: doc && doc.rejoinReason,
                     state: doc && doc.state,
+                    saveState: doc && doc.saveState,
                     joinError: joinError,
                     connected: connect.connected,
                     attempt: attempt,

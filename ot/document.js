@@ -59,7 +59,7 @@ define(function(require, module, exports) {
             var ignoreChanges;
             var packedCs;
             var loaded, loading, inited;
-            var state;
+            var state, saveState;
             var pendingSave;
             var readonly;
             var reqId;
@@ -949,7 +949,7 @@ define(function(require, module, exports) {
 
                 ignoreChanges = true;
 
-                // trick the undo manager that we were in a saved sate:
+                // trick the undo manager that we were in a saved state:
                 setValue(revertToRev.contents, false, false); // don't reset or bookmark to keep the doc changed
 
                 var op = operations.operation(latestRev.contents, revertToRev.contents);
@@ -1008,16 +1008,16 @@ define(function(require, module, exports) {
                     handleFileSaved(data);
                     break;
                 case "FILE_LOCKING":
-                    state = "LOCKING";
+                    saveState = "LOCKING";
                     break;
                 case "FILE_LOCKED":
-                    state = "LOCKED";
+                    saveState = "LOCKED";
                     break;
                 case "FILE_RETRIEVED":
-                    state = "RETRIEVED";
+                    saveState = "RETRIEVED";
                     break;
                 case "DATA_WRITTEN":
-                    state = "DATAWRITTEN";
+                    saveState = "DATAWRITTEN";
                     break;
                 case "GET_REVISIONS":
                     receiveRevisions(data);
@@ -1055,8 +1055,6 @@ define(function(require, module, exports) {
                     console.error("[OT] Failed saving file!", err, docId);
                     return emit("saved", {err: err});
                 }
-
-                state = "IDLE";
                 
                 // pendingSave exists: save triggered by me
                 // otherwise: other collaborator save
@@ -1162,7 +1160,7 @@ define(function(require, module, exports) {
                 if (!pendingSave)  // should be set, but let's make sure
                    pendingSave = { silent: silent };
                 
-                state = "SAVING";
+                saveState = "SAVING";
                 connect.send("SAVE_FILE", {
                     docId: docId,
                     silent: !!silent
@@ -1306,6 +1304,13 @@ define(function(require, module, exports) {
                  * @property {String} state
                  */
                 get state()        { return state; },
+                /**
+                 * The current saveState
+                 * @property {String} saveState
+                 */
+                get saveState()        { return saveState; },
+                /**
+                 * Get the collab Ace session
                 /**
                  * Get the collab Ace session
                  * @property {EditSession} session
