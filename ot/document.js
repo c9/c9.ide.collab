@@ -1176,7 +1176,6 @@ define(function(require, module, exports) {
 
                 saveTimer = setTimeout(function onSaveTimeout() {
                     saveTimer = pendingSave = null;
-                    state = "IDLE";
                     emit("saved", {err: "File save timeout", code: "ETIMEOUT"});
                 }, timeout || COLLAB_SAVE_FILE_TIMEOUT);
             }
