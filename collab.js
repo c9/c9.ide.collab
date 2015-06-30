@@ -377,6 +377,9 @@ define(function(require, exports, module) {
                 var message = doc && doc.loaded
                     ? "Warning: using fallback saving on loaded document"
                     : "Warning: using fallback saving on unloaded document";
+                if (doc && doc.saveStateDebugging) {
+                    message = "Warning: using fallback saving due to save timeout";
+                }
                 sendSaveError(attempt, message);
                 fallbackFn.apply(null, fallbackArgs);
             }
@@ -409,8 +412,6 @@ define(function(require, exports, module) {
                     if (e && !e.err)
                         doCollabSave();
                 });
-            } else if (doc.state !== "IDLE") {
-                fsSaveFallback("document state is not idle");
             } else {
                 doCollabSave();
             }

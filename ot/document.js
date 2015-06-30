@@ -1144,6 +1144,9 @@ define(function(require, module, exports) {
 
             // @see docs in the API section below
             function save(silent) {
+                saveWatchDog();
+                
+                saveStateDebugging = null;
                 var isUnity = isPackedUnity();
                 if (!isUnity)
                     addOutgoingEdit();
