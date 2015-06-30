@@ -409,8 +409,9 @@ define(function(require, exports, module) {
                     if (e && !e.err)
                         doCollabSave();
                 });
-            }
-            else {
+            } else if (doc.state !== "IDLE") {
+                fsSaveFallback("document state is not idle");
+            } else {
                 doCollabSave();
             }
 
