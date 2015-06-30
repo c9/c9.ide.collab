@@ -413,7 +413,8 @@ define(function(require, exports, module) {
                     if (e && !e.err)
                         doCollabSave();
                 });
-            } else {
+            } 
+            else {
                 doCollabSave();
             }
 
