@@ -1007,9 +1007,21 @@ define(function(require, module, exports) {
                 case "FILE_SAVED":
                     handleFileSaved(data);
                     break;
+                case "FILE_LOCKING":
+                    state = "LOCKING";
+                    break;
+                case "FILE_LOCKED":
+                    state = "LOCKED";
+                    break;
+                case "FILE_RETRIEVED":
+                    state = "RETRIEVED";
+                    break;
+                case "DATA_WRITTEN":
+                    state = "DATAWRITTEN";
+                    break;
                 case "GET_REVISIONS":
-                   receiveRevisions(data);
-                   break;
+                    receiveRevisions(data);
+                    break;
                  default:
                    reportError(new Error("Unknown OT document event type:" + event.type + " " + JSON.stringify(event)));
                }
@@ -1038,6 +1050,8 @@ define(function(require, module, exports) {
             function handleFileSaved(data) {
                 endSaveWatchDog();
 
+                state = "IDLE";
+                
                 var err = data.err;
                 if (err) {
                     console.error("[OT] Failed saving file!", err, docId);
@@ -1150,6 +1164,7 @@ define(function(require, module, exports) {
                 if (!pendingSave)  // should be set, but let's make sure
                    pendingSave = { silent: silent };
                 
+                state = "SAVING";
                 connect.send("SAVE_FILE", {
                     docId: docId,
                     silent: !!silent
@@ -1163,6 +1178,7 @@ define(function(require, module, exports) {
 
                 saveTimer = setTimeout(function onSaveTimeout() {
                     saveTimer = pendingSave = null;
+                    state = "IDLE";
                     emit("saved", {err: "File save timeout", code: "ETIMEOUT"});
                 }, timeout || COLLAB_SAVE_FILE_TIMEOUT);
             }
