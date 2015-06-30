@@ -59,7 +59,7 @@ define(function(require, module, exports) {
             var ignoreChanges;
             var packedCs;
             var loaded, loading, inited;
-            var state, saveState;
+            var state, saveStateDebugging;
             var pendingSave;
             var readonly;
             var reqId;
@@ -1008,16 +1008,16 @@ define(function(require, module, exports) {
                     handleFileSaved(data);
                     break;
                 case "FILE_LOCKING":
-                    saveState = "LOCKING";
+                    saveStateDebugging = "LOCKING";
                     break;
                 case "FILE_LOCKED":
-                    saveState = "LOCKED";
+                    saveStateDebugging = "LOCKED";
                     break;
                 case "FILE_RETRIEVED":
-                    saveState = "RETRIEVED";
+                    saveStateDebugging = "RETRIEVED";
                     break;
                 case "DATA_WRITTEN":
-                    saveState = "DATAWRITTEN";
+                    saveStateDebugging = "DATAWRITTEN";
                     break;
                 case "GET_REVISIONS":
                     receiveRevisions(data);
@@ -1160,7 +1160,7 @@ define(function(require, module, exports) {
                 if (!pendingSave)  // should be set, but let's make sure
                    pendingSave = { silent: silent };
                 
-                saveState = "SAVING";
+                saveStateDebugging = "SAVING";
                 connect.send("SAVE_FILE", {
                     docId: docId,
                     silent: !!silent
@@ -1305,10 +1305,10 @@ define(function(require, module, exports) {
                  */
                 get state()        { return state; },
                 /**
-                 * The current saveState
-                 * @property {String} saveState
+                 * The current saveStateDebugging
+                 * @property {String} saveStateDebugging
                  */
-                get saveState()        { return saveState; },
+                get saveStateDebugging()        { return saveStateDebugging; },
                 /**
                  * Get the collab Ace session
                 /**

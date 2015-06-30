@@ -389,7 +389,7 @@ define(function(require, exports, module) {
                     inited: doc && doc.inited,
                     rejoinReason: doc && doc.rejoinReason,
                     state: doc && doc.state,
-                    saveState: doc && doc.saveState,
+                    saveStateDebugging: doc && doc.saveStateDebugging,
                     joinError: joinError,
                     connected: connect.connected,
                     attempt: attempt,
