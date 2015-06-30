@@ -370,6 +370,7 @@ define(function(require, exports, module) {
                 } else {
                     failedSaveAttempts = 0
                 }
+                doc.state = "IDLE";
                 callback(e.err);
             }
 

@@ -1050,14 +1050,14 @@ define(function(require, module, exports) {
             function handleFileSaved(data) {
                 endSaveWatchDog();
 
-                state = "IDLE";
-                
                 var err = data.err;
                 if (err) {
                     console.error("[OT] Failed saving file!", err, docId);
                     return emit("saved", {err: err});
                 }
 
+                state = "IDLE";
+                
                 // pendingSave exists: save triggered by me
                 // otherwise: other collaborator save
                 if (pendingSave) {
