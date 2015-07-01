@@ -4,7 +4,7 @@ define(function(require, exports, module) {
     main.consumes = [
         "Panel", "tabManager", "fs", "metadata", "ui", "apf", "settings", 
         "preferences", "ace", "util", "collab.connect", "collab.workspace", 
-        "timeslider", "OTDocument", "notification.bubble", "dialog.error",
+        "timeslider", "OTDocument", "notification.bubble", "dialog.error", "dialog.alert",
         "collab.util", "error_handler", "layout", "menus", "installer", "c9"
     ];
     main.provides = ["collab"];
@@ -29,6 +29,7 @@ define(function(require, exports, module) {
         var bubble = imports["notification.bubble"];
         var timeslider = imports.timeslider;
         var OTDocument = imports.OTDocument;
+        var showAlert = imports["dialog.alert"].show;
         var showError = imports["dialog.error"].show;
         var errorHandler = imports.error_handler;
         var layout = imports.layout;
@@ -246,6 +247,25 @@ define(function(require, exports, module) {
                 case "MESSAGE":
                     if (emit("userMessage", data) !== false)
                         handleUserMessage(data);
+                    break;
+                case "ERROR":
+                    errorHandler.log(
+                        data.err || new Error("Collab error"), 
+                        util.extend({}, {users: workspace.users, userId: workspace.myUserId, clientId: workspace.myClientId}, data)
+                    );
+                    break;
+                case "RESET_DB":
+                    showAlert("Uh oh!",
+                        "Workspace issue encountered",
+                        "Your workspace encountered an issue, but don’t worry, we’ve resolved it. " +
+                        "Your data is still intact, however your file revision history may have been lost. " +
+                        "Give us just a moment to complete the recovery so you can get back to your project. ", 
+                        function() { 
+                            setTimeout(function() { 
+                                window.location.reload()
+                            }, 1000); 
+                        }
+                    ); 
                     break;
                 default:
                     if (!doc)

@@ -11,6 +11,7 @@ var exists = Fs.exists || Path.exists;
 var localfsAPI; // Set on VFS register
 var DEFAULT_NL_CHAR_FILE = "\n";
 var DEFAULT_NL_CHAR_DOC = "";
+var MAX_WRITE_ATTEMPTS = 3;
 
 // Models
 var User, Document, Revision, Workspace, ChatMessage;
@@ -21,6 +22,12 @@ var dbFilePath;
 // Cache the workspace state got from the database
 var cachedWS;
 var cachedUsers;
+
+var totalWriteAttempts = 0;
+var lastFailedWrite = 0;
+var resettingDatabase = false;
+
+var isMaster = false;
 
 var Sequelize;
 var nodePath = getHomeDir() + "/.c9/node_modules";
@@ -70,23 +77,59 @@ function installServer(callback) {
 function wrapSeq(fun, next) {
     return fun.success(function () {
         next.apply(null, [null].concat(Array.prototype.slice.apply(arguments)));
-    }).error(next);
+    }).error(function (err) {
+        checkDBCorruption(err, next)
+    });
 }
 
-/**
- * Initialize the collab server sqlite3 database
- *  - Define modules mapping to tables
- *  - Declare relationships
- *  - Sync sequelize modules
- *  - Create and cache the Workspace metadata
- *  - Set synchronous = 0 for fastest IO performance
- *  - Create indices, if not existing
- * 
- * @param {Boolean} readonly    Whether the intention is only to read from the
- *                              database (if true, initialization is skipped)
- * @param {Function} callback
- */
-function initDB(readonly, callback) {
+/** 
+ * Check for DB corruption errors in SQL Query and if we have some then run initDB again
+ **/
+function checkDBCorruption (err, callback) {
+    if (!err || !isMaster) {
+        return callback();
+    }
+    
+    var errMessage = err && err.message ? " " + err.message : "";
+    broadcast({
+        type: "ERROR",
+        err: new Error("Collab encountered error" + errMessage),
+        collabError: err
+    });
+    
+    console.error("[vfs-collab] CheckDBCorruption encountered error: ", err);
+    if (err.code === "SQLITE_CORRUPT" || err.code === "SQLITE_NOTADB" || err.code === "SQLITE_IOERR") {
+        console.error("[vfs-collab] found a corrupted database - backing up and starting with a fresh collab database");
+        broadcast({
+            type: "ERROR",
+            err: new Error("Collab database corrupt")
+        });
+        return resetDB(callback); 
+    }
+    
+    if (err.code == "SQLITE_READONLY") {
+        if (lastFailedWrite < (Date.now() - 5000)) {
+            totalWriteAttempts = 0;
+        }
+        totalWriteAttempts++;
+        lastFailedWrite = Date.now();
+        if (totalWriteAttempts >= MAX_WRITE_ATTEMPTS) {
+            console.error("[vfs-collab] Failed to write " + MAX_WRITE_ATTEMPTS + " times, checking if database is corrupt");
+            
+            // If the database is really corrupt this should return a corruption error which will be caught above
+            var sequelize = connectToDB();
+            wrapSeq(sequelize.query("PRAGMA synchronous = 0;"), function() {
+                if (sequelize.close) {
+                    sequelize.close();
+                }
+            }); 
+        }
+    }
+    
+    callback(err); 
+}
+
+function connectToDB() {
     var MAX_LOG_LINE_LENGTH = 151;
 
     dbFilePath = dbFilePath || Path.join(getProjectWD(), "collab.db");
@@ -129,6 +172,25 @@ function initDB(readonly, callback) {
         // currently only for mysql and postgresql (since v1.5.0)
         pool: { maxConnections: 5, maxIdleTime: 30}
     });
+    
+    return sequelize;
+}
+
+/**
+ * Initialize the collab server sqlite3 database
+ *  - Define modules mapping to tables
+ *  - Declare relationships
+ *  - Sync sequelize modules
+ *  - Create and cache the Workspace metadata
+ *  - Set synchronous = 0 for fastest IO performance
+ *  - Create indices, if not existing
+ * 
+ * @param {Boolean} readonly    Whether the intention is only to read from the
+ *                              database (if true, initialization is skipped)
+ * @param {Function} callback
+ */
+function initDB(readonly, callback) {
+    var sequelize = connectToDB();
 
     Store.User = User = sequelize.define("User", {
         uid: { type: Sequelize.STRING, primaryKey: true },
@@ -185,7 +247,7 @@ function initDB(readonly, callback) {
     Document.hasMany(Revision);
     Revision.belongsTo(Document);
     
-    if (readonly)
+    if (readonly || !isMaster)
         return callback();
 
     // Add migrations here e.g. ALTER TABLE ... ADD COLUMN ...
@@ -260,14 +322,32 @@ function initDB(readonly, callback) {
     ], function(err) {
         if (!err)
             return callback();
-        console.error("[vfs-collab] initDB attemp failed:", err);
-        if (err.code !== "SQLITE_CORRUPT" && err.code !== "SQLITE_NOTADB")
-            return callback(err); // not sure how to handle any other errors if any
-        console.error("[vfs-collab] initDB found a corrupted database - backing up and starting with a fresh collab database");
-        Fs.rename(dbFilePath, dbFilePath + ".old", function (err) {
-            if (err)
-                return callback(err);
-            initDB(readonly, callback);
+        console.error("[vfs-collab] initDB attempt failed:", err);
+        checkDBCorruption(err, callback);
+    });
+}
+
+/** 
+ * Resets the database back to default state deleting all collab changes. 
+ * This is useful if the database somehow becomes corrupt and can no longer be written to
+ **/
+
+function resetDB(callback) {
+    if (resettingDatabase || !isMaster) return callback();
+    console.error("[vfs-collab] resetting collab database");
+    resettingDatabase = true;
+    Fs.rename(dbFilePath, dbFilePath + ".old", function (err) {
+        if (err && err.code !== "ENOENT") {
+            resettingDatabase = false; 
+            return callback(err);
+        }
+        
+        initDB(false, function() {
+            resettingDatabase = false;     
+            broadcast({
+                type: "RESET_DB",
+            });
+            callback();
         });
     });
 }
@@ -1058,7 +1138,7 @@ function handleConnect(userIds, client) {
 
         var fullname = userIds.fullname;
         var email = userIds.email;
-
+        
         wrapSeq(User.find({where: {uid: userId}}), function (err, user) {
             if (err)
                 return done("[vfs-collab] syncUserInfo " + String(err));
@@ -1268,7 +1348,6 @@ function handleEditUpdate(userIds, client, data) {
     function done(err) {
         unlock(docId);
         if (err) {
-            console.error("[vfs-collab]", err);
             syncCommit(err);
         }
     }
@@ -2497,14 +2576,9 @@ function createServer() {
 
 
 function initSocket(userIds, callback) {
-    // var COLLAB_PORT = 33366;
-    // var COLLAB_HOST = process.env.OPENSHIFT_DIY_IP || "localhost";
-
     var projectWD = getProjectWD();
     var server;
-    var isServer = false;
 
-    // startServer();
     // file sockets can have multiple servers open on the same path
     // So, we connect first
     var sockPath = process.platform == "win32"
@@ -2557,7 +2631,7 @@ function initSocket(userIds, callback) {
             }
 
             server.listen(sockPath, function () {
-                isServer = true;
+                isMaster = true;
                 server.collabInited = false;
 
                 // init server state
@@ -2638,7 +2712,7 @@ function initSocket(userIds, callback) {
             });
 
             client.write(JSON.stringify(userIds), "utf8", function() {
-                callback(null, client, isServer && server);
+                callback(null, client, isMaster && server);
             });
         });
 
@@ -2670,8 +2744,6 @@ function initSocket(userIds, callback) {
 var exports = module.exports = function(vfs, options, register) {
 
     var vfsClientMap = {};
-    var isMaster;
-
     localfsAPI = vfs;
     
     if (options.nodePath)
@@ -2713,11 +2785,10 @@ var exports = module.exports = function(vfs, options, register) {
 
             cleanOldClient();
             vfsClientMap[clientId] = client;
-            isMaster = !!server;
 
             callback(null, {
                 stream: client.clientStream,
-                isMaster: isMaster
+                isMaster: isMaster && !!server
             });
         });
     }
