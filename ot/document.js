@@ -60,6 +60,7 @@ define(function(require, module, exports) {
             var packedCs;
             var loaded, loading, inited;
             var state;
+            var stateWhenSaveCalled, saveStateDebugging; // Debug variables, for tracking down errors in prod 
             var pendingSave;
             var readonly;
             var reqId;
@@ -949,7 +950,7 @@ define(function(require, module, exports) {
 
                 ignoreChanges = true;
 
-                // trick the undo manager that we were in a saved sate:
+                // trick the undo manager that we were in a saved state:
                 setValue(revertToRev.contents, false, false); // don't reset or bookmark to keep the doc changed
 
                 var op = operations.operation(latestRev.contents, revertToRev.contents);
@@ -1007,9 +1008,21 @@ define(function(require, module, exports) {
                 case "FILE_SAVED":
                     handleFileSaved(data);
                     break;
+                case "FILE_LOCKING":
+                    saveStateDebugging = "LOCKING";
+                    break;
+                case "FILE_LOCKED":
+                    saveStateDebugging = "LOCKED";
+                    break;
+                case "FILE_RETRIEVED":
+                    saveStateDebugging = "RETRIEVED";
+                    break;
+                case "DATA_WRITTEN":
+                    saveStateDebugging = "DATAWRITTEN";
+                    break;
                 case "GET_REVISIONS":
-                   receiveRevisions(data);
-                   break;
+                    receiveRevisions(data);
+                    break;
                  default:
                    reportError(new Error("Unknown OT document event type:" + event.type + " " + JSON.stringify(event)));
                }
@@ -1043,7 +1056,7 @@ define(function(require, module, exports) {
                     console.error("[OT] Failed saving file!", err, docId);
                     return emit("saved", {err: err});
                 }
-
+                
                 // pendingSave exists: save triggered by me
                 // otherwise: other collaborator save
                 if (pendingSave) {
@@ -1133,7 +1146,9 @@ define(function(require, module, exports) {
             // @see docs in the API section below
             function save(silent) {
                 saveWatchDog();
-
+                
+                stateWhenSaveCalled = state; 
+                saveStateDebugging = null;
                 var isUnity = isPackedUnity();
                 if (!isUnity)
                     addOutgoingEdit();
@@ -1150,6 +1165,7 @@ define(function(require, module, exports) {
                 if (!pendingSave)  // should be set, but let's make sure
                    pendingSave = { silent: silent };
                 
+                saveStateDebugging = "SAVING";
                 connect.send("SAVE_FILE", {
                     docId: docId,
                     silent: !!silent
@@ -1293,6 +1309,18 @@ define(function(require, module, exports) {
                  * @property {String} state
                  */
                 get state()        { return state; },
+                /**
+                 * The current saveStateDebugging
+                 * @property {String} saveStateDebugging
+                 */
+                get stateWhenSaveCalled()        { return stateWhenSaveCalled; },
+                /**
+                 * The current saveStateDebugging
+                 * @property {String} saveStateDebugging
+                 */
+                get saveStateDebugging()        { return saveStateDebugging; },
+                /**
+                 * Get the collab Ace session
                 /**
                  * Get the collab Ace session
                  * @property {EditSession} session

@@ -397,6 +397,9 @@ define(function(require, exports, module) {
                 var message = doc && doc.loaded
                     ? "Warning: using fallback saving on loaded document"
                     : "Warning: using fallback saving on unloaded document";
+                if (doc && doc.saveStateDebugging) {
+                    message = "Warning: using fallback saving due to save timeout";
+                }
                 sendSaveError(attempt, message);
                 fallbackFn.apply(null, fallbackArgs);
             }
@@ -409,6 +412,8 @@ define(function(require, exports, module) {
                     inited: doc && doc.inited,
                     rejoinReason: doc && doc.rejoinReason,
                     state: doc && doc.state,
+                    stateWhenSaveCalled: doc && doc.stateWhenSaveCalled,
+                    saveStateDebugging: doc && doc.saveStateDebugging,
                     joinError: joinError,
                     connected: connect.connected,
                     attempt: attempt,
@@ -428,7 +433,7 @@ define(function(require, exports, module) {
                     if (e && !e.err)
                         doCollabSave();
                 });
-            }
+            } 
             else {
                 doCollabSave();
             }

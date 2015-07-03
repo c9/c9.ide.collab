@@ -1948,14 +1948,18 @@ function handleSaveFile(userIds, client, data) {
     }
 
     console.error("[vfs-collab] Saving file", docId);
+    client.send({type: "FILE_LOCKING", data: {docId: docId}});
 
     lock(docId, function () {
+        client.send({type: "FILE_LOCKED", data: {docId: docId}});
         Store.getDocument(docId, ["contents", "revNum", "starRevNums"], function (err, doc) {
             if (err || !doc)
                 return done((err || "Writing a non-collab document!") + " : " +  docId);
 
             if (watchers[docId])
                 watchers[docId].mtime = Date.now();
+                
+            client.send({type: "FILE_RETRIEVED", data: {docId: docId}});
 
             var absPath = getAbsolutePath(docId);
             var fileContents = doc.contents.replace(/\n/g, doc.newLineChar || DEFAULT_NL_CHAR_FILE);
@@ -1976,8 +1980,9 @@ function handleSaveFile(userIds, client, data) {
             */
 
             function writeFileCallback(err) {
-                if (err)
-                    return done("Failed saving file ! : " + docId  + " ERR: " + String(err));
+                if (err) return done("Failed saving file ! : " + docId  + " ERR: " + String(err));
+                
+                client.send({type: "DATA_WRITTEN", data: {docId: docId}});
                 doSaveDocument(docId, doc, userId, !data.silent, function (err) {
                     console.error("[vfs-collab] Saving took", Date.now() - st, "ms - file:", docId, !err);
                     done(err);
