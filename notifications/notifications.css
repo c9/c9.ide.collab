@@ -113,8 +113,8 @@
     text-align: center;
     -webkit-transform-origin: top left;
     -webkit-transform: rotate(-90deg);
-    -moz-transform-origin: top left;
-    -moz-transform: rotate(-90deg);
+    transform-origin: top left;
+    transform: rotate(-90deg);
     padding: 1px 3px 1px 4px;
     color: @collab-bubble-color;
     box-shadow: @collab-bubble-box-shadow;
