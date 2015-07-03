@@ -704,7 +704,15 @@ define(function(require, module, exports) {
                         // a- a file watcher caused this document sync on (overriding my changes)
                         // b- my changes may lead to inconsist state or can fail to be applied to the new synced document state
                         console.log("Received new document, discarding any pending changes");
-                        reportError(new Error("Collab: Received new document, discarding any pending changes"), {msg: msg, latestRevNum: latestRevNum})
+                        
+                        /* Clear the timer that watcher set to ensure that collab applies its changes */
+                        c9Document.tab.debugData.lastChange = Date.now();
+                        if (c9Document.tab.debugData.changeRegistered) {
+                            clearTimeout(c9Document.tab.debugData.changeRegistered);
+                            delete c9Document.tab.debugData.changeRegistered;
+                        }
+                        
+                        console.log("Collab: Received new document, discarding any pending changes", {msg: msg, latestRevNum: latestRevNum});
                         try {
                             revertMyPendingChanges(msg.userId);
                         } catch (e) {
