@@ -121,6 +121,7 @@ define(function(require, exports, module) {
             if (!cachedNotifications.length)
                 setTimeout(function() {frame.minimize();}, 10);
             postLoadedNotifications();
+            frame.on("resize", resize);
         }
 
         var cachedNotifications = [];
@@ -148,8 +149,8 @@ define(function(require, exports, module) {
             });
         }
 
-        function postLoadedNotifications() {
-            if (!bubble && cachedNotifications.length) {
+        function resize() {
+            if (!bubble) {
                 // Make sure collab panel is enabled
                 if (!panels.enablePanel("collab")) return false;
                 
@@ -159,27 +160,32 @@ define(function(require, exports, module) {
                 bubble.className = "newnotifs";
             }
             
-            if (!cachedNotifications.length) {
-                if (drawn) {
-                    notificationsDataProvider.emptyMessage = "No pending notifications";
-                    frame.setHeight(50);
-                }
-                if (bubble) 
-                    bubble.style.display = "none";
-            }
-            else {
-                if (drawn)
-                    frame.setHeight(Math.min(cachedNotifications.length, 3) * 50 + 22);
-                if (bubble) {
-                    bubble.innerHTML = cachedNotifications.length;
-                    bubble.style.display = "block";
-                    bubble.className = "newnotifs size" + String(cachedNotifications.length).length;
-                }
-            }
+            var count = cachedNotifications.length;
             
+            
+            if (bubble) {
+                if (count) {
+                    bubble.innerHTML = count;
+                    bubble.style.display = "block";
+                    bubble.className = "newnotifs size" + String(count).length;
+                } else {
+                    bubble.style.display = "none";
+                }
+            }
+            if (drawn) {
+                if (frame.state[0] != "m") {
+                    frame.$ext.style.height = count
+                        ? Math.min(count, 3) * 50 + 22 + "px"
+                        : 50 + "px";
+                    notificationsTree.resize();
+                }
+            }
+        }
+        function postLoadedNotifications() {
+            resize();
             if (!drawn)
                 return;
-            
+            notificationsDataProvider.emptyMessage = "No pending notifications";
             frame.setAttribute("caption", 
                 "Notifications (" + cachedNotifications.length + ")");
             
@@ -199,10 +205,10 @@ define(function(require, exports, module) {
                     console.error("Invalid notification type:", notif.type);
                 cachedNotifications.push(new NotifConstructor(notif));
             });
+            notificationsDataProvider.setRoot(cachedNotifications);
         }
 
         function onNotificationsLoaded() {
-            notificationsDataProvider.setRoot(cachedNotifications);
             if (frame && cachedNotifications.length)
                 frame.restore();
         }
@@ -227,6 +233,7 @@ define(function(require, exports, module) {
                 cachedNotifications = cachedNotifications.filter(function (notif) {
                     return notif !== _self;
                 });
+                notificationsDataProvider.setRoot(cachedNotifications);
                 postLoadedNotifications();
             };
         }).call(Notification.prototype);
@@ -347,6 +354,7 @@ define(function(require, exports, module) {
         plugin.on("unload", function(){
             loaded = false;
             drawn = false;
+            cachedNotifications = [];
         });
 
         /***** Register and define API *****/
@@ -357,6 +365,7 @@ define(function(require, exports, module) {
          * @singleton
          **/
         plugin.freezePublicAPI({
+            addNotifications: addNotifications
         });
 
         register(null, {

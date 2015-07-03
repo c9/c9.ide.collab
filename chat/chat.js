@@ -42,7 +42,7 @@ define(function(require, exports, module) {
         var emoji = require("./my_emoji");
 
         // panel-relared UI elements
-        var chatInput, chatText, mnuCtxTreeEl;
+        var chatInput, chatText, mnuCtxTreeEl, parent;
         // non-panel related UI elements
         var chatThrob, chatCounter, chatNotif;
 
@@ -66,7 +66,7 @@ define(function(require, exports, module) {
 
             drawNonPanelElements();
 
-            var parent = options.aml;
+            parent = options.aml;
             var parentExt = parent.$int;
             parentExt.className += " chatContainer";
 
@@ -172,6 +172,14 @@ define(function(require, exports, module) {
                     deleteMsgItem.disabled = !toDeleteMessage || !collabConnected;
                 }, 10);
             });
+            
+            parent.on("resize", function() {
+                if (isOpen()) {
+                    pending.forEach(addMessage);
+                    pending = [];
+                    updateCaption();
+                }
+            });
         }
 
         function findMessageToDelete(hasReadWrite) {
@@ -199,6 +207,7 @@ define(function(require, exports, module) {
         }
 
         var seenMsgs = {};
+        var pending = [];
         var throbTimeout;
 
         function scrollDown() {
@@ -206,7 +215,7 @@ define(function(require, exports, module) {
         }
 
         function isOpen() {
-            return panels.isActive("collab");
+            return panels.isActive("collab") && parent.state[0] != "m";
         }
 
         function send() {
@@ -216,7 +225,6 @@ define(function(require, exports, module) {
             text = emoji.toEmojiUnicode(text);
             collab.send("CHAT_MESSAGE", { text: text });
             chatInput.setValue("");
-            // ide.dispatchEvent("track_action", {type: "chat"});
         }
 
         function getAuthorName(userId) {
@@ -246,6 +254,9 @@ define(function(require, exports, module) {
                 addMessage(msg);
             }
             else {
+                pending.push(msg);
+                updateCaption();
+                
                 var throbText = "<b>" + getAuthorName(msg.userId) + "</b> ";
                 var text = formatMessageText(msg.text);
                 var notif = msg.notification;
@@ -271,6 +282,7 @@ define(function(require, exports, module) {
             var inputFocussed = chatInput && chatInput.ace.isFocused();
             if (!inputFocussed)
                 chatNotif.play();
+            
         }
 
         function onChatClear(data) {
@@ -287,15 +299,15 @@ define(function(require, exports, module) {
             }
         }
 
-        function addMessage(msg, increment) {
+        function addMessage(msg) {
             if (seenMsgs[msg.id])
                 return;
             seenMsgs[msg.id] = true;
-            //correct the time
+            // correct the time
             // msg.timestamp += clientTimeOffset;
             var msgDate = new Date(msg.timestamp);
 
-            //create the time string
+            // create the time string
             var text = formatMessageText(msg.text);
             var authorName = getAuthorName(msg.userId);
             var authorColor = getAuthorColor(msg.userId);
@@ -330,6 +342,14 @@ define(function(require, exports, module) {
 
             chatText.appendChild(html);
             scrollDown();
+        }
+        
+        function updateCaption() {
+            var caption = "Group Chat";
+            if (pending.length) 
+                caption += "(" + pending.length + ")";
+            if (parent)
+                parent.setAttribute("caption", caption);
         }
 
         var nonPanelDrawn = false;

@@ -79,8 +79,8 @@ define(function(require, module, exports) {
             /***** Methods *****/
 
             function show(){
-                draw();
-                amlFrame.show();
+                collab.show();
+                amlFrame && amlFrame.restore();
             }
 
             function hide(){
