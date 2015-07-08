@@ -45,6 +45,8 @@ define(function(require, exports, module) {
 
             // Needed now for bubble
             ui.insertCss(css, staticPrefix, plugin);
+            
+            notificationsDataProvider = new TreeData();
 
             c9.once("ready", function() {
                 setTimeout(loadNotifications, 10000);
@@ -78,7 +80,6 @@ define(function(require, exports, module) {
             
             // Notifications panel
             notificationsTree = new Tree(notificationsParent);
-            notificationsDataProvider = new TreeData();
             notificationsTree.renderer.setScrollMargin(0, 10);
             notificationsTree.renderer.setTheme({cssClass: "notificationstree"});
             notificationsTree.setOption("maxLines", 3);
@@ -205,7 +206,8 @@ define(function(require, exports, module) {
                     console.error("Invalid notification type:", notif.type);
                 cachedNotifications.push(new NotifConstructor(notif));
             });
-            notificationsDataProvider.setRoot(cachedNotifications);
+            if (notificationsDataProvider)
+                notificationsDataProvider.setRoot(cachedNotifications);
         }
 
         function onNotificationsLoaded() {
@@ -355,6 +357,14 @@ define(function(require, exports, module) {
             loaded = false;
             drawn = false;
             cachedNotifications = [];
+            
+            notificationsTree.destroy();
+            notificationsDataProvider = null;
+            notificationsTree = null;
+            notificationsParent = null;
+            frame = null;
+            panelButton = null;
+            bubble = null;
         });
 
         /***** Register and define API *****/
