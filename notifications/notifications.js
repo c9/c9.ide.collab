@@ -120,7 +120,7 @@ define(function(require, exports, module) {
             // notificationsDataProvider.emptyMessage = "Loading Notifications ...";
             // loadNotifications();
             if (!cachedNotifications.length)
-                setTimeout(function() {frame.minimize();}, 10);
+                frame.minimize();
             postLoadedNotifications();
             frame.on("resize", resize);
         }
@@ -179,6 +179,8 @@ define(function(require, exports, module) {
                         ? Math.min(count, 3) * 50 + 22 + "px"
                         : 50 + "px";
                     notificationsTree.resize();
+                } else {
+                    frame.$ext.style.height = "0"
                 }
             }
         }
@@ -357,8 +359,8 @@ define(function(require, exports, module) {
             loaded = false;
             drawn = false;
             cachedNotifications = [];
-            
-            notificationsTree.destroy();
+            if (notificationsTree)
+                notificationsTree.destroy();
             notificationsDataProvider = null;
             notificationsTree = null;
             notificationsParent = null;
