@@ -40,6 +40,7 @@ define(function(require, exports, module) {
         var collabInstalled = !options.isSSH;
         var connecting = false;
         var connected = false;
+        var isMaster = null;
         var fatalError = false;
         var CONNECT_TIMEOUT = 30000;  // 30 seconds
         var IDLE_PERIOD = 300000; // 5 minutes
@@ -224,6 +225,7 @@ define(function(require, exports, module) {
                         return console.log("[OT] Waiting for connect event, skipping message", data);
                     connected = true;
                     connecting = false;
+                    isMaster = meta.isMaster;
                     connectMsg = data;
                     console.log("COLLAB connected -", meta.isMaster ? "MASTER" : "SLAVE");
                     emit("connect", data);
@@ -334,16 +336,25 @@ define(function(require, exports, module) {
              * @property {Boolean} debug
              */
             get debug()      { return debug; },
+            
             /**
              * Specifies whether the collab is connected or not
              * @property {Boolean} connected
              */
             get connected()  { return connected; },
+            
             /**
              * Specifies whether the collab is connecting or not
              * @property {Boolean} connecting
              */
             get connecting() { return connecting; },
+            
+             /**
+             * Specifies whether the collab is in master mode or not
+             * @property {Boolean} isMaster
+             */
+            get isMaster() { return isMaster; },
+            
 
             /**
              * Send a message to the collab server

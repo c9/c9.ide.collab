@@ -5,7 +5,7 @@ define(function(require, exports, module) {
         "Panel", "tabManager", "fs", "metadata", "ui", "apf", "settings", 
         "preferences", "ace", "util", "collab.connect", "collab.workspace", 
         "timeslider", "OTDocument", "notification.bubble", "dialog.error", "dialog.alert",
-        "collab.util", "error_handler", "layout", "menus", "installer", "c9"
+        "collab.util", "error_handler", "layout", "menus", "installer", "c9", "watcher.gui"
     ];
     main.provides = ["collab"];
     return main;
@@ -34,6 +34,7 @@ define(function(require, exports, module) {
         var errorHandler = imports.error_handler;
         var layout = imports.layout;
         var menus = imports.menus;
+        var gui = imports["watcher.gui"];
 
         var css = require("text!./collab.css");
         var staticPrefix = options.staticPrefix;
@@ -111,6 +112,19 @@ define(function(require, exports, module) {
                 if (e.action == "focus") {
                     workspace.updateOpenDocs(e, "activate");
                 }
+            });
+            
+            gui.on("changeNotAppliedError", function (e) {
+                var tab = e.tab;
+                errorHandler.reportError(new Error("Watcher picked up file change but collab didn't apply it"), {
+                    active: tab.active,
+                    state: tab.getState(),
+                    connecting: connect.connecting,
+                    connected: connect.connected,
+                    isMaster: connect.isMaster,
+                    lastChange: tab.debugData.lastChange,
+                    currentTime: Date.now(),
+                });
             });
             
             ui.insertCss(css, staticPrefix, plugin);
