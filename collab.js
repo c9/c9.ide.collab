@@ -34,7 +34,7 @@ define(function(require, exports, module) {
         var errorHandler = imports.error_handler;
         var layout = imports.layout;
         var menus = imports.menus;
-        var gui = imports["watcher.gui"];
+        var watcherGui = imports["watcher.gui"];
 
         var css = require("text!./collab.css");
         var staticPrefix = options.staticPrefix;
@@ -114,17 +114,32 @@ define(function(require, exports, module) {
                 }
             });
             
-            gui.on("changeNotAppliedError", function (e) {
+            watcherGui.on("docChange", function (e) {
                 var tab = e.tab;
-                errorHandler.reportError(new Error("Watcher picked up file change but collab didn't apply it"), {
-                    active: tab.active,
-                    state: tab.getState(),
-                    connecting: connect.connecting,
-                    connected: connect.connected,
-                    isMaster: connect.isMaster,
-                    lastChange: tab.debugData.lastChange,
-                    currentTime: Date.now(),
-                });
+                
+                if (tab.editorType == "ace") {
+                    /* If the lastChange (added by collab) was greater than 1 second ago set up a watch 
+                        To ensure that collab makes this change, if not report an error. The lastChange
+                        check is to avoid a race condition if collab updates before this function runs */
+                    if (!tab.debugData.lastChange || tab.debugData.lastChange < (Date.now() - 1000)) {
+                        if (tab.debugData.changeRegistered) {
+                            clearTimeout(tab.debugData.changeRegistered);
+                        }
+                        tab.debugData.changeRegistered = setTimeout(function() {
+                            errorHandler.reportError(new Error("Watcher picked up file change but collab didn't apply it"), {
+                                active: tab.active,
+                                state: tab.getState(),
+                                connecting: connect.connecting,
+                                connected: connect.connected,
+                                isMaster: connect.isMaster,
+                                lastChange: tab.debugData.lastChange,
+                                currentTime: Date.now(),
+                            });
+                        }, 5000);
+                    }
+                    
+                    return false;
+                }
             });
             
             ui.insertCss(css, staticPrefix, plugin);
