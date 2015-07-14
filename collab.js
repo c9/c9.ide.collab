@@ -121,18 +121,18 @@ define(function(require, exports, module) {
                     /* If the lastChange (added by collab) was greater than 1 second ago set up a watch 
                         To ensure that collab makes this change, if not report an error. The lastChange
                         check is to avoid a race condition if collab updates before this function runs */
-                    if (!tab.debugData.lastChange || tab.debugData.lastChange < (Date.now() - 1000)) {
-                        if (tab.debugData.changeRegistered) {
-                            clearTimeout(tab.debugData.changeRegistered);
+                    if (!tab.meta.$lastCollabChange || tab.meta.$lastCollabChange < (Date.now() - 1000)) {
+                        if (tab.meta.$collabChangeRegistered) {
+                            clearTimeout(tab.meta.$collabChangeRegistered);
                         }
-                        tab.debugData.changeRegistered = setTimeout(function() {
+                        tab.meta.$collabChangeRegistered = setTimeout(function() {
                             errorHandler.reportError(new Error("Watcher picked up file change but collab didn't apply it"), {
                                 active: tab.active,
                                 state: tab.getState(),
                                 connecting: connect.connecting,
                                 connected: connect.connected,
                                 isMaster: connect.isMaster,
-                                lastChange: tab.debugData.lastChange,
+                                lastChange: tab.meta.$lastCollabChange,
                                 currentTime: Date.now(),
                             });
                         }, 5000);

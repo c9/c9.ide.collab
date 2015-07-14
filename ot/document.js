@@ -706,10 +706,10 @@ define(function(require, module, exports) {
                         console.log("Received new document, discarding any pending changes");
                         
                         /* Clear the timer that watcher set to ensure that collab applies its changes */
-                        c9Document.tab.debugData.lastChange = Date.now();
-                        if (c9Document.tab.debugData.changeRegistered) {
-                            clearTimeout(c9Document.tab.debugData.changeRegistered);
-                            delete c9Document.tab.debugData.changeRegistered;
+                        c9Document.tab.meta.$lastCollabChange = Date.now();
+                        if (c9Document.tab.meta.$collabChangeRegistered) {
+                            clearTimeout(c9Document.tab.meta.$collabChangeRegistered);
+                            delete c9Document.tab.meta.$collabChangeRegistered;
                         }
                         
                         console.log("Collab: Received new document, discarding any pending changes", {msg: msg, latestRevNum: latestRevNum});
