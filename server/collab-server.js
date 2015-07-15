@@ -78,7 +78,7 @@ function wrapSeq(fun, next) {
     return fun.success(function () {
         next.apply(null, [null].concat(Array.prototype.slice.apply(arguments)));
     }).error(function (err) {
-        checkDBCorruption(err, next)
+        checkDBCorruption(err, next);
     });
 }
 
@@ -91,6 +91,12 @@ function checkDBCorruption (err, callback) {
     }
     
     var errMessage = err && err.message ? " " + err.message : "";
+    
+    // Ignore duplicate column name errors, there is no way to stop them happening in ALTER TABLE syntax
+    if (errMessage.match(/duplicate column name/)) {
+        return callback(); 
+    }
+    
     broadcast({
         type: "ERROR",
         err: new Error("Collab encountered error" + errMessage),
