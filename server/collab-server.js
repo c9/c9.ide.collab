@@ -2851,6 +2851,7 @@ var exports = module.exports = function(vfs, options, register) {
 // export for testing
 exports.Store = Store;
 exports.compressDocument = compressDocument;
+exports.checkDBCorruption = checkDBCorruption;
 
 var DIFF_EQUAL = 0;
 var DIFF_INSERT = 1;
