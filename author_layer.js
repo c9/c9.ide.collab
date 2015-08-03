@@ -148,7 +148,7 @@ define(function(require, module, exports) {
                             breakpoints[i] || "", decorations[i] || "", annotation.className,
                             "' style='height:", session.getRowLength(i) * config.lineHeight, "px;",
                             "border-left: solid 5px ", authorColor, ";'",
-                            "fullname='" + fullname + "'", ">",
+                            "uid='" + uid + "'", ">",
                             lastLineNumber = i + firstLineNumber
                         );
                     } else {
@@ -333,7 +333,9 @@ define(function(require, module, exports) {
                     if (dom.hasCssClass(target, "ace_author-cell")) {
                         tooltip.style.display = "block";
                         highlightedCell = target;
-                        tooltip.textContent = target.getAttribute("fullname");
+                        var uid = target.getAttribute("uid");
+                        var user = workspace.users[uid];
+                        tooltip.textContent = user ? user.fullname : "";
                     }
                 }
                 if (highlightedCell) {
