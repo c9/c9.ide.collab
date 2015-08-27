@@ -151,18 +151,20 @@ define(function(require, exports, module) {
         }
 
         function resize() {
+            var count = cachedNotifications.length;
+            
             if (!bubble) {
-                // Make sure collab panel is enabled
-                if (!panels.enablePanel("collab")) return false;
+                // Make sure collab panel is enabled if we have notifications
+                if (!panels.panels.collab.enabled && !count)
+                    panels.enablePanel("collab");
                 
                 // Notification Bubble
                 panelButton = document.querySelector(".panelsbutton.collab");
-                bubble = panelButton.appendChild(document.createElement("div"));
-                bubble.className = "newnotifs";
+                if (panelButton) {
+                    bubble = panelButton.appendChild(document.createElement("div"));
+                    bubble.className = "newnotifs";
+                }
             }
-            
-            var count = cachedNotifications.length;
-            
             
             if (bubble) {
                 if (count) {
@@ -180,7 +182,7 @@ define(function(require, exports, module) {
                         : 50 + "px";
                     notificationsTree.resize();
                 } else {
-                    frame.$ext.style.height = "0"
+                    frame.$ext.style.height = "0";
                 }
             }
         }
