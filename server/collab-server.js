@@ -1637,7 +1637,7 @@ function handleJoinDocument(userIds, client, data) {
     var clientId = userIds.clientId;
     var userId = userIds.userId;
     
-    console.error("[vfs-collab] User", userId, "trying to joining document", docId);
+    console.error("[vfs-collab] User", userId, "trying to join document", docId);
 
     function done(err) {
         if (err) {
