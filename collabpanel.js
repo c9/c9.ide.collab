@@ -81,10 +81,12 @@ define(function(require, module, exports) {
             function show(){
                 collab.show();
                 amlFrame && amlFrame.restore();
+                emit("show");
             }
 
             function hide(){
                 amlFrame.hide();
+                emit("hide");
             }
 
             /***** Register and define API *****/
