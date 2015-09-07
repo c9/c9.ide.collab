@@ -1080,9 +1080,6 @@ define(function(require, module, exports) {
                         reportError("File saving checksum failed; retrying with XHR");
                         return emit("saved", {err: "Save content mismatch", code: "EMISMATCH"});
                     }
-                    else {
-                        console.log("File saved and md5 checksum matched", docId, "revision", data.revNum);
-                    }
                 }
 
                 var isClean = !outgoing.length || latestRevNum === data.revNum;
