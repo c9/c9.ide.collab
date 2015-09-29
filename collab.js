@@ -125,17 +125,6 @@ define(function(require, exports, module) {
                         if (tab.meta.$collabChangeRegistered) {
                             clearTimeout(tab.meta.$collabChangeRegistered);
                         }
-                        tab.meta.$collabChangeRegistered = setTimeout(function() {
-                            errorHandler.reportError(new Error("Watcher picked up file change but collab didn't apply it"), {
-                                active: tab.active,
-                                state: tab.getState(),
-                                connecting: connect.connecting,
-                                connected: connect.connected,
-                                isMaster: connect.isMaster,
-                                lastChange: tab.meta.$lastCollabChange,
-                                currentTime: Date.now(),
-                            });
-                        }, 5000);
                     }
                     
                     return false;
@@ -417,7 +406,7 @@ define(function(require, exports, module) {
                         sendSaveError({code: e.code, err: e.err }, "Collab saving failed on unexpected error");
                     }
                 } else {
-                    failedSaveAttempts = 0
+                    failedSaveAttempts = 0;
                 }
                 callback(e.err);
             }
@@ -429,7 +418,9 @@ define(function(require, exports, module) {
                 if (doc && doc.saveStateDebugging) {
                     message = "Warning: using fallback saving due to save timeout";
                 }
-                sendSaveError(attempt, message);
+
+                console.warn(message, attempt);
+
                 fallbackFn.apply(null, fallbackArgs);
             }
             

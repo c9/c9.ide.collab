@@ -1960,7 +1960,7 @@ function handleSaveFile(userIds, client, data) {
 
     lock(docId, function () {
         client.send({type: "FILE_LOCKED", data: {docId: docId}});
-        Store.getDocument(docId, ["contents", "revNum", "starRevNums"], function (err, doc) {
+        Store.getDocument(docId, ["contents", "revNum", "starRevNums", "newLineChar"], function (err, doc) {
             if (err || !doc)
                 return done((err || "Writing a non-collab document!") + " : " +  docId);
 

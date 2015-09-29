@@ -1047,7 +1047,6 @@ define(function(require, module, exports) {
                 
                 if (data.code == "OT_E" || commitTrials > MAX_COMMIT_TRIALS) {
                     console.warn("[OT] Local document inconsistent with server; attempting rejoin -- SYNC_COMMIT", data.reason, data.code);
-                    reportError(new Error("Collab: Non-fatal: sync commit because of OT error; attempting rejoin"), { data: data });
                     rejoin("OT_E");
                 }
                 else {
