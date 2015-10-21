@@ -634,7 +634,9 @@ define(function(require, exports, module) {
         }
 
         function getTabCollabDocument(tab) {
-            var aceSession = tab.path && tab.document.getSession().session;
+            var session = tab.path && tab.document.getSession();
+            if (!session) return false;
+            var aceSession = session.session;
             return aceSession && aceSession.collabDoc;
         }
 
