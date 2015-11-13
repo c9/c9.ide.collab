@@ -504,6 +504,8 @@ define(function(require, exports, module) {
             var path = e.path;
             var progress = e.progress;
             var callback = e.callback;
+            if (!path || e.tab.editorType != "ace")
+                return;
             var otDoc = documents[path];
             if (!otDoc)
                 otDoc = documents[path] = joinDocument(path, e.tab.document, progress);
