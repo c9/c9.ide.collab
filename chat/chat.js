@@ -20,7 +20,7 @@ define(function(require, exports, module) {
 
         var html = require("text!./chat.html");
         var css = require("text!./chat.css");
-        var timeago = require("./timeago");
+        var timeago = require("timeago");
         var staticPrefix = options.staticPrefix;
 
         var toDeleteMessage;
