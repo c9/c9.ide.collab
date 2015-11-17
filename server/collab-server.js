@@ -1434,7 +1434,7 @@ function handleEditUpdate(userIds, client, data) {
  * @param {Socket} client  - the connected collab client
  * @param {Object} data    - the UPDATE_NL_CHAR message data with the document id, newLineChar
  */
-function handleUpdateNlChar(userIds, client, data) {
+function handleUpdateNlChar(userInfo, client, data) {
     var docId = data.docId;
     var newLineChar = data.newLineChar || "";
 
