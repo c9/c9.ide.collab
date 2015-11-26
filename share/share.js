@@ -274,17 +274,19 @@ define(function(require, module, exports) {
 
         function inviteUser(){
             var username = txtUsername.value;
+            // remove whitespace and surrounding < > from email
+            username = username.replace(/^\s*(<\s*)?|\s*(>\s*)?$/g, "");
             var access = accessButton.classList.contains("rw") ? "rw" : "r";
             var accessString = access === "rw" ? "Read+Write" : "Read-Only";
             btnInvite.disable();
             
             workspace.addMember(username, access, function(err, member) {
                 btnInvite.enable();
-                txtUsername.setValue("");
                 
                 if (err)
                     return alert("Error", "Error adding workspace member", err.message);
                 
+                txtUsername.setValue("");
                 alert("Invitation Sent",
                     "Workspace Member Added",
                     "You have granted " + member.name + " " + accessString
