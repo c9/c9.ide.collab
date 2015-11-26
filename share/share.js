@@ -32,7 +32,7 @@ define(function(require, module, exports) {
 
         var dialog, btnInvite, btnDone, txtUsername, membersParent, accessButton;
         var membersPanel, shareLinkEditor, shareLinkApp, shareLinkPreview;
-        var publicApp, publicPreview, publicEditor;
+        var publicApp, publicPreview, publicEditor, cbNotify;
 
         var loaded = false;
         function load() {
@@ -99,6 +99,7 @@ define(function(require, module, exports) {
             dialog = plugin.getElement("window");
             btnInvite = plugin.getElement("btnInvite");
             btnDone = plugin.getElement("btnDone");
+            cbNotify = plugin.getElement("cbNotify");
             txtUsername = plugin.getElement("txtUsername");
             shareLinkEditor = plugin.getElement("shareLinkEditor").$int;
             shareLinkApp = plugin.getElement("shareLinkApp").$int;
@@ -139,6 +140,13 @@ define(function(require, module, exports) {
                 div.addEventListener("click", function(e){
                     mnuLink.meta.linkText = this.innerHTML;
                     mnuLink.show(e.x, e.y);
+                });
+                div.addEventListener("contextmenu", function(e){
+                    var sel = window.getSelection();
+                    var r = new Range();
+                    r.selectNode(e.currentTarget);
+                    sel.removeAllRanges();
+                    sel.addRange(r);
                 });
             });
 
@@ -280,7 +288,8 @@ define(function(require, module, exports) {
             var accessString = access === "rw" ? "Read+Write" : "Read-Only";
             btnInvite.disable();
             
-            workspace.addMember(username, access, function(err, member) {
+            var options = { silent: !cbNotify.checked };
+            workspace.addMember(username, access, options, function(err, member) {
                 btnInvite.enable();
                 
                 if (err)

@@ -41,7 +41,7 @@
             </a:bar>
 
             <a:button id="btnInvite" skin="btn-default-css3" class="btn-green">Invite</a:button>
-            <a:checkbox skin="checkbox_black" style='margin-top:6px; width: 200px;' checked="true">Notify people via email</a:checkbox>
+            <a:checkbox id="cbNotify" skin="checkbox_black" style='margin-top:6px; width: 200px;' checked="true">Notify people via email</a:checkbox>
         </blockquote>
 
         <a:button id="btnDone" skin="btn-default-css3" class="btn-done">Done</a:button>

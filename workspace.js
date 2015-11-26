@@ -212,11 +212,19 @@ define(function(require, exports, module) {
             }
         }
 
-        function addMember(username, access, callback) {
+        function addMember(username, access, options, callback) {
+            if (!callback) {
+                callback = options;
+                options = {};
+            }
+            
             api.collab.post("members/add", {
                 body: {
                     username: username,
                     access: access
+                },
+                query: {
+                    silent: options.silent
                 }
             }, function (err, data, res) {
                 if (err) return callback(err);

@@ -70,13 +70,12 @@ define(function(require, exports, module) {
                             className.remove("r");
                             className.add("rw");
                         }
-                        membersTree.resize(true);
                     }
                 });
                 membersTree.on("mouseup", function(e) {
                     var domTarget = e.domEvent.target;
                     var node = e.getNode();
-                    if (!node || !domTarget)
+                    if (!node || !domTarget || e.editor.$mouseHandler.isMousePressed)
                         return;
 
                     var className = domTarget.classList;
