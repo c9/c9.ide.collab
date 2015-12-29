@@ -647,7 +647,8 @@ define(function(require, exports, module) {
             if (doc) {
                 doc.value = doc.undoManager = doc.meta = undefined;
                 if (doc.ace) {
-                    doc.ace.folds = doc.ace.options = undefined;
+                    // doc.ace.folds = doc.ace.options = undefined;
+                    doc.ace = {selection: doc.ace.selection};
                 }
             }
             state.className = undefined;
@@ -716,6 +717,8 @@ define(function(require, exports, module) {
                         if (shouldUpdateLastJump(lastJump, tabState, data.tabState))
                             lastJump = tabState;
                         data.tabState.focus = true;
+                        if (data.tabState.document)
+                            delete data.tabState.document.filter;
                         tabs.open(data.tabState);
                     }
                 }
