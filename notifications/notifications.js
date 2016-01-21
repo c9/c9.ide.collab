@@ -123,6 +123,7 @@ define(function(require, exports, module) {
                 frame.minimize();
             postLoadedNotifications();
             frame.on("resize", resize);
+            setTimeout(resize, 15); // HACK around apf layout bug
         }
 
         var cachedNotifications = [];
@@ -289,7 +290,14 @@ define(function(require, exports, module) {
                         access: access
                     }
                 }, function (err, data, res) {
-                    if (err) return alert("Error", err);
+                    if (err) {
+                        var message = err.message || err;
+                        var user = workspace.getUser(uid);
+                        if (user && !user.pending || / isn't a pending workspace member/.test(message)) {
+                            return _self.remove(); // it was already handled ignore
+                        }
+                        return alert("Error", message);
+                    }
                     requestAccepted();
                 });
                 function requestAccepted() {
@@ -310,7 +318,14 @@ define(function(require, exports, module) {
                         uid: uid
                     }
                 }, function (err, data, res) {
-                    if (err) return alert("Error", err);
+                    if (err) {
+                        var message = err.message || err;
+                        var user = workspace.getUser(uid);
+                        if (!user || / isn't a member of project /.test(message)) {
+                            return _self.remove(); // it was already handled ignore
+                        }
+                        return alert("Error", message);
+                    }
                     requestDenied();
                 });
                 function requestDenied() {
