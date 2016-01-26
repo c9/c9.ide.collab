@@ -38,7 +38,11 @@ var user2 = {
 };
 
 function initCollab(user, next) {
-    var vfs = vfsLocal({ root: "/", wsmetapath: ".metadata" });
+    var vfs = vfsLocal({
+        root: "/",
+        wsmetapath: ".metadata",
+        nodePath: __dirname + "/../../../node_modules"
+    });
     vfs.extend("collab", {
         file: __dirname + "/collab-server.js",
         redefine: true,

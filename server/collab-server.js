@@ -35,13 +35,13 @@ var nodePath = getHomeDir() + "/.c9/node_modules";
 var debug = false;
 
 function getHomeDir() {
-    return process.env.OPENSHIFT_DATA_DIR || process.env.HOME;
+    return process.env.HOME;
 }
 
 function getProjectWD() {
     var env = process.env;
     var pidStr = env.BASE_PROC ? "" : String(PID);
-    return Path.resolve(env.BASE_PROC || env.OPENSHIFT_DATA_DIR || env.HOME, ".c9", pidStr);
+    return Path.resolve(env.BASE_PROC || env.HOME, ".c9", pidStr);
 }
 
 /**
@@ -75,9 +75,9 @@ function installServer(callback) {
  * Wrap Sequelize callback-style to NodeJS"s standard callback-style
  */
 function wrapSeq(fun, next) {
-    return fun.success(function () {
+    return fun.then(function () {
         next.apply(null, [null].concat(Array.prototype.slice.apply(arguments)));
-    }).error(function (err) {
+    }, function (err) {
         checkDBCorruption(err, next);
     });
 }
