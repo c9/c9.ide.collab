@@ -139,7 +139,7 @@ define(function(require, module, exports) {
             [shareLinkEditor, shareLinkApp, shareLinkPreview].forEach(function(div){
                 div.addEventListener("click", function(e){
                     mnuLink.meta.linkText = this.innerHTML;
-                    mnuLink.show(e.x, e.y);
+                    mnuLink.show(e.clientX + 1, e.clientY);
                 });
                 div.addEventListener("contextmenu", function(e){
                     var sel = window.getSelection();

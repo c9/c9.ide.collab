@@ -11,15 +11,21 @@
       draggable = "true">
         <label style="margin-bottom:6px">Links to share</label>
         <blockquote class="links">
-          <label class="subhead">Editor:</label>
-          <div id="shareLinkEditor" type="text" readonly="true" class="link"></div>
-          <a:checkbox id="publicEditor" skin="checkbox_black" class="sharecb">Public</a:checkbox>
-          <label class="subhead">Application:</label>
-          <div id="shareLinkApp" type="text" readonly="true" class="link"></div>
-          <a:checkbox id="publicApp" skin="checkbox_black" class="sharecb">Public</a:checkbox>
-          <label class="subhead">Preview:</label>
-          <div id="shareLinkPreview" type="text" readonly="true" class="link"></div>
-          <a:checkbox id="publicPreview" skin="checkbox_black" class="sharecb">Public</a:checkbox>
+          <a:hbox>
+            <label class="subhead">Editor:</label>
+            <div flex="1" id="shareLinkEditor" type="text" readonly="true" class="link" textselect="true"></div>
+            <a:checkbox id="publicEditor" skin="checkbox_black" class="sharecb">Public</a:checkbox>
+          </a:hbox>
+          <a:hbox style="margin-top: 4px;">
+            <label class="subhead">Application:</label>
+            <div flex="1" id="shareLinkApp" type="text" readonly="true" class="link" textselect="true"></div>
+            <a:checkbox id="publicApp" skin="checkbox_black" class="sharecb">Public</a:checkbox>
+          </a:hbox>
+          <a:hbox style="margin-top: 4px;">
+            <label class="subhead">Preview:</label>
+            <div flex="1" id="shareLinkPreview" type="text" readonly="true" class="link" textselect="true"></div>
+            <a:checkbox id="publicPreview" skin="checkbox_black" class="sharecb">Public</a:checkbox>
+          </a:hbox>
         </blockquote>
         
         <label style="margin-top:10px">Who has access</label>

@@ -18,7 +18,7 @@
 }
 
 .share .sharecb{
-    margin: @share-checkbox-margin; 
+    margin: @share-checkbox-margin!important; 
     display:inline-block;
     vertical-align: middle;
 }
@@ -82,7 +82,7 @@
     display: inline-block;
     width: @share-label-subhead-width;
     color: @share-label-subhead-color;
-    margin-top: @share-label-subhead-margin-top;
+    margin-top: @share-label-subhead-margin-top!important;
     font-weight: @share-label-subhead-font-weight;
 }
 
