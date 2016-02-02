@@ -39,7 +39,7 @@
             <a:textbox
               id              = "txtUsername"
               skin            = "searchbox"
-              initial-message = "C9 username or email"
+              initial-message = "username or email"
               focusselect     = "true" />
 
             <a:bar id="access" class="standalone access_control rw">
