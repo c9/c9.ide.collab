@@ -244,7 +244,7 @@ define(function(require, exports, module) {
                     function(){ /* No */ },
                     {
                         yes: node.name == "You" ? "Leave" : "Remove Member",
-                        no: "Abort"
+                        no: "Cancel"
                     }
                 );
             }
