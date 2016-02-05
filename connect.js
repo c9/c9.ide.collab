@@ -269,6 +269,10 @@ define(function(require, exports, module) {
                 },
                 function(){ // No
                     // Do nothing
+                },
+                {
+                    yes: "Update",
+                    no: "Not now"
                 }
             );
         }

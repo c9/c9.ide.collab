@@ -240,7 +240,12 @@ define(function(require, exports, module) {
                     function(){ // Yes
                         var uid = node.uid;
                         workspace.removeMember(uid, alertIfError);
-                    }, function(){ /* No */ }
+                    },
+                    function(){ /* No */ },
+                    {
+                        yes: node.name == "You" ? "Leave" : "Remove Member",
+                        no: "Abort"
+                    }
                 );
             }
             
