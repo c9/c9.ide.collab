@@ -22,7 +22,7 @@
             <a:checkbox id="publicApp" skin="checkbox_black" class="sharecb">Public</a:checkbox>
           </a:hbox>
           <a:hbox style="margin-top: 4px;">
-            <label class="subhead">Preview:</label>
+            <label class="subhead">Files:</label>
             <div flex="1" id="shareLinkPreview" type="text" readonly="true" class="link" textselect="true"></div>
             <a:checkbox id="publicPreview" skin="checkbox_black" class="sharecb">Public</a:checkbox>
           </a:hbox>
