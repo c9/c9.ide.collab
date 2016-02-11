@@ -27,7 +27,6 @@ define(function(require, exports, module) {
         var Tree = require("ace_tree/tree");
         var TreeData = require("./membersdp");
         var mnuCtxTreeEl;
-        var mnuCtxTreePublicEl;
 
         var ROLE_ADMIN = "a";
 
@@ -56,7 +55,7 @@ define(function(require, exports, module) {
                 membersTree.on("mousedown", function(e) {
                     var domTarget = e.domEvent.target;
                     var node = e.getNode();
-                    if (!node || !domTarget)
+                    if (!node || !domTarget || e.domEvent.button)
                         return;
 
                     var className = domTarget.classList;
@@ -75,7 +74,10 @@ define(function(require, exports, module) {
                 membersTree.on("mouseup", function(e) {
                     var domTarget = e.domEvent.target;
                     var node = e.getNode();
-                    if (!node || !domTarget || e.editor.$mouseHandler.isMousePressed)
+                    
+                    if (!node || !domTarget || e.domEvent.button)
+                        return;
+                    if (e.editor.$mouseHandler.isMousePressed)
                         return;
 
                     var className = domTarget.classList;
@@ -117,17 +119,42 @@ define(function(require, exports, module) {
                     id: "mnuMembers",
                     items: [
                         new MenuItem({
+                            caption: "Request Read+Write Access",
+                            match: function(item, node) {
+                                item.setAttribute("visible", !workspace.accessInfo.member);
+                            },
+                            onclick: accessControl.requestAccess
+                        }),
+                        new MenuItem({
+                            caption: "Leave workspace",
+                            match: function(item, node) {
+                                item.setAttribute("visible", !workspace.accessInfo.admin);
+                                return node.name == "You";
+                            },
+                            onclick: removeMember.bind(null, "rw")
+                        }),
+                        new MenuItem({
                             caption: "Grant Read+Write Access",
-                            match: "r",
+                            match: function(item, node) {
+                                item.setAttribute("visible", workspace.accessInfo.admin);
+                                return node.acl == "r"
+                            },
                             onclick: updateAccess.bind(null, "rw")
                         }),
                         new MenuItem({
                             caption: "Revoke Write Access",
-                            match: "rw",
+                            match: function(item, node) {
+                                item.setAttribute("visible", workspace.accessInfo.admin);
+                                return node.acl == "rw" && !node.isAdmin
+                            },
                             onclick: updateAccess.bind(null, "r")
                         }),
                         new MenuItem({
                             caption: "Revoke Access",
+                            match: function(item, node) {
+                                item.setAttribute("visible", workspace.accessInfo.admin);
+                                return !node.isAdmin
+                            },
                             onclick: removeMember
                         }),
                         new Divider(),
@@ -139,19 +166,7 @@ define(function(require, exports, module) {
                     ]
                 }, plugin);
 
-                var mnuCtxTreePublic = new Menu({
-                    id: "mnuMembers",
-                    items: [
-                        new MenuItem({
-                            caption: "Request Read+Write Access",
-                            match: "r",
-                            onclick: accessControl.requestAccess
-                        })
-                    ]
-                }, plugin);
-
                 mnuCtxTreeEl = mnuCtxTree.aml;
-                mnuCtxTreePublicEl = mnuCtxTreePublic.aml;
 
                 mnuCtxTree.on("show", function() {
                     var node = getSelectedMember() || {};
@@ -162,15 +177,13 @@ define(function(require, exports, module) {
                         var disabled = false;
                         if (match == "online") {
                             disabled = !node.clientId;
-                        } else if (node.isAdmin || (match && match !== node.acl))
-                            disabled = true;
+                        } else if (typeof match == "function") {
+                            disabled = match(item, node) == false;
+                        }
                         item.setAttribute("disabled", disabled);
                     });
                 });
-                if (workspace.accessInfo.member)
-                    parent.setAttribute("contextmenu", mnuCtxTreeEl);
-                else
-                    parent.setAttribute("contextmenu", mnuCtxTreePublicEl);
+                parent.setAttribute("contextmenu", mnuCtxTreeEl);
                 
                 window.addEventListener('resize', resize, true);
                 parent.on("resize", resize);
@@ -395,11 +408,6 @@ define(function(require, exports, module) {
                     return x.children.length;
                 });
                 membersDataProvider.setRoot(root);
-                
-                if (workspace.accessInfo.member)
-                    parent.setAttribute("contextmenu", mnuCtxTreeEl);
-                else
-                    parent.setAttribute("contextmenu", mnuCtxTreePublicEl);
             }
 
              /***** Register and define API *****/
