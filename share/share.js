@@ -110,6 +110,11 @@ define(function(require, module, exports) {
             publicEditor = plugin.getElement("publicEditor");
             accessButton = plugin.getElement("access").$int;
 
+            if (options.silent) {
+                cbNotify.uncheck();
+                cbNotify.$ext.style.visibility = "hidden";
+            }
+
             var mnuLink = new Menu({
                 zindex: 500000,
                 items: [
