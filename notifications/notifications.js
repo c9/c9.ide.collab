@@ -66,6 +66,10 @@ define(function(require, exports, module) {
             workspace.on("notification", function(notif) {
                 addNotifications(notif);
                 postLoadedNotifications();
+                if (!isOpen()) {
+                    var sound = document.getElementById("chatNotif");
+                    sound && sound.play();
+                }
             });
         }
 
@@ -123,7 +127,7 @@ define(function(require, exports, module) {
                 frame.minimize();
             postLoadedNotifications();
             frame.on("resize", resize);
-            setTimeout(resize, 15); // HACK around apf layout bug
+            setTimeout(resize, 150); // HACK around apf layout bug
         }
 
         var cachedNotifications = [];
@@ -176,6 +180,7 @@ define(function(require, exports, module) {
                     bubble.style.display = "none";
                 }
             }
+            
             if (drawn) {
                 if (frame.state[0] != "m") {
                     frame.$ext.style.height = count
@@ -187,6 +192,7 @@ define(function(require, exports, module) {
                 }
             }
         }
+        
         function postLoadedNotifications() {
             resize();
             if (!drawn)
@@ -218,6 +224,11 @@ define(function(require, exports, module) {
         function onNotificationsLoaded() {
             if (frame && cachedNotifications.length)
                 frame.restore();
+        }
+        
+        
+        function isOpen() {
+            return panels.isActive("collab") && parent.state[0] != "m";
         }
 
         /***** Notification Object *****/
@@ -335,6 +346,8 @@ define(function(require, exports, module) {
 
             this.handleMouseDown = function (e) {
                 var target = e.domEvent.target;
+                if (e.domEvent.button)
+                    return;
                 var className = target.classList;
                 if (className.contains("access_control")) {
                     var actionArr = className.contains("rw") ? ["rw", "r"] : ["r", "rw"];
@@ -347,6 +360,10 @@ define(function(require, exports, module) {
             this.handleMouseUp = function (e) {
                 var target = e.domEvent.target;
                 var className = target.classList;
+                if (e.domEvent.button)
+                    return;
+                if (e.editor.$mouseHandler.isMousePressed)
+                    return;
                 if (className.contains("grant")) {
                     var rwClassName = target.previousSibling.classList;
                     var access = rwClassName.contains("rw") ? "rw" : "r";
