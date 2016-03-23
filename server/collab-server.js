@@ -749,7 +749,7 @@ function AuthorAttributes(minKeySize, maxKeySize) {
     };
 }
 
-var applyAuthororAttributes = AuthorAttributes().apply;
+var applyAuthorAttributes = AuthorAttributes().apply;
 
 /**
  * Hash a string (document content) for easier comparison of state changes
@@ -1300,7 +1300,7 @@ function applyOperation(userIds, docId, doc, op, callback) {
             return callback(err);
         try {
             doc.contents = applyContents(op, doc.contents);
-            applyAuthororAttributes(doc.authAttribs, op, ws.authorPool[userId]);
+            applyAuthorAttributes(doc.authAttribs, op, ws.authorPool[userId]);
 
             wrapSeq(Revision.create({
                 operation: new Buffer(JSON.stringify(op)),
@@ -1315,6 +1315,9 @@ function applyOperation(userIds, docId, doc, op, callback) {
     function next(err) {
         if (err)
             return callback(err);
+        if (userId == 0) {
+            detectCodeRevertError(op, doc.revNum, doc);
+        }
         doc.revNum++;
         Store.saveDocument(doc, function (err) {
             if (err)
@@ -1329,6 +1332,43 @@ function applyOperation(userIds, docId, doc, op, callback) {
             callback(null, msg);
         });
     }
+}
+
+function detectCodeRevertError(operation, lastRevisionNum, doc) {
+    Store.getRevisions(doc, function(err, revisions) {
+        if (err) return console.error("[vfs-collab] Failed to get document revisions in detectCodeRevertError");
+        
+        var lastRevision = revisions[lastRevisionNum];
+        if (!lastRevision || !lastRevision.operation) return;
+        
+        
+        var lastOperation = lastRevision.operation;
+        if (operation.length != lastOperation.length) return;
+        
+        if (!areOperationsMirrored(operation, lastOperation)) return;
+        
+        console.error("[vfs-collab] ERROR: Detected code revert by system in ", doc.path, "revision " + (lastRevisionNum + 1) + ". Investigation needed.");
+    });
+}
+
+// Check if all operations are the same except for insert/delete which is the opposite
+function areOperationsMirrored(operation1, operation2) {
+    for (var i = 0; i < operation1.length; i++) {
+        var op = operation1[i]; 
+        var lop = operation2[i];
+        if (!op.length) continue;
+        if (op == lop) continue;
+        if (["i", "d"].indexOf(op.charAt(0)) >=0
+            && ["i", "d"].indexOf(lop.charAt(0)) >= 0
+            && op.charAt(0) != lop.charAt(0)
+        ) {
+            if (op.slice(1) == lop.slice(1)) continue; 
+        }
+        
+        return false;
+    }
+    
+    return true;
 }
 
 /**
