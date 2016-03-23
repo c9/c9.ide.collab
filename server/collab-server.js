@@ -1637,7 +1637,7 @@ function handleJoinDocument(userIds, client, data) {
     var clientId = userIds.clientId;
     var userId = userIds.userId;
     
-    console.error("[vfs-collab] User", userId, "trying to join document", docId);
+    console.error("[vfs-collab] User", clientId, "trying to join document", docId);
 
     function done(err) {
         if (err) {
@@ -1651,6 +1651,7 @@ function handleJoinDocument(userIds, client, data) {
                 }
             });
         }
+        console.error("[vfs-collab] User", clientId, "joined document", docId);
         unlock(docId);
     }
 
@@ -1698,10 +1699,10 @@ function handleJoinDocument(userIds, client, data) {
         if (!documents[docId]) {
             documents[docId] = {};
             initVfsWatcher(docId);
-            console.error("[vfs-collab] User", userId, "is joining document", docId);
+            console.error("[vfs-collab] User", clientId, "is joining document", docId);
         }
         else {
-            console.error("[vfs-collab] User", userId, "is joining a document", docId, "with",
+            console.error("[vfs-collab] User", clientId, "is joining a document", docId, "with",
                 Object.keys(documents[docId]).length, "other document members");
         }
 
@@ -1722,6 +1723,8 @@ function handleJoinDocument(userIds, client, data) {
 
         documents[docId][clientId] = userIds;
         client.openDocIds[docId] = true;
+        
+        console.error("[vfs-collab] User", clientId, "is opening", docId, "revNum", doc.revNum, "docHash", docHash, "fsHash", doc.fsHash);
 
         // Cut the document to pices and stream to the client
         var chunkSize = 10*1024; // 10 KB
@@ -2019,6 +2022,7 @@ function doSaveDocument(docId, doc, userId, star, callback) {
         if (err)
             return callback(err);
         console.error("[vfs-collab] starRevision added", doc.revNum);
+        console.error("[vfs-collab] User", userId, "saved document", docId, "revision",  doc.revNum, "hash", fsHash);
         var data = {
             userId: userId,
             docId: docId,
