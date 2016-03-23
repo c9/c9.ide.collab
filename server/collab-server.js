@@ -895,17 +895,9 @@ var Store = (function () {
 
     /**
      * Save a document with changes to the database
-     * @param [{String}] attributes - optional
      * @param {Function} callback
      */
-    function saveDocument(doc, attributes, callback) {
-        if (!callback) {
-            callback = attributes;
-            attributes = undefined;
-        }
-        else {
-            // attributes.push("updated_at");
-        }
+    function saveDocument(doc, callback) {
         var authAttribs = doc.authAttribs;
         var starRevNums = doc.starRevNums;
         doc.authAttribs = JSON.stringify(authAttribs);
@@ -914,7 +906,7 @@ var Store = (function () {
         // doc.updated_at = new Date(doc.updated_at);
 
         return wrapSeq(
-            attributes ? doc.updateAttributes(prepareAttributes(doc, attributes)) : doc.save(),
+            doc.save(),
             function(err) {
                 doc.authAttribs = authAttribs;
                 doc.starRevNums = starRevNums;
@@ -1324,7 +1316,7 @@ function applyOperation(userIds, docId, doc, op, callback) {
         if (err)
             return callback(err);
         doc.revNum++;
-        Store.saveDocument(doc, /*["contents", "authAttribs", "revNum"],*/ function (err) {
+        Store.saveDocument(doc, function (err) {
             if (err)
                 return callback(err);
             var msg = {
@@ -1472,7 +1464,7 @@ function handleUpdateNlChar(userInfo, client, data) {
             if (doc.newLineChar == newLineChar)
                 return done();
             doc.newLineChar = newLineChar;
-            Store.saveDocument(doc, /*["newLineChar"],*/ function (err) {
+            Store.saveDocument(doc, function (err) {
                 if (err)
                     return done(err);
                 console.error("[vfs-collab] updateNlChar changed", newLineChar);
@@ -2018,10 +2010,9 @@ function doSaveDocument(docId, doc, userId, star, callback) {
         doc.starRevNums.push(doc.revNum);
 
     var fsHash = doc.fsHash = hashString(doc.contents);
-    Store.saveDocument(doc, /*["fsHash", "starRevNums"],*/ function (err) {
+    Store.saveDocument(doc, function (err) {
         if (err)
             return callback(err);
-        console.error("[vfs-collab] starRevision added", doc.revNum);
         console.error("[vfs-collab] User", userId, "saved document", docId, "revision",  doc.revNum, "hash", fsHash);
         var data = {
             userId: userId,
@@ -2494,7 +2485,7 @@ function compressDocument(docId, options, callback) {
             function (next) {
                 doc.starRevNums = newStarRevNums;
                 doc.revNum = newRevisions.length - 1;
-                Store.saveDocument(doc, /*["revNum", "starRevNums"],*/ next);
+                Store.saveDocument(doc, next);
             },
             function (next) {
                 newRevisions.forEach(function(newRev) {
