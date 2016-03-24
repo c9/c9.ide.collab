@@ -206,7 +206,7 @@ define(function(require, module, exports) {
                                 cb[value ? "uncheck" : "check"]();
                                 
                                 // Forbidden
-                                if (err.code == 403) {
+                                if (err.message == "Administrator rights required!") {
                                     alert("Forbidden",
                                         "You are not allowed to change this setting.",
                                         "Only the owner of this workspace can change "
@@ -225,7 +225,7 @@ define(function(require, module, exports) {
                                 else {
                                     alert("Failed updating public status",
                                         "The server returned an error",
-                                        "Please try again later.");
+                                        err.message || "");
                                 }
                             }
                         });
