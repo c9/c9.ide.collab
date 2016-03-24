@@ -260,11 +260,11 @@ define(function(require, exports, module) {
                     stepper.addEventListener("mouseup", function onMouseUp(evt2) {
                         stepper.style["background-position"] = origcss;
                         stepper.removeEventListener("mouseup", onMouseUp);
-                        // document.removeEventListener("mouseup". onMouseUp);
+                        // document.removeEventListener("mouseup", onMouseUp);
                     });
                     document.addEventListener("mouseup", function onMouseUp(evt2) {
                         stepper.style["background-position"] = origcss;
-                        document.removeEventListener("mouseup". onMouseUp);
+                        document.removeEventListener("mouseup", onMouseUp);
                         // stepper.removeEventListener("mouseup", onMouseUp);
                     });
                     
