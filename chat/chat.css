@@ -90,9 +90,10 @@
     background: @collab-chat-input-background;
     padding: 4px 4px 3px 4px;
 }
-.chatContainer .searchTxt.tb_textboxInitial .sbtb_middle .input{
+.chatContainer .tb_textboxInitialMsg {
     color: #B9B9B9 !important;
     text-indent: 3px;
+    text-shadow: none;
 }
 .chatContainer .searchbox .sbtb_middle .input{
     color: @collab-chat-input-color;
