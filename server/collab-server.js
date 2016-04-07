@@ -1353,16 +1353,19 @@ function detectCodeRevertError(operation, lastRevisionNum, doc) {
 
 // Check if all operations are the same except for insert/delete which is the opposite
 function areOperationsMirrored(operation1, operation2) {
+    if (!operation1.length || !operation2.length) return false;
+    
     for (var i = 0; i < operation1.length; i++) {
         var op = operation1[i]; 
         var lop = operation2[i];
         if (!op.length) continue;
-        if (op == lop) continue;
-        if (["i", "d"].indexOf(op.charAt(0)) >=0
-            && ["i", "d"].indexOf(lop.charAt(0)) >= 0
-            && op.charAt(0) != lop.charAt(0)
-        ) {
-            if (op.slice(1) == lop.slice(1)) continue; 
+        if (["i", "d"].indexOf(op.charAt(0)) >=0 && ["i", "d"].indexOf(lop.charAt(0)) >= 0) {
+            if (op.charAt(0) != lop.charAt(0) && op.slice(1) == lop.slice(1)) {
+                continue; 
+            }
+        } 
+        else if (op == lop) {
+            continue;
         }
         
         return false;
@@ -2889,6 +2892,7 @@ var exports = module.exports = function(vfs, options, register) {
 exports.Store = Store;
 exports.compressDocument = compressDocument;
 exports.checkDBCorruption = checkDBCorruption;
+exports.areOperationsMirrored = areOperationsMirrored;
 
 var DIFF_EQUAL = 0;
 var DIFF_INSERT = 1;
