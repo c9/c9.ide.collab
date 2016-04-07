@@ -348,4 +348,50 @@ describe(__filename, function() {
             });
         });
     });
+    
+    describe("areOperationsMirrored", function() {
+        it("Should return false for unmirrored operations", function() {
+            var op1 = ["r54", "dabc"];
+            var op2 = ["r44", "dabc"];
+            assert.equal(vfsCollab.areOperationsMirrored(op1, op2), false);
+        });
+        
+        it("Should return true for mirrored operations", function() {
+            var op1 = ["r54", "dabc"];
+            var op2 = ["r54", "iabc"];
+            assert.equal(vfsCollab.areOperationsMirrored(op1, op2), true);
+        });
+        
+        it("Should return false for the same operation", function() {
+            var op1 = ["r54", "iaaa"];
+            var op2 = ["r54", "iaaa"];
+            assert.equal(vfsCollab.areOperationsMirrored(op1, op2), false);
+        });
+        
+        it("Should return false if the operations are different lengths", function() {
+            var op1 = ["r54", "iaaa", "ibbb"];
+            var op2 = ["r54", "iaaa"];
+            assert.equal(vfsCollab.areOperationsMirrored(op1, op2), false);
+            
+            op1 = ["r54", "iaaa"];
+            op2 = ["r54", "iaaa", "ibbb"];
+            assert.equal(vfsCollab.areOperationsMirrored(op1, op2), false);
+        });
+        
+        it("Should be able to handle empty or invalid operations without crashing", function() {
+            var op1 = ["r55"];
+            var op2 = [];
+            assert.equal(vfsCollab.areOperationsMirrored(op1, op2), false);
+            
+            op1 = [""];
+            op2 = [];
+            assert.equal(vfsCollab.areOperationsMirrored(op1, op2), false);
+            
+            op1 = [];
+            op2 = ["r44", ""];
+            assert.equal(vfsCollab.areOperationsMirrored(op1, op2), false);
+        });
+        
+    });
+    
 });

@@ -749,7 +749,7 @@ function AuthorAttributes(minKeySize, maxKeySize) {
     };
 }
 
-var applyAuthororAttributes = AuthorAttributes().apply;
+var applyAuthorAttributes = AuthorAttributes().apply;
 
 /**
  * Hash a string (document content) for easier comparison of state changes
@@ -895,17 +895,9 @@ var Store = (function () {
 
     /**
      * Save a document with changes to the database
-     * @param [{String}] attributes - optional
      * @param {Function} callback
      */
-    function saveDocument(doc, attributes, callback) {
-        if (!callback) {
-            callback = attributes;
-            attributes = undefined;
-        }
-        else {
-            // attributes.push("updated_at");
-        }
+    function saveDocument(doc, callback) {
         var authAttribs = doc.authAttribs;
         var starRevNums = doc.starRevNums;
         doc.authAttribs = JSON.stringify(authAttribs);
@@ -914,7 +906,7 @@ var Store = (function () {
         // doc.updated_at = new Date(doc.updated_at);
 
         return wrapSeq(
-            attributes ? doc.updateAttributes(prepareAttributes(doc, attributes)) : doc.save(),
+            doc.save(),
             function(err) {
                 doc.authAttribs = authAttribs;
                 doc.starRevNums = starRevNums;
@@ -1308,7 +1300,7 @@ function applyOperation(userIds, docId, doc, op, callback) {
             return callback(err);
         try {
             doc.contents = applyContents(op, doc.contents);
-            applyAuthororAttributes(doc.authAttribs, op, ws.authorPool[userId]);
+            applyAuthorAttributes(doc.authAttribs, op, ws.authorPool[userId]);
 
             wrapSeq(Revision.create({
                 operation: new Buffer(JSON.stringify(op)),
@@ -1323,8 +1315,11 @@ function applyOperation(userIds, docId, doc, op, callback) {
     function next(err) {
         if (err)
             return callback(err);
+        if (userId == 0) {
+            detectCodeRevertError(op, doc.revNum, doc);
+        }
         doc.revNum++;
-        Store.saveDocument(doc, /*["contents", "authAttribs", "revNum"],*/ function (err) {
+        Store.saveDocument(doc, function (err) {
             if (err)
                 return callback(err);
             var msg = {
@@ -1337,6 +1332,46 @@ function applyOperation(userIds, docId, doc, op, callback) {
             callback(null, msg);
         });
     }
+}
+
+function detectCodeRevertError(operation, lastRevisionNum, doc) {
+    Store.getRevisions(doc, function(err, revisions) {
+        if (err) return console.error("[vfs-collab] Failed to get document revisions in detectCodeRevertError");
+        
+        var lastRevision = revisions[lastRevisionNum];
+        if (!lastRevision || !lastRevision.operation) return;
+        
+        
+        var lastOperation = lastRevision.operation;
+        if (operation.length != lastOperation.length) return;
+        
+        if (!areOperationsMirrored(operation, lastOperation)) return;
+        
+        console.error("[vfs-collab] ERROR: Detected code revert by system in ", doc.path, "revision " + (lastRevisionNum + 1) + ". Investigation needed.");
+    });
+}
+
+// Check if all operations are the same except for insert/delete which is the opposite
+function areOperationsMirrored(operation1, operation2) {
+    if (!operation1.length || !operation2.length) return false;
+    
+    for (var i = 0; i < operation1.length; i++) {
+        var op = operation1[i]; 
+        var lop = operation2[i];
+        if (!op.length) continue;
+        if (["i", "d"].indexOf(op.charAt(0)) >=0 && ["i", "d"].indexOf(lop.charAt(0)) >= 0) {
+            if (op.charAt(0) != lop.charAt(0) && op.slice(1) == lop.slice(1)) {
+                continue; 
+            }
+        } 
+        else if (op == lop) {
+            continue;
+        }
+        
+        return false;
+    }
+    
+    return true;
 }
 
 /**
@@ -1472,7 +1507,7 @@ function handleUpdateNlChar(userInfo, client, data) {
             if (doc.newLineChar == newLineChar)
                 return done();
             doc.newLineChar = newLineChar;
-            Store.saveDocument(doc, /*["newLineChar"],*/ function (err) {
+            Store.saveDocument(doc, function (err) {
                 if (err)
                     return done(err);
                 console.error("[vfs-collab] updateNlChar changed", newLineChar);
@@ -1637,7 +1672,7 @@ function handleJoinDocument(userIds, client, data) {
     var clientId = userIds.clientId;
     var userId = userIds.userId;
     
-    console.error("[vfs-collab] User", userId, "trying to join document", docId);
+    console.error("[vfs-collab] User", clientId, "trying to join document", docId);
 
     function done(err) {
         if (err) {
@@ -1651,6 +1686,7 @@ function handleJoinDocument(userIds, client, data) {
                 }
             });
         }
+        console.error("[vfs-collab] User", clientId, "joined document", docId);
         unlock(docId);
     }
 
@@ -1698,10 +1734,10 @@ function handleJoinDocument(userIds, client, data) {
         if (!documents[docId]) {
             documents[docId] = {};
             initVfsWatcher(docId);
-            console.error("[vfs-collab] User", userId, "is joining document", docId);
+            console.error("[vfs-collab] User", clientId, "is joining document", docId);
         }
         else {
-            console.error("[vfs-collab] User", userId, "is joining a document", docId, "with",
+            console.error("[vfs-collab] User", clientId, "is joining a document", docId, "with",
                 Object.keys(documents[docId]).length, "other document members");
         }
 
@@ -1722,6 +1758,8 @@ function handleJoinDocument(userIds, client, data) {
 
         documents[docId][clientId] = userIds;
         client.openDocIds[docId] = true;
+        
+        console.error("[vfs-collab] User", clientId, "is opening", docId, "revNum", doc.revNum, "docHash", docHash, "fsHash", doc.fsHash);
 
         // Cut the document to pices and stream to the client
         var chunkSize = 10*1024; // 10 KB
@@ -2015,10 +2053,10 @@ function doSaveDocument(docId, doc, userId, star, callback) {
         doc.starRevNums.push(doc.revNum);
 
     var fsHash = doc.fsHash = hashString(doc.contents);
-    Store.saveDocument(doc, /*["fsHash", "starRevNums"],*/ function (err) {
+    Store.saveDocument(doc, function (err) {
         if (err)
             return callback(err);
-        console.error("[vfs-collab] starRevision added", doc.revNum);
+        console.error("[vfs-collab] User", userId, "saved document", docId, "revision",  doc.revNum, "hash", fsHash);
         var data = {
             userId: userId,
             docId: docId,
@@ -2490,7 +2528,7 @@ function compressDocument(docId, options, callback) {
             function (next) {
                 doc.starRevNums = newStarRevNums;
                 doc.revNum = newRevisions.length - 1;
-                Store.saveDocument(doc, /*["revNum", "starRevNums"],*/ next);
+                Store.saveDocument(doc, next);
             },
             function (next) {
                 newRevisions.forEach(function(newRev) {
@@ -2854,6 +2892,7 @@ var exports = module.exports = function(vfs, options, register) {
 exports.Store = Store;
 exports.compressDocument = compressDocument;
 exports.checkDBCorruption = checkDBCorruption;
+exports.areOperationsMirrored = areOperationsMirrored;
 
 var DIFF_EQUAL = 0;
 var DIFF_INSERT = 1;

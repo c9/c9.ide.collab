@@ -2,7 +2,8 @@ define(function(require, module, exports) {
     main.consumes = [
         "Plugin", "ace", "util", "apf",
         "collab.connect", "collab.util", "collab.workspace",
-        "timeslider", "CursorLayer", "AuthorLayer", "error_handler"
+        "timeslider", "CursorLayer", "AuthorLayer", "error_handler",
+        "vfs.log"
     ];
     main.provides = ["OTDocument"];
     return main;
@@ -18,6 +19,7 @@ define(function(require, module, exports) {
         var CursorLayer = imports.CursorLayer;
         var AuthorLayer = imports.AuthorLayer;
         var errorHandler = imports.error_handler;
+        var logger = imports["vfs.log"];
 
         var lang = require("ace/lib/lang");
         // var Range = require("ace/range").Range;
@@ -548,7 +550,8 @@ define(function(require, module, exports) {
                 // Seems document wasn't loaded yet; set server contents
                 else if (!clientRevNum) {
                     if (rejoinReason && clientContents && clientContents !== serverContents) {
-                        reportError(new Error("Collab: reverting local changes on uninited document"), {rejoinReason: rejoinReason, clientRevNum: clientRevNum, serverRevNum: serverRevNum, clientContents: clientContents, serverContents: serverContents});
+                        reportError(new Error("Collab: reverting local changes on uninited document"), {rejoinReason: rejoinReason, serverRevNum: serverRevNum, clientContents: clientContents, serverContents: serverContents});
+                        logger.log("Collab: reverting local changes on document " + doc.path + " rev: " + serverRevNum + " rejoin reason: " + rejoinReason);
                     }
                     
                     setValue(serverContents, clean, clean); // reset and bookmark if clean
@@ -558,11 +561,13 @@ define(function(require, module, exports) {
                 else {
                     if (clientRevNum > serverRevNum) {
                         reportError(new Error("Collab: clientRevNum is higher than serverRevNum"), {rejoinReason: rejoinReason, clientRevNum: clientRevNum, serverRevNum: serverRevNum, clientContents: clientContents, serverContents: serverContents});
+                        logger.log("Collab: clientrevNum is higher than serverRevNum " + doc.path + " clientRev: " + clientRevNum + " serverRev: " + serverRevNum + " rejoin reason: " + rejoinReason);
                     }
 
                     if (rejoinReason && clientContents && clientContents !== serverContents) {
                         // TODO: nicely merge local and remote edits
                         reportError(new Error("Collab: reverting local changes on collaborative document"), {rejoinReason: rejoinReason, clientRevNum: clientRevNum, serverRevNum: serverRevNum, clientContents: clientContents, serverContents: serverContents});
+                        logger.log("Collab: reverting local changes on collaborative document " + doc.path + " clientRev: " + clientRevNum + " serverRev: " + serverRevNum + " rejoin reason: " + rejoinReason);
                     }
                     
                     // Will auto-aptimize to use 'patchedSetValue'
@@ -703,7 +708,6 @@ define(function(require, module, exports) {
                         // revert & discard all my uncommited changesets because:
                         // a- a file watcher caused this document sync on (overriding my changes)
                         // b- my changes may lead to inconsist state or can fail to be applied to the new synced document state
-                        console.log("Received new document, discarding any pending changes");
                         
                         /* Clear the timer that watcher set to ensure that collab applies its changes */
                         c9Document.tab.meta.$lastCollabChange = Date.now();
@@ -712,7 +716,8 @@ define(function(require, module, exports) {
                             delete c9Document.tab.meta.$collabChangeRegistered;
                         }
                         
-                        console.log("Collab: Received new document, discarding any pending changes", {msg: msg, latestRevNum: latestRevNum});
+                        var path = msg.path || msg.docId;
+                        logger.log("Collab: Received new document, discarding any pending changes " + path + " msg: ", msg, " latestRevNum: " + latestRevNum);
                         try {
                             revertMyPendingChanges(msg.userId);
                         } catch (e) {
@@ -980,7 +985,9 @@ define(function(require, module, exports) {
                 if (!outgoing.length)
                     return;
                 // TODO: determine when is this an error exactly? good to log it anyway now
-                reportError("Collab: reverting pending changes to document because of server sync commit", {outgoing: outgoing, doc: session.doc});
+                var doc = session.doc || {};
+                reportError("Collab: reverting pending changes to document because of server sync commit", {outgoing: outgoing, doc: doc});
+                logger.log("Collab: reverting pending chagnes to document because of server sync commit " + doc.path + " revNum: " + doc.revNum);
                 userId = userId || workspace.myUserId;
                 for (var i = outgoing.length - 1; i >= 0; i--) {
                     applyEdit(
@@ -1047,10 +1054,12 @@ define(function(require, module, exports) {
                 
                 if (data.code == "OT_E" || commitTrials > MAX_COMMIT_TRIALS) {
                     console.warn("[OT] Local document inconsistent with server; attempting rejoin -- SYNC_COMMIT", data.reason, data.code);
+                    logger.log("[OT] Local document inconsistent with server; attempting rejoin -- SYNC_COMMIT", data.reason, data.code);
                     rejoin("OT_E");
                 }
                 else {
                     console.warn("Collab: [OT] Local document inconsistent with server; reapplying changes -- SYNC_COMMIT", data.reason, data.code);
+                    logger.log("Collab: [OT] Local document inconsistent with server; reapplying changes -- SYNC_COMMIT", data.reason, data.code);
                     scheduleSend();
                 }
             }
@@ -1199,7 +1208,7 @@ define(function(require, module, exports) {
              * See also joinWithSession() for what happens to the current text.
              */
             function rejoin(reason) {
-                console.log("[OT] rejoining document", docId, "reason: ", reason);
+                logger.log("[OT] rejoining document", docId, "reason: ", reason);
                 resetState();
                 rejoinReason = reason;
                 var sameSession = session;
@@ -1235,7 +1244,7 @@ define(function(require, module, exports) {
                 // resetState(), which calls endSaveWatchDog() (working around #3680)
                 resetState();
                 state = "DISCONNECTED";
-                console.log("[OT] document", docId, "disconnected");
+                logger.log("[OT] document", docId, "disconnected");
             }
 
             // @see docs in the API section below
