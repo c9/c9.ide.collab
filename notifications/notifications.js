@@ -2,7 +2,7 @@
 define(function(require, exports, module) {
 "use strict";
 
-    main.consumes = ["CollabPanel", "ui", "api", "dialog.alert", "dialog.error", "c9", "panels", "collab.workspace"];
+    main.consumes = ["CollabPanel", "ui", "api", "dialog.alert", "c9", "panels", "collab.workspace"];
     main.provides = ["notifications"];
     return main;
 
@@ -13,7 +13,6 @@ define(function(require, exports, module) {
         var api = imports.api;
         var panels = imports.panels;
         var alert = imports["dialog.alert"].show;
-        var showError = imports["dialog.error"].show;
         var workspace = imports["collab.workspace"];
 
         var css = require("text!./notifications.css");
@@ -137,12 +136,12 @@ define(function(require, exports, module) {
                 return postLoadedNotifications();
 
             api.collab.get("members/list?pending=1", function (err, members) {
-                if (err && (err.code === 0 || err.code === 503)) {
+                if (err && err.code === 0) {
                     // Server still starting or CORS error; retry
                     return setTimeout(loadNotifications, 20000);
                 }
                 
-                if (err) return showError(err);
+                if (err) return alert(err);
 
                 if (Array.isArray(members)) {
                     var notifs = members.map(function(m) {
