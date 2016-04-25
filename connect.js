@@ -24,6 +24,9 @@ define(function(require, exports, module) {
         var plugin = new Plugin("Ajax.org", main.consumes);
         var emit = plugin.getEmitter();
 
+        var localServerFile = options.localServerFile;
+        var extendToken = options.extendToken;
+
         var clientId;
 
         // 0 - production
