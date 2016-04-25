@@ -228,7 +228,7 @@ define(function(require, exports, module) {
         
         
         function isOpen() {
-            return panels.isActive("collab") && parent.state[0] != "m";
+            return panels.isActive("collab") && frame && frame.state[0] != "m";
         }
 
         /***** Notification Object *****/
