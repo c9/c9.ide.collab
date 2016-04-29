@@ -812,6 +812,9 @@ define(function(require, exports, module) {
                 button.setAttribute("icon", icon);
                 button.setAttribute("iconsize", "16px 16px");
                 button.setAttribute("tooltip", name);
+                if (options.showFullNameInMenuBar) {
+                    button.setAttribute("caption", name);
+                }
                 if (button.$ext)
                     button.$ext.style.color = collabUtil.formatColor(workspace.colorPool[uid]);
                 ui.insertByIndex(parent, button, 550, plugin);
