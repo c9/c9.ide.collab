@@ -392,6 +392,28 @@ describe(__filename, function() {
             assert.equal(vfsCollab.areOperationsMirrored(op1, op2), false);
         });
         
+        it("Should ignore noop operations", function() {
+            var op1 = ["d ", "r0", "i"];
+            var op2 = ["d", "r0", "i "];
+            
+            assert.equal(vfsCollab.areOperationsMirrored(op1, op2), true);
+        });
+        
+        it("Should work when change orders are switched", function() {
+            var op1 = ["dELEMENT", "iSTORIES"];
+            var op2 = ["dSTORIES", "iELEMENT"];
+            
+            assert.equal(vfsCollab.areOperationsMirrored(op1, op2), true);
+        });
+    });
+    
+    describe("removeNoopOperations", function () {
+        it("Should remove operations that do nothing", function() {
+            var operations = ["i", "dUUU", "r0", "r1", "r0", "d", "i5e"];
+            var operationsParsed = vfsCollab.removeNoopOperations(operations);
+            assert.deepEqual(operationsParsed, ["dUUU", "r1", "i5e"]);
+        });
+        
     });
     
 });
