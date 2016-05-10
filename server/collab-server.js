@@ -2221,7 +2221,21 @@ function handleUserMessage(userIds, client, message) {
     var data = message.data || {};
     var docId = data.docId || "";
     if (docId[0] === "/")
-        data.docId = docId.slice(1);
+        docId = data.docId = docId.slice(1);
+    // do not allow redonly users to open ~
+    if (docId[0] === "~" && docId[1] === "/" && userIds.fs == "r"
+        || /(^|[\/\\])\.\.[\/\\]/.test(docId)
+    ) {
+        return client.send({
+            type: message.type,
+            data: {
+                clientId: userIds.clientId,
+                docId: docId,
+                err: new Error("Not allowed.")
+            }
+        });
+    }
+    data.docId = docId;
     switch (message.type) {
     case "JOIN_DOC":
         handleJoinDocument(userIds, client, data);
