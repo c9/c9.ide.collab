@@ -1318,10 +1318,12 @@ function applyOperation(userIds, docId, doc, op, callback) {
         if (userId == 0) {
             detectCodeRevertError(op, doc.revNum, doc);
         }
+        console.error("[vfs-collab] applyOperation saveDocument User " + userId + " client " + userIds.clientId + " doc " + docId + " revNum " + doc.revNum)
         doc.revNum++;
         Store.saveDocument(doc, function (err) {
             if (err)
                 return callback(err);
+            console.error("[vfs-collab] applyOperation successfully saved User " + userId + " client " + userIds.clientId + " doc " + docId + " revNum " + doc.revNum)
             var msg = {
                 docId: docId,
                 clientId: userIds.clientId,
@@ -1382,10 +1384,12 @@ function areOperationsMirrored(operation1, operation2) {
  */
 function handleEditUpdate(userIds, client, data) {
     var docId = data.docId;
+    var userId = userIds.userId;
     var clientId = userIds.clientId;
     var newRev = data.revNum;
     var docL;
 
+    console.error("[vfs-collab] handleEditUpdate User " + userId + " client " + clientId + " doc " + docId + " revision " + newRev);
     function done(err) {
         unlock(docId);
         if (err) {
@@ -1395,6 +1399,7 @@ function handleEditUpdate(userIds, client, data) {
 
     // the user's edit couldn't be commited, please try again
     function syncCommit(err) {
+        console.error("[vfs-collab] encountered syncCommit error User " + userId + " client " + clientId + " doc " + docId + " revision " + newRev + " err " + err.message);
         client.send({
             type: "SYNC_COMMIT",
             data: {
@@ -1438,6 +1443,7 @@ function handleEditUpdate(userIds, client, data) {
 
                 msg.selection = data.selection;
 
+                console.error("[vfs-collab] broadcasting EDIT_UPDATE User " + userId + " client " + clientId + " doc " + docId + " revision " + newRev + " fsHash " + doc.fsHash);
                 broadcast({
                     type: "EDIT_UPDATE",
                     data: msg
@@ -1874,7 +1880,7 @@ function syncDocument(docId, doc, callback) {
                 //     doc.contents = normalizeTextLT(doc.contents);
                 // }
                 var op = operations.operation(doc.contents, normContents);
-                console.error("[vfs-collab] SYNC: Updating document:", docId, op.length, fsHash, doc.fsHash);
+                console.error("[vfs-collab] SYNC: Updating document:", docId, op.length, "fsHash", fsHash, "docHash", doc.fsHash);
                 // non-user sync operation
                 doc.fsHash = fsHash; // applyOperation will save it for me
                 
