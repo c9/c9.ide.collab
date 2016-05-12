@@ -1385,14 +1385,12 @@ function areOperationsMirrored(operation1, operation2) {
 }
 
 function removeNoopOperations(ops) {
-    var operations = ops.slice(0);
-    for (var i = 0; i < operations.length; i++) {
-        var op = operations[i];
-        if (op == "d" || op == "i" || op == "r0") {
-            operations.splice(i, 1);
-            i--;
+    var operations = ops.filter(function (op) {
+        if (["d", "i", "r0"].indexOf(op) >= 0) { 
+            return false;
         }
-    }
+        return true;
+    });
     
     return operations;
 }
