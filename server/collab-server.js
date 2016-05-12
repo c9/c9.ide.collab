@@ -1356,17 +1356,27 @@ function detectCodeRevertError(operation, lastRevisionNum, doc) {
 // Check if all operations are the same except for insert/delete which is the opposite
 function areOperationsMirrored(operation1, operation2) {
     if (!operation1.length || !operation2.length) return false;
+    operation1 = removeNoopOperations(operation1);
+    operation2 = removeNoopOperations(operation2);
     
-    for (var i = 0; i < operation1.length; i++) {
-        var op = operation1[i]; 
-        var lop = operation2[i];
-        if (!op.length) continue;
-        if (["i", "d"].indexOf(op.charAt(0)) >=0 && ["i", "d"].indexOf(lop.charAt(0)) >= 0) {
-            if (op.charAt(0) != lop.charAt(0) && op.slice(1) == lop.slice(1)) {
-                continue; 
+    function areOpsMirrors(op1, op2) {
+        if (!op1.length || !op2.length) return true;
+        if (["i", "d"].indexOf(op1.charAt(0)) >=0 && ["i", "d"].indexOf(op2.charAt(0)) >= 0) {
+            if (op1.charAt(0) != op2.charAt(0) && op1.slice(1) == op2.slice(1)) {
+                return true; 
             }
         } 
-        else if (op == lop) {
+        else if (op1 == op2) {
+            return true;
+        }
+    }
+    
+    for (var i = 0; i < operation1.length; i++) {
+        if (areOpsMirrors(operation1[i], operation2[i])) continue; 
+        
+        // Check if they are mirrored and order is just flipped
+        if (operation2[i+1] != null && areOpsMirrors(operation1[i], operation2[i+1]) && areOpsMirrors(operation1[i+1], operation2[i])) {
+            i++; // As we already compared this and the next
             continue;
         }
         
@@ -1374,6 +1384,17 @@ function areOperationsMirrored(operation1, operation2) {
     }
     
     return true;
+}
+
+function removeNoopOperations(ops) {
+    var operations = ops.filter(function (op) {
+        if (["d", "i", "r0"].indexOf(op) >= 0) { 
+            return false;
+        }
+        return true;
+    });
+    
+    return operations;
 }
 
 /**
@@ -2899,6 +2920,7 @@ exports.Store = Store;
 exports.compressDocument = compressDocument;
 exports.checkDBCorruption = checkDBCorruption;
 exports.areOperationsMirrored = areOperationsMirrored;
+exports.removeNoopOperations = removeNoopOperations;
 
 var DIFF_EQUAL = 0;
 var DIFF_INSERT = 1;
