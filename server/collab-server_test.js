@@ -405,6 +405,14 @@ describe(__filename, function() {
             
             assert.equal(vfsCollab.areOperationsMirrored(op1, op2), true);
         });
+        
+        it("Should not modify the operations passed in", function() {
+            var op1 = ["r5", "i", "imew"];
+            var op2 = ["dlll", "r0"];
+            vfsCollab.areOperationsMirrored(op1, op2);
+            assert.deepEqual(op1, ["r5", "i", "imew"]);
+            assert.deepEqual(op2, ["dlll", "r0"]);
+        });
     });
     
     describe("removeNoopOperations", function () {
@@ -414,6 +422,11 @@ describe(__filename, function() {
             assert.deepEqual(operationsParsed, ["dUUU", "r1", "i5e"]);
         });
         
+        it("Should not modify the operations passed in", function() {
+            var op1 = ["r544", "d", "iaaa"];
+            vfsCollab.removeNoopOperations(op1);
+            assert.deepEqual(op1, ["r544", "d", "iaaa"]);
+        });
     });
     
 });

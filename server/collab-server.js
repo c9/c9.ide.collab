@@ -1358,7 +1358,6 @@ function areOperationsMirrored(operation1, operation2) {
     operation2 = removeNoopOperations(operation2);
     
     function areOpsMirrors(op1, op2) {
-        console.log("Comparing ", op1, " to ", op2);
         if (!op1.length || !op2.length) return true;
         if (["i", "d"].indexOf(op1.charAt(0)) >=0 && ["i", "d"].indexOf(op2.charAt(0)) >= 0) {
             if (op1.charAt(0) != op2.charAt(0) && op1.slice(1) == op2.slice(1)) {
@@ -1385,7 +1384,8 @@ function areOperationsMirrored(operation1, operation2) {
     return true;
 }
 
-function removeNoopOperations(operations) {
+function removeNoopOperations(ops) {
+    var operations = ops.slice(0);
     for (var i = 0; i < operations.length; i++) {
         var op = operations[i];
         if (op == "d" || op == "i" || op == "r0") {
