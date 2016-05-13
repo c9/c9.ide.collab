@@ -233,6 +233,7 @@ function initDB(readonly, callback) {
     Store.Revision = Revision = sequelize.define("Revision", {
         id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
         operation: { type: Sequelize.TEXT }, // Stringified JSON Array - can be empty for rev:0
+        fsHash: { type: Sequelize.STRING }, // fsHash of the document after this revision has been applied
         author: { type: Sequelize.STRING }, // userId if exists, 0 in syncing operations, -1 in undo non authored text
         revNum: { type: Sequelize.INTEGER },
         created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.NOW },
@@ -262,7 +263,8 @@ function initDB(readonly, callback) {
         { query: "CREATE INDEX ChatMessageTimestampIndex ON ChatMessages(timestamp)", skipError: true },
         { query: "DELETE FROM Documents" },
         { query: "DELETE FROM Revisions" },
-        { query: "ALTER TABLE Documents ADD COLUMN newLineChar VARCHAR(255)" }
+        { query: "ALTER TABLE Documents ADD COLUMN newLineChar VARCHAR(255)" },
+        { query: "ALTER TABLE Revisions ADD COLUMN fsHash VARCHAR(40)" }
     ];
 
     async.series([
@@ -783,10 +785,11 @@ var Store = (function () {
      */
     function newDocument(tmpl, callback) {
         var contents = tmpl.contents || "";
+        var fsHash = tmpl.fsHash || hashString(contents);
         wrapSeq(Document.create({
             contents: new Buffer(contents),
             path: tmpl.path,
-            fsHash: tmpl.fsHash || hashString(contents),
+            fsHash: fsHash,
             authAttribs: contents.length ? JSON.stringify([contents.length, null]) : "[]",
             starRevNums: "[]",
             newLineChar: tmpl.newLineChar || DEFAULT_NL_CHAR_DOC,
@@ -797,6 +800,7 @@ var Store = (function () {
             wrapSeq(Revision.create({
                 document_id: doc.id,
                 operation: new Buffer("[]"),
+                fsHash: fsHash,
                 revNum: 0
             }), function (err, rev) {
                 if (err)
@@ -870,6 +874,18 @@ var Store = (function () {
             callback(null, parseRevisions(revisions));
         });
     }
+    
+    /** 
+     * Get the latest revision of a certain document
+     * @param {Document} doc
+     * @param {Function} callback
+     */
+    function getLatestRevision(doc, callback) {
+        getRevisions(doc, function (err, revisions) {
+            if (err) return callback(err);
+            return callback(null, revisions[revisions.length-1]);
+        });
+    }
 
     /**
      * In-place parsing of revisions
@@ -903,7 +919,7 @@ var Store = (function () {
         doc.authAttribs = JSON.stringify(authAttribs);
         doc.starRevNums = JSON.stringify(starRevNums);
         doc.contents = new Buffer(doc.contents);
-        // doc.updated_at = new Date(doc.updated_at);
+        doc.updated_at = new Date(doc.updated_at);
 
         return wrapSeq(
             doc.save(),
@@ -1301,9 +1317,11 @@ function applyOperation(userIds, docId, doc, op, callback) {
         try {
             doc.contents = applyContents(op, doc.contents);
             applyAuthorAttributes(doc.authAttribs, op, ws.authorPool[userId]);
+            var fsHash = hashString(doc.contents);
 
             wrapSeq(Revision.create({
                 operation: new Buffer(JSON.stringify(op)),
+                fsHash: fsHash,
                 author: userId,
                 revNum: doc.revNum + 1,
                 document_id: doc.id
@@ -1320,6 +1338,7 @@ function applyOperation(userIds, docId, doc, op, callback) {
         }
         console.error("[vfs-collab] applyOperation saveDocument User " + userId + " client " + userIds.clientId + " doc " + docId + " revNum " + doc.revNum)
         doc.revNum++;
+        doc.updated_at = new Date();
         Store.saveDocument(doc, function (err) {
             if (err)
                 return callback(err);
@@ -1875,10 +1894,39 @@ function syncDocument(docId, doc, callback) {
             }
             // update database OT state
             else if (fsHash !== doc.fsHash && doc.contents != normContents) {
-                // if (doc.contents != normalizeTextLT(doc.contents)) {
-                //     debugger
-                //     doc.contents = normalizeTextLT(doc.contents);
-                // }
+                console.log("Finding latest revision with hash")
+                findLatestRevisionWithHash(doc, fsHash, function (err, revision) {
+                    if (err) return callback(err);
+                    if (!revision) return syncCollabDocumentWithDisk();
+                    
+                    console.log("Doing stat of file");
+                    
+                    // Check if the document was updated at the same time as this revision. 
+                    // If it was then this doc has been saved as a revision before, no need to sync to it
+                    Fs.stat(file, function (err, stats) {
+                        if (err) return callback(err);
+                        
+                        console.log("Last file change: ", stats.mtime, " last collab change: ", doc.updated_at);
+                        var lastChange = stats.mtime.getTime();
+                        var lastCollabChange = new Date(doc.updated_at).getTime();
+                        
+                        console.log("In timestamp file change: ", lastChange, " collab: ", lastCollabChange);
+                        
+                        // Never sync if the last doc change is older than the last collab change
+                        if (lastChange < lastCollabChange) {
+                            return callback(null, doc);
+                        }
+                        
+                        return syncCollabDocumentWithDisk();
+                    });
+                });
+            }
+            else {
+                checkNewLineChar();
+                callback(null, doc);
+            }
+            
+            function syncCollabDocumentWithDisk() {
                 var op = operations.operation(doc.contents, normContents);
                 console.error("[vfs-collab] SYNC: Updating document:", docId, op.length, "fsHash", fsHash, "docHash", doc.fsHash);
                 // non-user sync operation
@@ -1898,10 +1946,6 @@ function syncDocument(docId, doc, callback) {
                     callback(null, doc);
                 });
             }
-            else {
-                checkNewLineChar();
-                callback(null, doc);
-            }
 
             function checkNewLineChar() {
                 if (newLineChar && oldNewLineChar !== newLineChar) {
@@ -1917,6 +1961,17 @@ function syncDocument(docId, doc, callback) {
             }
         });
     }
+}
+
+function findLatestRevisionWithHash(doc, hash, callback) {
+    Store.getRevisions(doc, function (err, revisions) {
+        if (err) return callback(err);
+        for (var i = revisions.length-1; i >= 0; i--) {
+            if (revisions[i].fsHash === hash) 
+                return callback(null, revisions[i]);
+        }
+        callback();
+    });
 }
 
 /**
@@ -2899,6 +2954,8 @@ exports.Store = Store;
 exports.compressDocument = compressDocument;
 exports.checkDBCorruption = checkDBCorruption;
 exports.areOperationsMirrored = areOperationsMirrored;
+exports.hashString = hashString;
+exports.findLatestRevisionWithHash = findLatestRevisionWithHash;
 
 var DIFF_EQUAL = 0;
 var DIFF_INSERT = 1;
@@ -3028,43 +3085,3 @@ function isVeryLargeFile(file, contents, callback) {
         callback(null, stat.size > 1024 * 1024 || contents && contents.length > 1024 * 1024);
     });
 }
-
-/*
-// Quick testing:
-basePath = __dirname;
-dbFilePath = __dirname + "/test.db";
-// dbFilePath = "/home/ubuntu/newclient/corrupted_collab.db";
-initDB(false, function(err){
-    if (err)
-        return console.error("initDB error:", err);
-    console.error("DB inited");
-    Store.newDocument({
-        path: "test.txt",
-        contents: Fs.readFileSync(__dirname + "/../template.js", "utf8")
-    }, function (err) {
-        if (err)
-            return console.error(err);
-        console.error("Test document created");
-        Store.getDocument("test.txt", function (err, doc) {
-            console.error("ERR1", err);
-            // console.error(JSON.stringify(doc));
-            Store.getWorkspaceState(function (err, ws) {
-                console.log("ERR2:", err);
-            });
-        });
-    });
-});
-lock("abc", function () {
-    console.log("first locking");
-    setTimeout(function () {
-        unlock("abc");
-    }, 100);
-});
-
-lock("abc", function () {
-    console.log("second locking");
-    setTimeout(function () {
-        unlock("abc");
-    }, 100);
-});
-*/
