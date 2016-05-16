@@ -1927,8 +1927,8 @@ function syncDocument(docId, doc, callback) {
                     Fs.stat(file, function (err, stats) {
                         if (err) return callback(err);
                         
-                        console.log("Last file change: ", stats.mtime, " last collab change: ", doc.updated_at);
-                        var lastChange = stats.mtime.getTime();
+                        console.log("Last file change: ", stats.ctime, " last collab change: ", doc.updated_at);
+                        var lastChange = stats.ctime.getTime();
                         var lastCollabChange = new Date(doc.updated_at).getTime();
                         
                         console.log("In timestamp file change: ", lastChange, " collab: ", lastCollabChange);
