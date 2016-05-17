@@ -5,7 +5,7 @@ define(function(require, exports, module) {
         "Panel", "tabManager", "fs", "metadata", "ui", "apf", "settings", 
         "preferences", "ace", "util", "collab.connect", "collab.workspace", 
         "timeslider", "OTDocument", "notification.bubble", "dialog.error", "dialog.alert",
-        "collab.util", "error_handler", "layout", "menus", "installer", "c9", "watcher.gui"
+        "collab.util", "error_handler", "layout", "menus", "installer", "c9"
     ];
     main.provides = ["collab"];
     return main;
@@ -34,7 +34,6 @@ define(function(require, exports, module) {
         var errorHandler = imports.error_handler;
         var layout = imports.layout;
         var menus = imports.menus;
-        var watcherGui = imports["watcher.gui"];
 
         var css = require("text!./collab.css");
         var staticPrefix = options.staticPrefix;
@@ -111,23 +110,6 @@ define(function(require, exports, module) {
             plugin.on("userMessage", function(e) {
                 if (e.action == "focus") {
                     workspace.updateOpenDocs(e, "activate");
-                }
-            });
-            
-            watcherGui.on("docChange", function (e) {
-                var tab = e.tab;
-                
-                if (tab.editorType == "ace") {
-                    /* If the lastChange (added by collab) was greater than 1 second ago set up a watch 
-                        To ensure that collab makes this change, if not report an error. The lastChange
-                        check is to avoid a race condition if collab updates before this function runs */
-                    if (!tab.meta.$lastCollabChange || tab.meta.$lastCollabChange < (Date.now() - 1000)) {
-                        if (tab.meta.$collabChangeRegistered) {
-                            clearTimeout(tab.meta.$collabChangeRegistered);
-                        }
-                    }
-                    
-                    return false;
                 }
             });
             
@@ -255,6 +237,12 @@ define(function(require, exports, module) {
                     doc && doc.leave();
                     doc && reportLargeDocument(doc, !msg.data.response);
                     delete documents[docId];
+                    break;
+                case "DOC_CHANGED_ON_DISK": 
+                    emit("change", {
+                        path: data.path,
+                        type: "change",
+                    });
                     break;
                 case "USER_STATE":
                     workspace.updateUserState(data.userId, data.state);
