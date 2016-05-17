@@ -875,6 +875,18 @@ var Store = (function () {
         });
     }
     
+    /** 
+     * Get the latest revision of a certain document
+     * @param {Document} doc
+     * @param {Function} callback
+     */
+    function getLatestRevision(doc, callback) {
+        getRevisions(doc, function (err, revisions) {
+            if (err) return callback(err);
+            return callback(null, revisions[revisions.length-1]);
+        });
+    }
+
     /**
      * In-place parsing of revisions
      * @param [{Revision}] revisions
