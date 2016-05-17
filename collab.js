@@ -12,7 +12,7 @@ define(function(require, exports, module) {
 
     function main(options, imports, register) {
         var Panel = imports.Panel;
-        var tabs = imports.tabManager;
+        var tabManager = imports.tabManager;
         var fs = imports.fs;
         var c9 = imports.c9;
         var metadata = imports.metadata;
@@ -85,7 +85,7 @@ define(function(require, exports, module) {
                     otDoc.setSession(doc.getSession().session);
             });
 
-            tabs.on("focusSync", function(e){
+            tabManager.on("focusSync", function(e){
                 var tab = e.tab;
                 var otDoc = documents[tab.path];
                 if (otDoc && !otDoc.session) {
@@ -95,7 +95,7 @@ define(function(require, exports, module) {
                 }
             });
             
-            tabs.on("focus", function(e){
+            tabManager.on("focus", function(e){
                 var tab = e.tab;
                 if (tab && tab.editor) {
                     var id = getTabId(tab);
@@ -137,14 +137,14 @@ define(function(require, exports, module) {
                 leaveAll();
             }, false);
             
-            tabs.on("open", function(e) {
+            tabManager.on("open", function(e) {
                 var tab = e.tab;
                 tab.on("setPath", function(e) {
                     onSetPath(tab, e.oldpath, e.path);
                 });
             });
 
-            tabs.on("tabDestroy", function(e) {
+            tabManager.on("tabDestroy", function(e) {
                 leaveDocument(e.tab.path);
             }, plugin);
 
@@ -372,7 +372,7 @@ define(function(require, exports, module) {
                 return showError("File is very large, collaborative editing disabled: " + docId, 5000);
             }
             showError("File is very large. Collaborative editing disabled: " + docId, 5000);
-            var tab = tabs.findTab(docId);
+            var tab = tabManager.findTab(docId);
             if (!tab || !tab.editor)
                 return;
             tab.classList.add("error");
@@ -569,7 +569,7 @@ define(function(require, exports, module) {
          */
         function afterReadFile(e) {
             var path = e.path;
-            var tab = tabs.findTab(path);
+            var tab = tabManager.findTab(path);
             var doc = documents[path];
             if (!tab || !doc || doc.loaded)
                 return;
@@ -585,7 +585,7 @@ define(function(require, exports, module) {
          */
         function beforeWriteFile(e) {
             var path = e.path;
-            var tab = tabs.findTab(path);
+            var tab = tabManager.findTab(path);
             var doc = documents[path];
 
             // Fall back to default writeFile if not applicable
@@ -633,13 +633,13 @@ define(function(require, exports, module) {
         function getTabState(tabId) {
             var tab;
             if (tabId) {
-                tabs.getTabs().some(function(t) {
+                tabManager.getTabs().some(function(t) {
                     if (getTabId(t) == tabId) {
                         return (tab = t);
                     }
                 });
             } else {
-                tab = tabs.focussedTab;
+                tab = tabManager.focussedTab;
             }
             if (!tab) return;
             var state = tab.getState();
@@ -719,7 +719,7 @@ define(function(require, exports, module) {
                         data.tabState.focus = true;
                         if (data.tabState.document)
                             delete data.tabState.document.filter;
-                        tabs.open(data.tabState);
+                        tabManager.open(data.tabState);
                     }
                 }
             } else if (data.action == "listOpenFiles") {
@@ -730,10 +730,10 @@ define(function(require, exports, module) {
                         fileList: data.fileList
                     }, "set");
                 } else if (data.target == workspace.myClientId) {
-                    var openFiles = tabs.getTabs().map(function(tab) {
+                    var openFiles = tabManager.getTabs().map(function(tab) {
                         return getTabId(tab);
                     }).filter(Boolean);
-                    var active = openFiles.indexOf(getTabId(tabs.focussedTab));
+                    var active = openFiles.indexOf(getTabId(tabManager.focussedTab));
                     connect.send("MESSAGE", {
                         userId: workspace.myUserId,
                         source: workspace.myClientId,
