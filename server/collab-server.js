@@ -875,18 +875,6 @@ var Store = (function () {
         });
     }
     
-    /** 
-     * Get the latest revision of a certain document
-     * @param {Document} doc
-     * @param {Function} callback
-     */
-    function getLatestRevision(doc, callback) {
-        getRevisions(doc, function (err, revisions) {
-            if (err) return callback(err);
-            return callback(null, revisions[revisions.length-1]);
-        });
-    }
-
     /**
      * In-place parsing of revisions
      * @param [{Revision}] revisions
@@ -1678,9 +1666,7 @@ function initVfsWatcher(docId) {
                 if (err)
                     return next(err);
                 syncDocument(docId, oldDoc, function (err, doc2) {
-                    if (err)
-                        return next(err);
-                    doSaveDocument(docId, doc2, -1, true, next);
+                    next(err);
                 });
             });
         });
@@ -1918,7 +1904,7 @@ function syncDocument(docId, doc, callback) {
                 console.log("Finding latest revision with hash")
                 findLatestRevisionWithHash(doc, fsHash, function (err, revision) {
                     if (err) return callback(err);
-                    if (!revision) return syncCollabDocumentWithDisk();
+                    if (!revision) return documentContentsHaveChanged();
                     
                     console.log("Doing stat of file");
                     
@@ -1938,13 +1924,29 @@ function syncDocument(docId, doc, callback) {
                             return callback(null, doc);
                         }
                         
-                        return syncCollabDocumentWithDisk();
+                        return documentContentsHaveChanged();
                     });
                 });
             }
             else {
                 checkNewLineChar();
                 callback(null, doc);
+            }
+            
+            function documentContentsHaveChanged() {
+                if (wasLatestRevisionSaved(doc)) {
+                    return syncCollabDocumentWithDisk();
+                }
+                
+                return informUserFileContentsHaveChanged();
+            }
+            
+            function informUserFileContentsHaveChanged() {
+                broadcast({
+                    type: "DOC_CHANGED_ON_DISK",
+                    data: {path: file}
+                }, null, docId);
+                return callback(null, doc);
             }
             
             function syncCollabDocumentWithDisk() {
@@ -2153,6 +2155,15 @@ function doSaveDocument(docId, doc, userId, star, callback) {
         callback();
     });
 }
+
+/** 
+ * Was the latest document revision saved to disk or is it just in the collabdb
+ * @param {Document} doc
+ */
+function wasLatestRevisionSaved(doc) {
+    return doc.starRevNums && doc.starRevNums.indexOf(doc.revNum) >= 0;
+}
+    
 
 /**
  * Handle user's LEAVE_DOC messages - client closing a collab document
