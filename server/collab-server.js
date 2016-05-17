@@ -1948,12 +1948,24 @@ function syncDocument(docId, doc, callback) {
             }
             
             function syncCollabDocumentWithDisk() {
-                broadcast({
-                    type: "DOC_CHANGED_ON_DISK",
-                    data: {path: file}
-                }, null, docId);
+                var op = operations.operation(doc.contents, normContents);
+                console.error("[vfs-collab] SYNC: Updating document:", docId, op.length, "fsHash", fsHash, "docHash", doc.fsHash);
+                // non-user sync operation
+                doc.fsHash = fsHash; // applyOperation will save it for me
                 
-                return callback(null, doc);
+                doc.newLineChar = newLineChar || oldNewLineChar;
+                applyOperation(null, docId, doc, op, function (err, msg) {
+                    if (err)
+                        return callback("SYNC: Failed updating OT database document state! " + String(err));
+                    msg.sync = true;
+                    broadcast({
+                        type: "EDIT_UPDATE",
+                        data: msg
+                    }, null, docId);
+
+                    checkNewLineChar();
+                    callback(null, doc);
+                });
             }
 
             function checkNewLineChar() {
