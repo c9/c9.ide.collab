@@ -1665,7 +1665,7 @@ function initVfsWatcher(docId) {
             Store.getDocument(docId, function (err, oldDoc) {
                 if (err)
                     return next(err);
-                syncDocument(docId, oldDoc, function (err, doc2) {
+                syncDocument(docId, oldDoc, null, function (err, doc2) {
                     next(err);
                 });
             });
@@ -1731,7 +1731,7 @@ function handleJoinDocument(userIds, client, data) {
                 return fetchMetadataThenJoinDocument(doc);
 
             console.error("[vfs-collab] Joining a closed document", docId, " - Syncing");
-            syncDocument(docId, doc, function(err, doc2) {
+            syncDocument(docId, doc, client, function(err, doc2) {
                 if (err)
                     return done(err);
                 fetchMetadataThenJoinDocument(doc2);
@@ -1812,6 +1812,32 @@ function handleJoinDocument(userIds, client, data) {
                 }
             });
         }
+        
+        if (doc.hasPendingChanges) {
+            client.send({
+                type: "DOC_HAS_PENDING_CHANGES",
+                data: {
+                    userId: userId,
+                    clientId: clientId,
+                    docId: docId,
+                    path: getAbsolutePath(docId)
+                }
+            });
+            delete doc.hasPendingChanges;
+        }
+
+        if (doc.changedOnDisk) {
+            client.send({
+                type: "DOC_CHANGED_ON_DISK",
+                data: {
+                    userId: userId,
+                    clientId: clientId,
+                    docId: docId,
+                    path: getAbsolutePath(docId)
+                }
+            });
+            delete doc.changedOnDisk;
+        }
 
         broadcast({
             type: "JOIN_DOC",
@@ -1850,7 +1876,7 @@ function detectNewLineChar(text) {
  * @param {Document} doc   - the collab document
  * @param {Function} callback
  */
-function syncDocument(docId, doc, callback) {
+function syncDocument(docId, doc, client, callback) {
     var file = getAbsolutePath(docId);
     isBinaryFile(file, function (err, isBinary) {
         if (err)
@@ -1871,7 +1897,6 @@ function syncDocument(docId, doc, callback) {
             callback(err);
         });
     });
-    
     
     function doSyncDocument() {
         Fs.readFile(file, "utf8", function (err, contents) {
@@ -1921,6 +1946,17 @@ function syncDocument(docId, doc, callback) {
                         
                         // Never sync if the last doc change is older than the last collab change
                         if (lastChange < lastCollabChange) {
+                            if (!client) {
+                                broadcast({
+                                    type: "DOC_HAS_PENDING_CHANGES",
+                                    data: {
+                                        path: file
+                                    }
+                                });
+                            } 
+                            else {
+                                doc.hasPendingChanges = true;
+                            }
                             return callback(null, doc);
                         }
                         
@@ -1935,17 +1971,25 @@ function syncDocument(docId, doc, callback) {
             
             function documentContentsHaveChanged() {
                 if (wasLatestRevisionSaved(doc)) {
+                    console.log("Latest revision was saved")
                     return syncCollabDocumentWithDisk();
                 }
                 
+                console.log("Latest revision was not saved");
                 return informUserFileContentsHaveChanged();
             }
             
             function informUserFileContentsHaveChanged() {
-                broadcast({
-                    type: "DOC_CHANGED_ON_DISK",
-                    data: {path: file}
-                }, null, docId);
+                if (!client) {
+                    broadcast({
+                        type: "DOC_CHANGED_ON_DISK",
+                        data: {
+                            path: file
+                        }
+                    });
+                } else {
+                    doc.changedOnDisk = true;
+                }
                 return callback(null, doc);
             }
             
@@ -1966,6 +2010,7 @@ function syncDocument(docId, doc, callback) {
                     }, null, docId);
 
                     checkNewLineChar();
+                    
                     callback(null, doc);
                 });
             }

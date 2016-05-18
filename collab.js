@@ -244,6 +244,12 @@ define(function(require, exports, module) {
                         type: "change",
                     });
                     break;
+                case "DOC_HAS_PENDING_CHANGES": 
+                    var tab = tabManager.findTab(data.path);
+                    if (tab) {
+                        tab.document.setState({changed: true});
+                    }
+                    break;
                 case "USER_STATE":
                     workspace.updateUserState(data.userId, data.state);
                     break;
