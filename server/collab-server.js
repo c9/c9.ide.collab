@@ -1666,6 +1666,10 @@ function initVfsWatcher(docId) {
                 if (err)
                     return next(err);
                 syncDocument(docId, oldDoc, null, function (err, doc2) {
+                    if (doc2.syncedWithDisk) {
+                        doSaveDocument(docId, doc2, -1, true, next);
+                        delete doc2.syncedWithDisk;
+                    }
                     next(err);
                 });
             });
@@ -1999,6 +2003,7 @@ function syncDocument(docId, doc, client, callback) {
                 // non-user sync operation
                 doc.fsHash = fsHash; // applyOperation will save it for me
                 
+                doc.syncedWithDisk = true;
                 doc.newLineChar = newLineChar || oldNewLineChar;
                 applyOperation(null, docId, doc, op, function (err, msg) {
                     if (err)
