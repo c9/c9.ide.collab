@@ -868,6 +868,7 @@ define(function(require, module, exports) {
                             rev0Contents = applyContents(op, rev0Contents);
                         } catch (e) {
                             reportError(new Error("Revision history is not working for document"), {applyContentsError: e.message, revNum: i});
+                            break;
                         }
                     }
                     rev0Cache = {
