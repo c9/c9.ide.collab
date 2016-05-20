@@ -264,7 +264,7 @@ define(function(require, module, exports) {
                     while (remainingText.length) {
                         if (!nextOp) {
                             // Seems like we're in an inconsistent state; rejoin
-                            reportError("Collab: failed to remove text past end of document; rejoining", { data: delta });
+                            reportError(new Error("Collab: failed to remove text past end of document; rejoining"), { data: delta });
                             return rejoin();
                         }
                     
@@ -470,8 +470,6 @@ define(function(require, module, exports) {
                     // this happens because sending lots of data via socket breaks it very often
                     // we need to refactor this to use rest api instead
                     // until that do not report this error
-                    // reportError("JSON Error while loading ot document", error, ["collab"]);
-                    // try rejoin
                     return rejoin("E_JOIN");
                 } finally {
                     lastData = null;
@@ -866,7 +864,11 @@ define(function(require, module, exports) {
                     var rev0Contents = revCache.contents;
                     for (i = revCache.revNum; i > 0; i--) {
                         var op = operations.inverse(revisions[i].operation);
-                        rev0Contents = applyContents(op, rev0Contents);
+                        try {
+                            rev0Contents = applyContents(op, rev0Contents);
+                        } catch (e) {
+                            reportError(new Error("Revision history is not working for document"), {applyContentsError: e.message, revNum: i});
+                        }
                     }
                     rev0Cache = {
                         revNum: 0,
@@ -986,7 +988,7 @@ define(function(require, module, exports) {
                     return;
                 // TODO: determine when is this an error exactly? good to log it anyway now
                 var doc = session.doc || {};
-                reportError("Collab: reverting pending changes to document because of server sync commit", {outgoing: outgoing, doc: doc});
+                reportError(new Error("Collab: reverting pending changes to document because of server sync commit"), {outgoing: outgoing, doc: doc});
                 logger.log("Collab: reverting pending chagnes to document because of server sync commit " + doc.path + " revNum: " + doc.revNum);
                 userId = userId || workspace.myUserId;
                 for (var i = outgoing.length - 1; i >= 0; i--) {
@@ -1081,11 +1083,11 @@ define(function(require, module, exports) {
                         // value can be null if doc is just loaded and there are no revisions
                         // but then fsHash should match
                         if (plugin.docHash !== data.fsHash) {
-                            reportError("File saved, unable to confirm checksum", {docHash: plugin.docHash, fsHash: data.fsHash, revNum: data.revNum, docId: docId});
+                            reportError(new Error("File saved, unable to confirm checksum"), {docHash: plugin.docHash, fsHash: data.fsHash, revNum: data.revNum, docId: docId});
                         }
                     }
                     else if (apf.crypto.MD5.hex_md5(value) !== data.fsHash) {
-                        reportError("File saving checksum failed; retrying with XHR");
+                        reportError(new Error("File saving checksum failed; retrying with XHR"));
                         return emit("saved", {err: "Save content mismatch", code: "EMISMATCH"});
                     }
                 }
