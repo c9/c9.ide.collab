@@ -2219,13 +2219,12 @@ function broadcastUserMessage(userIds, client, data) {
  */
 function handleUserMessage(userIds, client, message) {
     var data = message.data || {};
-    var docId = data.docId || "";
+    // normalize the path to exclude .., but convert separators back to / for windows 
+    var docId = Path.normalize(data.docId || "").replace(/\\/g, "/");
     if (docId[0] === "/")
         docId = data.docId = docId.slice(1);
     // do not allow redonly users to open ~
-    if (docId[0] === "~" && docId[1] === "/" && userIds.fs == "r"
-        || /(^|[\/\\])\.\.[\/\\]/.test(docId)
-    ) {
+    if (docId[0] === "~" && docId[1] === "/" && userIds.fs == "r") {
         return client.send({
             type: message.type,
             data: {
