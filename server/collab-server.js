@@ -2210,6 +2210,17 @@ function broadcastUserMessage(userIds, client, data) {
     }, client);
 }
 
+
+function isPathAllowed(userIds, docId) {
+    // normalize the path to exclude .., but convert separators back to / for windows 
+    if (docId && Path.normalize(docId).replace(/\\/g, "/") != docId)
+        return false;
+    // do not allow redonly users to open ~
+    if (userIds.fs == "r" && docId[0] === "~" && docId[1] === "/")
+        return false;
+    return true;
+}
+
 /**
  * Handle any user message by routing to its proper handler
  *
@@ -2219,18 +2230,17 @@ function broadcastUserMessage(userIds, client, data) {
  */
 function handleUserMessage(userIds, client, message) {
     var data = message.data || {};
-    // normalize the path to exclude .., but convert separators back to / for windows 
-    var docId = Path.normalize(data.docId || "").replace(/\\/g, "/");
+    var docId = data.docId || "";
     if (docId[0] === "/")
-        docId = data.docId = docId.slice(1);
-    // do not allow redonly users to open ~
-    if (docId[0] === "~" && docId[1] === "/" && userIds.fs == "r") {
+        docId = docId.slice(1);
+    
+    if (!isPathAllowed(userIds, docId)) {
         return client.send({
             type: message.type,
             data: {
                 clientId: userIds.clientId,
                 docId: docId,
-                err: new Error("Not allowed.")
+                err: {message: "Not allowed."}
             }
         });
     }

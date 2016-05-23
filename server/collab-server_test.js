@@ -37,11 +37,22 @@ var user2 = {
     readonly: false
 };
 
+var user3 = {
+    user: {
+        uid: "789",
+        fullname: "readonly user",
+        email: "readonly@c9.io",
+    },
+    clientId: "789xyz",
+    readonly: true
+};
+
 function initCollab(user, next) {
     var vfs = vfsLocal({
         root: "/",
         wsmetapath: ".metadata",
-        nodePath: __dirname + "/../../../node_modules"
+        nodePath: __dirname + "/../../../node_modules",
+        nopty: true
     });
     vfs.extend("collab", {
         file: __dirname + "/collab-server.js",
@@ -186,11 +197,11 @@ describe(__filename, function() {
                     return next(err);
                 assert(initatorMsg);
                 assert(collabMsg);
-                assert.equal(initatorMsg.docId, docPath);
+                assert.equal(initatorMsg.docId, docPath.replace(/^\//, ""));
                 assert(initatorMsg.chunk);
                 var doc = JSON.parse(initatorMsg.chunk);
                 assert.ok(!collabMsg.doc);
-                next(null, doc.id);
+                next(null, initatorMsg.docId);
             });
     
             toJoin.send(toJoin.user.clientId, {
@@ -335,6 +346,47 @@ describe(__filename, function() {
                 _self.collab2 = collab2;
                 next();
             });
+        });
+    
+        it("should block home access for readonly", function(next) {
+            var self = this
+            function testJoinError(collab, path, next) {
+                collab.stream.on("data", function onData(msg) {
+                    msg = JSON.parse(msg);
+                    if (msg.type !== "JOIN_DOC")
+                        return console.log("unexpected message:", msg);
+                    console.log("expected message:", msg);
+                    assert.equal(msg.data.err.message, "Not allowed.")
+                    assert.ok(!msg.data.chunk)
+                    collab.stream.removeListener("data", onData);
+                    console.log("!!!!!!!!!!!!!!!!!", path)
+                    next();
+                });
+                collab.send(collab.user.clientId, {
+                    type: "JOIN_DOC",
+                    data: {docId: path}
+                });
+            }
+            async.series([
+                function(next) {
+                    joinDocument("/test.txt", self.collab1, self.collab2, function(err, id) {
+                        assert.ok(!err);
+                        assert.equal(id, "test.txt");
+                        next();
+                    });
+                },
+                function(next) {
+                    testJoinError(self.collab1, "a/b/../../../test.txt", next);
+                },
+                function(next) {
+                    initCollab(user3, function (err, collabRO, vfs) {                        
+                        testJoinError(collabRO, "~/test.txt", next);
+                    });
+                },
+                function() {
+                    next();
+                }
+            ]);
         });
     });
     
