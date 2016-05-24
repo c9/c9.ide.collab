@@ -87,7 +87,7 @@ function initCollab(user, next) {
 
 describe(__filename, function() {
 
-    this.timeout(60000);
+    this.timeout(15000);
 
     describe("General Collab", function() {
         before(function (next) {
@@ -99,7 +99,7 @@ describe(__filename, function() {
         });
     
         after(function(next) {
-            fs.unlinkSync(__dirname + "/test.txt");
+            fs.unlinkSync(__dirname + "/~test.txt");
             next();
             //module.exports.setUpSuite(next);
         });
@@ -118,7 +118,7 @@ describe(__filename, function() {
                         return next(err);
                     _self.collab2 = collab2;
     
-                    var path = "test.txt";
+                    var path = "~test.txt";
                     var text = 'abc-def;;\nghi"-"jkl\n';
                     fs.writeFileSync(__dirname + "/" + path, text);
                     vfsCollab.Store.newDocument({
@@ -211,17 +211,17 @@ describe(__filename, function() {
         }
     
         it("should join document from master", function(next) {
-            joinDocument("test.txt", this.collab1, this.collab2, next);
+            joinDocument("~test.txt", this.collab1, this.collab2, next);
         });
     
         it("should join document from slave", function(next) {
-            joinDocument("test.txt", this.collab2, this.collab1, next);
+            joinDocument("~test.txt", this.collab2, this.collab1, next);
         });
     
         xit("should leave document", function (next) {
             var _self = this;
     
-            var docPath = "test.txt";
+            var docPath = "~test.txt";
     
             joinDocument(docPath, _self.collab1, _self.collab2, function (err) {
                 assert.ok(!err);
@@ -266,7 +266,7 @@ describe(__filename, function() {
         it("should editing document - sync commit error", function(next) {
             var _self = this;
     
-            var docPath = "test.txt";
+            var docPath = "~test.txt";
     
             joinDocument(docPath, _self.collab2, _self.collab1, function (err) {
                 assert.ok(!err);
@@ -293,7 +293,7 @@ describe(__filename, function() {
         it("should editing document - a single commit", function(next) {
             var _self = this;
     
-            var docPath = "test.txt";
+            var docPath = "~test.txt";
     
             joinDocument(docPath, _self.collab1, _self.collab2, function (err) {
                 assert.ok(!err);
@@ -367,17 +367,17 @@ describe(__filename, function() {
             }
             async.series([
                 function(next) {
-                    joinDocument("/test.txt", self.collab1, self.collab2, function(err, id) {
+                    joinDocument("/~test.txt", self.collab1, self.collab2, function(err, id) {
                         assert.ok(!err);
-                        assert.equal(id, "test.txt");
+                        assert.equal(id, "~test.txt");
                         next();
                     });
                 },
                 function(next) {
-                    testJoinError(self.collab1, "a/b/../../../test.txt", next);
+                    testJoinError(self.collab1, "a/b/../../../~test.txt", next);
                 },
                 function(next) {
-                    testJoinError(self.collab1, "../test.txt", next);
+                    testJoinError(self.collab1, "../~test.txt", next);
                 },
                 function(next) {
                     testJoinError(self.collab1, "..\\..\\test.txt", next);

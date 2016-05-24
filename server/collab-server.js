@@ -1599,7 +1599,7 @@ function broadcast(message, sender, docId) {
 }
 
 function getAbsolutePath(docId) {
-    if (docId[0] === "~")
+    if (docId[0] === "~" && docId[1] === "/")
         return Path.join(getHomeDir(), docId.substring(1));
     else
         return Path.join(basePath, docId);
