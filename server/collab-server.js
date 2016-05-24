@@ -2212,8 +2212,8 @@ function broadcastUserMessage(userIds, client, data) {
 
 
 function isPathAllowed(userIds, docId) {
-    // normalize the path to exclude .., but convert separators back to / for windows 
-    if (docId && Path.normalize(docId).replace(/\\/g, "/") != docId)
+    // only accept normalized unix paths without /../ or /./ or ../
+    if (/(\/|^)[.]{1,2}(\/|$)|\\/.test(docId))
         return false;
     // do not allow redonly users to open ~
     if (userIds.fs == "r" && docId[0] === "~" && docId[1] === "/")

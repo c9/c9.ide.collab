@@ -355,11 +355,9 @@ describe(__filename, function() {
                     msg = JSON.parse(msg);
                     if (msg.type !== "JOIN_DOC")
                         return console.log("unexpected message:", msg);
-                    console.log("expected message:", msg);
-                    assert.equal(msg.data.err.message, "Not allowed.")
-                    assert.ok(!msg.data.chunk)
+                    assert.equal(msg.data.err.message, "Not allowed.");
+                    assert.ok(!msg.data.chunk);
                     collab.stream.removeListener("data", onData);
-                    console.log("!!!!!!!!!!!!!!!!!", path)
                     next();
                 });
                 collab.send(collab.user.clientId, {
@@ -379,7 +377,13 @@ describe(__filename, function() {
                     testJoinError(self.collab1, "a/b/../../../test.txt", next);
                 },
                 function(next) {
-                    initCollab(user3, function (err, collabRO, vfs) {                        
+                    testJoinError(self.collab1, "../test.txt", next);
+                },
+                function(next) {
+                    testJoinError(self.collab1, "..\\..\\test.txt", next);
+                },
+                function(next) {
+                    initCollab(user3, function (err, collabRO, vfs) {
                         testJoinError(collabRO, "~/test.txt", next);
                     });
                 },
