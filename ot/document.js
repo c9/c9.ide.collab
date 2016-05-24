@@ -857,36 +857,26 @@ define(function(require, module, exports) {
              * Only works if revisions were previously loaded
              */
             function getDetailedRevision(revNum, contentsOnly) {
-                var i;
-                // authAttribs can only be edited in the forward way because
-                // The user who deleed some text isn't necessarily the one who inserted it
+                var currentRevision;
+                // Create the first revision and save it in rev0cache 
+                // It is created by undoing every operation performed on the document in reverse order
                 if (!rev0Cache && !contentsOnly) {
-                    var rev0Contents = revCache.contents;
-                    for (i = revCache.revNum; i > 0; i--) {
-                        var op = operations.inverse(revisions[i].operation);
-                        try {
-                            rev0Contents = applyContents(op, rev0Contents);
-                        } catch (e) {
-                            reportError(new Error("Revision history is not working for document"), {applyContentsError: e.message, revNum: i});
-                            break;
-                        }
-                    }
-                    rev0Cache = {
-                        revNum: 0,
-                        contents: rev0Contents,
-                        authAttribs: [rev0Contents.length, null]
-                    };
+                    rev0Cache = createFirstRevisionViaInverseOperations();
                     revCache = null;
                 }
-                if (!revCache || revCache.revNum > revNum)
+                
+                if (!revCache || revCache.revNum > revNum) {
                     revCache = cloneObject(rev0Cache);
+                }
 
+                // These are the contents and authAttribs of the first revision
                 var contents = revCache.contents;
                 var authAttribs = cloneObject(revCache.authAttribs);
 
-                for (i = revCache.revNum+1; i <= revNum; i++) {
-                    contents = applyContents(revisions[i].operation, contents);
-                    applyAuthorAttributes(authAttribs, revisions[i].operation, workspace.authorPool[revisions[i].author]);
+                // Apply each revision operation one after the other to get to the revision we are seeking. 
+                for (currentRevision = revCache.revNum+1; currentRevision <= revNum; currentRevision++) {
+                    contents = applyContents(revisions[currentRevision].operation, contents);
+                    applyAuthorAttributes(authAttribs, revisions[currentRevision].operation, workspace.authorPool[revisions[currentRevision].author]);
                 }
                 var rev = cloneObject(revisions[revNum]);
                 if (!rev)
@@ -899,6 +889,26 @@ define(function(require, module, exports) {
                 revCache.authAttribs = cloneObject(authAttribs);
                 revCache.revNum = revNum;
                 return rev;
+            }
+            
+            function createFirstRevisionViaInverseOperations() {
+                var currentRevision;
+                var rev0Contents = revCache.contents;
+                for (currentRevision = revCache.revNum; currentRevision > 0; currentRevision--) {
+                    var op = operations.inverse(revisions[currentRevision].operation);
+                    try {
+                        rev0Contents = applyContents(op, rev0Contents);
+                    } catch (e) {
+                        reportError(new Error("Revision history is not working for document"), {applyContentsError: e.message, revNum: currentRevision});
+                        break;
+                    }
+                }
+                var originalRevision = {
+                    revNum: currentRevision, // this is the last revision we could get to, should be 0, but could be higher if revision history is broken
+                    contents: rev0Contents,
+                    authAttribs: [rev0Contents.length, null]
+                };
+                return originalRevision;
             }
             
             /**
