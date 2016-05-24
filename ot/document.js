@@ -857,7 +857,6 @@ define(function(require, module, exports) {
              * Only works if revisions were previously loaded
              */
             function getDetailedRevision(revNum, contentsOnly) {
-                var currentRevision;
                 // Create the first revision and save it in rev0cache 
                 // It is created by undoing every operation performed on the document in reverse order
                 if (!rev0Cache && !contentsOnly) {
@@ -874,9 +873,9 @@ define(function(require, module, exports) {
                 var authAttribs = cloneObject(revCache.authAttribs);
 
                 // Apply each revision operation one after the other to get to the revision we are seeking. 
-                for (currentRevision = revCache.revNum+1; currentRevision <= revNum; currentRevision++) {
-                    contents = applyContents(revisions[currentRevision].operation, contents);
-                    applyAuthorAttributes(authAttribs, revisions[currentRevision].operation, workspace.authorPool[revisions[currentRevision].author]);
+                for (var i = revCache.revNum+1; i <= revNum; i++) {
+                    contents = applyContents(revisions[i].operation, contents);
+                    applyAuthorAttributes(authAttribs, revisions[i].operation, workspace.authorPool[revisions[i].author]);
                 }
                 var rev = cloneObject(revisions[revNum]);
                 if (!rev)
@@ -892,19 +891,19 @@ define(function(require, module, exports) {
             }
             
             function createFirstRevisionViaInverseOperations() {
-                var currentRevision;
+                var i;
                 var rev0Contents = revCache.contents;
-                for (currentRevision = revCache.revNum; currentRevision > 0; currentRevision--) {
-                    var op = operations.inverse(revisions[currentRevision].operation);
+                for (i = revCache.revNum; i > 0; i--) {
+                    var op = operations.inverse(revisions[i].operation);
                     try {
                         rev0Contents = applyContents(op, rev0Contents);
                     } catch (e) {
-                        reportError(new Error("Revision history is not working for document"), {applyContentsError: e.message, revNum: currentRevision});
+                        reportError(new Error("Revision history is not working for document"), {applyContentsError: e.message, revNum: i});
                         break;
                     }
                 }
                 var originalRevision = {
-                    revNum: currentRevision, // this is the last revision we could get to, should be 0, but could be higher if revision history is broken
+                    revNum: i, // this is the last revision we could get to, should be 0, but could be higher if revision history is broken
                     contents: rev0Contents,
                     authAttribs: [rev0Contents.length, null]
                 };
