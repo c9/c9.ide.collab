@@ -673,7 +673,6 @@ function AuthorAttributes(minKeySize, maxKeySize) {
     }
 
     function remove(nodes, index, length) {
-        // console.log("remove:", index, length);
         var removedTotal = 0;
         for (var i = 0; i < nodes.length; i += 2) {
             var len = nodes[i]; // node.length
@@ -685,7 +684,6 @@ function AuthorAttributes(minKeySize, maxKeySize) {
                 else
                     removed = Math.max(0, Math.min(length, len - index));
 
-                // console.log("Removed:", removed);
                 nodes[i] -= removed; // node.length
                 length -= removed;
                 removedTotal += removed;
@@ -708,7 +706,6 @@ function AuthorAttributes(minKeySize, maxKeySize) {
         }
 
         for (var j = 0; j < nodes.length - 2; j += 2) {
-            // console.log("CHECK:", nodes[j].id, nodes[j+1].id);
             if (!nodes[j] || nodes[j+1] !== nodes[j+3])
                 continue;
             nodes[j] += nodes[j + 2];
@@ -1930,23 +1927,20 @@ function syncDocument(docId, doc, client, callback) {
             }
             // update database OT state
             else if (fsHash !== doc.fsHash && doc.contents != normContents) {
-                console.log("Finding latest revision with hash")
+                console.error("[vfs-collab] Doc", docId, "with hash:", doc.fsHash, "does not match file contents hash", fsHash);
                 findLatestRevisionWithHash(doc, fsHash, function (err, revision) {
                     if (err) return callback(err);
                     if (!revision) return documentContentsHaveChanged();
                     
-                    console.log("Doing stat of file");
-                    
+                    console.error("[vfs-collab] Doc", docId, "found existing revision, doing stat of file", file);
                     // Check if the document was updated at the same time as this revision. 
                     // If it was then this doc has been saved as a revision before, no need to sync to it
                     Fs.stat(file, function (err, stats) {
                         if (err) return callback(err);
                         
-                        console.log("Last file change: ", stats.ctime, " last collab change: ", doc.updated_at);
+                        console.error("[vfs-collab] Doc", docId, "Last file change:", stats.ctime, " last collab change:", doc.updated_at);
                         var lastChange = stats.ctime.getTime();
                         var lastCollabChange = new Date(doc.updated_at).getTime();
-                        
-                        console.log("In timestamp file change: ", lastChange, " collab: ", lastCollabChange);
                         
                         // Never sync if the last doc change is older than the last collab change
                         if (lastChange < lastCollabChange) {
@@ -1975,15 +1969,14 @@ function syncDocument(docId, doc, client, callback) {
             
             function documentContentsHaveChanged() {
                 if (wasLatestRevisionSaved(doc)) {
-                    console.log("Latest revision was saved")
                     return syncCollabDocumentWithDisk();
                 }
                 
-                console.log("Latest revision was not saved");
                 return informUserFileContentsHaveChanged();
             }
             
             function informUserFileContentsHaveChanged() {
+                console.error("[vfs-collab] Informing user document", docId, "contents have changed");
                 if (!client) {
                     broadcast({
                         type: "DOC_CHANGED_ON_DISK",
@@ -1999,7 +1992,7 @@ function syncDocument(docId, doc, client, callback) {
             
             function syncCollabDocumentWithDisk() {
                 var op = operations.operation(doc.contents, normContents);
-                console.error("[vfs-collab] SYNC: Updating document:", docId, op.length, "fsHash", fsHash, "docHash", doc.fsHash);
+                console.error("[vfs-collab] SYNC: Syncing document from disk:", docId, op.length, "fsHash", fsHash, "docHash", doc.fsHash);
                 // non-user sync operation
                 doc.fsHash = fsHash; // applyOperation will save it for me
                 
@@ -2261,7 +2254,7 @@ function handleLargeDocument(userIds, client, data) {
     console.error("[vfs-collab] ", docId);
     delete documents[docId][clientId];
     if (!Object.keys(documents[docId]).length) {
-        console.log("[vfs-collab] File has grown too large, ignoring: " + docId);
+        console.error("[vfs-collab] File has grown too large, ignoring: " + docId);
         closeDocument(docId);
     }
 
