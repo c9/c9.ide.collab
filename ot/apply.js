@@ -28,6 +28,8 @@ exports.applyContents = function(op, doc) {
         switch (op[i][0]) {
         case "r": // retain
             val = Number(val);
+            if (doc.length < val)
+                throw new Error("Could not call retain in ApplyContents doc length: " + doc.length + ", retain length: " +  val);
             newDoc += doc.slice(0, val);
             doc = doc.slice(val);
             break;
