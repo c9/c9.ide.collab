@@ -1626,7 +1626,7 @@ function broadcast(message, sender, docId) {
 }
 
 function getAbsolutePath(docId) {
-    if (docId[0] === "~")
+    if (docId[0] === "~" && docId[1] === "/")
         return Path.join(getHomeDir(), docId.substring(1));
     else
         return Path.join(basePath, docId);
@@ -2237,6 +2237,17 @@ function broadcastUserMessage(userIds, client, data) {
     }, client);
 }
 
+
+function isPathAllowed(userIds, docId) {
+    // only accept normalized unix paths without /../ or /./ or ../
+    if (/(\/|^)[.]{1,2}(\/|$)|\\/.test(docId))
+        return false;
+    // do not allow redonly users to open ~
+    if (userIds.fs == "r" && docId[0] === "~" && docId[1] === "/")
+        return false;
+    return true;
+}
+
 /**
  * Handle any user message by routing to its proper handler
  *
@@ -2248,7 +2259,19 @@ function handleUserMessage(userIds, client, message) {
     var data = message.data || {};
     var docId = data.docId || "";
     if (docId[0] === "/")
-        data.docId = docId.slice(1);
+        docId = docId.slice(1);
+    
+    if (!isPathAllowed(userIds, docId)) {
+        return client.send({
+            type: message.type,
+            data: {
+                clientId: userIds.clientId,
+                docId: docId,
+                err: {message: "Not allowed."}
+            }
+        });
+    }
+    data.docId = docId;
     switch (message.type) {
     case "JOIN_DOC":
         handleJoinDocument(userIds, client, data);
