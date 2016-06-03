@@ -233,7 +233,6 @@ function initDB(readonly, callback) {
     Store.Revision = Revision = sequelize.define("Revision", {
         id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
         operation: { type: Sequelize.TEXT }, // Stringified JSON Array - can be empty for rev:0
-        fsHash: { type: Sequelize.STRING }, // fsHash of the document after this revision has been applied
         author: { type: Sequelize.STRING }, // userId if exists, 0 in syncing operations, -1 in undo non authored text
         revNum: { type: Sequelize.INTEGER },
         created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.NOW },
@@ -263,8 +262,7 @@ function initDB(readonly, callback) {
         { query: "CREATE INDEX ChatMessageTimestampIndex ON ChatMessages(timestamp)", skipError: true },
         { query: "DELETE FROM Documents" },
         { query: "DELETE FROM Revisions" },
-        { query: "ALTER TABLE Documents ADD COLUMN newLineChar VARCHAR(255)" },
-        { query: "ALTER TABLE Revisions ADD COLUMN fsHash VARCHAR(40)" }
+        { query: "ALTER TABLE Documents ADD COLUMN newLineChar VARCHAR(255)" }
     ];
 
     async.series([
@@ -797,7 +795,6 @@ var Store = (function () {
             wrapSeq(Revision.create({
                 document_id: doc.id,
                 operation: new Buffer("[]"),
-                fsHash: fsHash,
                 revNum: 0
             }), function (err, rev) {
                 if (err)
@@ -1302,11 +1299,9 @@ function applyOperation(userIds, docId, doc, op, callback) {
         try {
             doc.contents = applyContents(op, doc.contents);
             applyAuthorAttributes(doc.authAttribs, op, ws.authorPool[userId]);
-            var fsHash = hashString(doc.contents);
 
             wrapSeq(Revision.create({
                 operation: new Buffer(JSON.stringify(op)),
-                fsHash: fsHash,
                 author: userId,
                 revNum: doc.revNum + 1,
                 document_id: doc.id
@@ -1663,11 +1658,12 @@ function initVfsWatcher(docId) {
                 if (err)
                     return next(err);
                 syncDocument(docId, oldDoc, null, function (err, doc2) {
+                    if (err) return next(err);
                     if (doc2.syncedWithDisk) {
                         doSaveDocument(docId, doc2, -1, true, next);
                         delete doc2.syncedWithDisk;
                     }
-                    next(err);
+                    next();
                 });
             });
         });
@@ -1928,38 +1924,32 @@ function syncDocument(docId, doc, client, callback) {
             // update database OT state
             else if (fsHash !== doc.fsHash && doc.contents != normContents) {
                 console.error("[vfs-collab] Doc", docId, "with hash:", doc.fsHash, "does not match file contents hash", fsHash);
-                findLatestRevisionWithHash(doc, fsHash, function (err, revision) {
+                // Check if the document was updated at the same time as this revision. 
+                // If it was then this doc has been saved as a revision before, no need to sync to it
+                Fs.stat(file, function (err, stats) {
                     if (err) return callback(err);
-                    if (!revision) return documentContentsHaveChanged();
                     
-                    console.error("[vfs-collab] Doc", docId, "found existing revision, doing stat of file", file);
-                    // Check if the document was updated at the same time as this revision. 
-                    // If it was then this doc has been saved as a revision before, no need to sync to it
-                    Fs.stat(file, function (err, stats) {
-                        if (err) return callback(err);
-                        
-                        console.error("[vfs-collab] Doc", docId, "Last file change:", stats.ctime, " last collab change:", doc.updated_at);
-                        var lastChange = stats.ctime.getTime();
-                        var lastCollabChange = new Date(doc.updated_at).getTime();
-                        
-                        // Never sync if the last doc change is older than the last collab change
-                        if (lastChange < lastCollabChange) {
-                            if (!client) {
-                                broadcast({
-                                    type: "DOC_HAS_PENDING_CHANGES",
-                                    data: {
-                                        path: file
-                                    }
-                                });
-                            } 
-                            else {
-                                doc.hasPendingChanges = true;
-                            }
-                            return callback(null, doc);
+                    console.error("[vfs-collab] Doc", docId, "Last file change:", stats.ctime, " last collab change:", doc.updated_at);
+                    var lastChange = stats.ctime.getTime();
+                    var lastCollabChange = new Date(doc.updated_at).getTime();
+                    
+                    // Never sync if the last doc change is older than the last collab change
+                    if (lastChange < lastCollabChange) {
+                        if (!client) {
+                            broadcast({
+                                type: "DOC_HAS_PENDING_CHANGES",
+                                data: {
+                                    path: file
+                                }
+                            });
+                        } 
+                        else {
+                            doc.hasPendingChanges = true;
                         }
-                        
-                        return documentContentsHaveChanged();
-                    });
+                        return callback(null, doc);
+                    }
+                    
+                    return documentContentsHaveChanged();
                 });
             }
             else {
@@ -2008,7 +1998,6 @@ function syncDocument(docId, doc, client, callback) {
                     }, null, docId);
 
                     checkNewLineChar();
-                    
                     callback(null, doc);
                 });
             }
@@ -2027,17 +2016,6 @@ function syncDocument(docId, doc, client, callback) {
             }
         });
     }
-}
-
-function findLatestRevisionWithHash(doc, hash, callback) {
-    Store.getRevisions(doc, function (err, revisions) {
-        if (err) return callback(err);
-        for (var i = revisions.length-1; i >= 0; i--) {
-            if (revisions[i].fsHash === hash) 
-                return callback(null, revisions[i]);
-        }
-        callback();
-    });
 }
 
 /**
@@ -3053,7 +3031,6 @@ exports.compressDocument = compressDocument;
 exports.checkDBCorruption = checkDBCorruption;
 exports.areOperationsMirrored = areOperationsMirrored;
 exports.hashString = hashString;
-exports.findLatestRevisionWithHash = findLatestRevisionWithHash;
 exports.removeNoopOperations = removeNoopOperations;
 
 var DIFF_EQUAL = 0;

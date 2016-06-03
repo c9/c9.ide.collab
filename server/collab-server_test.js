@@ -486,46 +486,4 @@ describe(__filename, function() {
             assert.deepEqual(op1, ["r544", "d", "iaaa"]);
         });
     });
-    
-    describe("findRevisionWithHash", function () {
-        var docPath = "bleh.txt";
-        var docContents = "This is a document";
-        var hash = vfsCollab.hashString(docContents);
-        var doc;
-        before(function (done) {
-            initCollab(user1, function (err, collab1, vfs) {
-                vfsCollab.Store.getDocument(docPath, function (err, _doc) {
-                    if (_doc) {
-                        doc = _doc;
-                        return done();
-                    }
-                    vfsCollab.Store.newDocument({
-                        path: docPath,
-                        contents: docContents,
-                        fsHash: hash
-                    }, function (err, _doc) {
-                        doc = _doc;
-                        done(err);
-                    });
-                });
-            });
-        });
-        
-        it("Should return the revision if one with that hash already exists", function (done) {
-            vfsCollab.findLatestRevisionWithHash(doc, hash, function (err, revision) {
-                assert(!err, err);
-                assert.equal(revision.fsHash, hash);
-                done();
-            });
-        });
-        
-        it("Should return undefined if a revision with that hash does not exist", function (done) {
-            var newHash = vfsCollab.hashString("New document");
-            vfsCollab.findLatestRevisionWithHash(doc, newHash, function (err, revision) {
-                assert(!err, err);
-                assert(!revision);
-                done();
-            });
-        });
-    });
 });
