@@ -379,7 +379,10 @@ define(function(require, exports, module) {
         function reportDocHasPendingChanges(path) {
             var tab = tabManager.findTab(path);
             if (tab) {
-                tab.document.setState({changed: true});
+                setTimeout(function() {
+                    // Make the tab show as unsaved
+                    tab.document.undoManager.bookmark(-2);
+                }, 50);
             }
         }
 
