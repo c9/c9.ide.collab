@@ -13,7 +13,6 @@ var fs = require("fs");
 var vfsCollab = require("./collab-server");
 var execFile = require("child_process").execFile;
 var path = require("path");
-var faker = require("faker");
 
 
 var TEST_PID = 800;
@@ -89,17 +88,16 @@ function initCollab(user, next) {
 describe(__filename, function() {
 
     this.timeout(15000);
-    
-    before(function (next) {
-        execFile("rm", ["-rf", path.join(process.env.HOME, "/.c9/" + TEST_PID)], function(code, stdout, stderr) {
-            if (!code)
-                return next();
-            next(stderr);
-        });
-    });
-
 
     describe("General Collab", function() {
+        before(function (next) {
+            execFile("rm", ["-rf", path.join(process.env.HOME, "/.c9/" + TEST_PID)], function(code, stdout, stderr) {
+                if (!code)
+                    return next();
+                next(stderr);
+            });
+        });
+    
         after(function(next) {
             fs.unlinkSync(__dirname + "/~test.txt");
             next();
@@ -486,4 +484,5 @@ describe(__filename, function() {
             assert.deepEqual(op1, ["r544", "d", "iaaa"]);
         });
     });
+    
 });
