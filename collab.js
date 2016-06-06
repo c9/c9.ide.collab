@@ -369,29 +369,18 @@ define(function(require, exports, module) {
             doc.readonly = true;
         }
         
-        function reportDocChangedOnDisk(path, isRetry) {
-            var tab = tabManager.findTab(path);
-            if (!tab && !isRetry)  {
-                return setTimeout(reportDocChangedOnDisk.bind(this, path, true), 5000);
-            }
-            else if (!tab) {
-                return console.error("Got notification doc " + path + " changed on disk but no tab exists") 
-            }
+        function reportDocChangedOnDisk(path) {
             emit("change", {
                 path: path,
                 type: "change",
             });
         }
         
-        function reportDocHasPendingChanges(path, isRetry) {
+        function reportDocHasPendingChanges(path) {
             var tab = tabManager.findTab(path);
-            if (!tab && !isRetry)  {
-                return setTimeout(reportDocHasPendingChanges.bind(this, path, true), 5000);
+            if (tab) {
+                tab.document.setState({changed: true});
             }
-            else if (!tab) {
-                return console.error("Got notification doc " + path + " has pending changes but no tab exists") 
-            }
-            tab.document.setState({changed: true});
         }
 
         function saveDocument(docId, fallbackFn, fallbackArgs, callback) {
