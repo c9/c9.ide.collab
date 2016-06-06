@@ -1816,6 +1816,7 @@ function handleJoinDocument(userIds, client, data) {
         }
         
         if (doc.hasPendingChanges) {
+            console.error("Sending doc ", docId, " has pending changes to user ", userId, " client ", clientId);
             client.send({
                 type: "DOC_HAS_PENDING_CHANGES",
                 data: {
@@ -1829,6 +1830,7 @@ function handleJoinDocument(userIds, client, data) {
         }
 
         if (doc.changedOnDisk) {
+            console.error("Sending doc ", docId, " has changed on disk to user ", userId, " client ", clientId);
             client.send({
                 type: "DOC_CHANGED_ON_DISK",
                 data: {
@@ -1941,6 +1943,7 @@ function syncDocument(docId, doc, client, callback) {
                     // Never sync if the last doc change is older than the last collab change
                     if (lastChange < lastCollabChange) {
                         if (!client) {
+                            console.error("[vfs-collab] Broadcasting document", docId, "contents have changed");
                             broadcast({
                                 type: "DOC_HAS_PENDING_CHANGES",
                                 data: {
@@ -1972,8 +1975,8 @@ function syncDocument(docId, doc, client, callback) {
             }
             
             function informUserFileContentsHaveChanged() {
-                console.error("[vfs-collab] Informing user document", docId, "contents have changed");
                 if (!client) {
+                    console.error("[vfs-collab] Broadcasting document", docId, "contents have changed");
                     broadcast({
                         type: "DOC_CHANGED_ON_DISK",
                         data: {
