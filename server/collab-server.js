@@ -13,6 +13,10 @@ var DEFAULT_NL_CHAR_FILE = "\n";
 var DEFAULT_NL_CHAR_DOC = "";
 var MAX_WRITE_ATTEMPTS = 3;
 
+// If you leave unsaved changes for more than 24 hours and the file on disk changes 
+// those unsaved changes will be lost. Don't want them hanging around forever. 
+var UNSAVED_CHANGE_EXPIRY_TIME = 24 * 60 * 60 * 1000; 
+
 // Models
 var User, Document, Revision, Workspace, ChatMessage;
 var basePath;
@@ -33,6 +37,7 @@ var Sequelize;
 var nodePath = getHomeDir() + "/.c9/node_modules";
 
 var debug = false;
+
 
 function getHomeDir() {
     return process.env.HOME;
@@ -1949,7 +1954,7 @@ function syncDocument(docId, doc, client, callback) {
                         return callback(null, doc);
                     }
                     
-                    return documentContentsHaveChanged();
+                    return documentContentsHaveChanged(lastCollabChange);
                 });
             }
             else {
@@ -1957,8 +1962,9 @@ function syncDocument(docId, doc, client, callback) {
                 callback(null, doc);
             }
             
-            function documentContentsHaveChanged() {
-                if (wasLatestRevisionSaved(doc)) {
+            function documentContentsHaveChanged(lastCollabChange) {
+                var timeSinceLastCollabChange = Date.now() - lastCollabChange;
+                if (wasLatestRevisionSaved(doc) || timeSinceLastCollabChange > UNSAVED_CHANGE_EXPIRY_TIME) {
                     return syncCollabDocumentWithDisk();
                 }
                 
