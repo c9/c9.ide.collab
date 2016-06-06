@@ -239,16 +239,10 @@ define(function(require, exports, module) {
                     delete documents[docId];
                     break;
                 case "DOC_CHANGED_ON_DISK": 
-                    emit("change", {
-                        path: data.path,
-                        type: "change",
-                    });
+                    reportDocChangedOnDisk(data.path);
                     break;
                 case "DOC_HAS_PENDING_CHANGES": 
-                    var tab = tabManager.findTab(data.path);
-                    if (tab) {
-                        tab.document.setState({changed: true});
-                    }
+                    reportDocHasPendingChanges(data.path);
                     break;
                 case "USER_STATE":
                     workspace.updateUserState(data.userId, data.state);
@@ -373,6 +367,20 @@ define(function(require, exports, module) {
             if (doc.readonly)
                 return;
             doc.readonly = true;
+        }
+        
+        function reportDocChangedOnDisk(path) {
+            emit("change", {
+                path: path,
+                type: "change",
+            });
+        }
+        
+        function reportDocHasPendingChanges(path) {
+            var tab = tabManager.findTab(path);
+            if (tab) {
+                tab.document.setState({changed: true});
+            }
         }
 
         function saveDocument(docId, fallbackFn, fallbackArgs, callback) {
