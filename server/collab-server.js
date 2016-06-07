@@ -1971,7 +1971,10 @@ function syncDocument(docId, doc, client, forceSync, callback) {
             
             function documentContentsHaveChanged(lastCollabChange) {
                 var timeSinceLastCollabChange = Date.now() - lastCollabChange;
-                if (wasLatestRevisionSaved(doc) || timeSinceLastCollabChange > UNSAVED_CHANGE_EXPIRY_TIME) {
+                if (wasLatestRevisionSaved(doc)) {
+                    return syncCollabDocumentWithDisk();
+                } else if (timeSinceLastCollabChange > UNSAVED_CHANGE_EXPIRY_TIME) {
+                    console.error("[vfs-collab] Doc ", docId, " last collab change was " + (timeSinceLastCollabChange / 1000) + "s ago. Expiring change and syncing from disk");
                     return syncCollabDocumentWithDisk();
                 }
                 
