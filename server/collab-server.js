@@ -1662,7 +1662,7 @@ function initVfsWatcher(docId) {
             Store.getDocument(docId, function (err, oldDoc) {
                 if (err)
                     return next(err);
-                syncDocument(docId, oldDoc, null, function (err, doc2) {
+                syncDocument(docId, oldDoc, null, false, function (err, doc2) {
                     if (err) return next(err);
                     if (doc2.syncedWithDisk) {
                         doSaveDocument(docId, doc2, -1, true, next);
@@ -1733,7 +1733,7 @@ function handleJoinDocument(userIds, client, data) {
                 return fetchMetadataThenJoinDocument(doc);
 
             console.error("[vfs-collab] Joining a closed document", docId, " - Syncing");
-            syncDocument(docId, doc, client, function(err, doc2) {
+            syncDocument(docId, doc, client, false, function(err, doc2) {
                 if (err)
                     return done(err);
                 fetchMetadataThenJoinDocument(doc2);
@@ -1878,9 +1878,11 @@ function detectNewLineChar(text) {
  *
  * @param {String}   docId - the document id or path
  * @param {Document} doc   - the collab document
+ * @param {Client} client   - the client requesting the sync
+ * @param {Boolean} forceSync   - skip all the sanity checks, just sync from disk if the collab doc is different from disk
  * @param {Function} callback
  */
-function syncDocument(docId, doc, client, callback) {
+function syncDocument(docId, doc, client, forceSync, callback) {
     var file = getAbsolutePath(docId);
     isBinaryFile(file, function (err, isBinary) {
         if (err)
@@ -1931,6 +1933,8 @@ function syncDocument(docId, doc, client, callback) {
             // update database OT state
             else if (fsHash !== doc.fsHash && doc.contents != normContents) {
                 console.error("[vfs-collab] Doc", docId, "with hash:", doc.fsHash, "does not match file contents hash", fsHash);
+                if (forceSync) return syncCollabDocumentWithDisk();
+                
                 // Check if the document was updated at the same time as this revision. 
                 // If it was then this doc has been saved as a revision before, no need to sync to it
                 Fs.stat(file, function (err, stats) {
@@ -2193,7 +2197,7 @@ function doSaveDocument(docId, doc, userId, star, callback) {
 function wasLatestRevisionSaved(doc) {
     return doc.starRevNums && doc.starRevNums.indexOf(doc.revNum) >= 0;
 }
-    
+
 
 /**
  * Handle user's LEAVE_DOC messages - client closing a collab document
@@ -2205,6 +2209,7 @@ function handleLeaveDocument(userIds, client, data) {
     var docId = data.docId;
     var userId = userIds.userId;
     var clientId = userIds.clientId;
+    var userDisconnected = data.disconnected;
     if (!documents[docId] || !documents[docId][clientId] || !client.openDocIds[docId])
         return console.error("[vfs-collab] Trying to leave a non-member document!",
             docId, clientId, documents[docId] && Object.keys(documents[docId]), Object.keys(client.openDocIds),
@@ -2214,6 +2219,18 @@ function handleLeaveDocument(userIds, client, data) {
     delete documents[docId][clientId];
     if (!Object.keys(documents[docId]).length) {
         console.error("[vfs-collab] Closing document", docId);
+        if (!userDisconnected) {
+            // If the user closed this on purpose and it's the last user
+            // Resync this document with what's on disk to remove unsaved collab changes
+            console.error("[vfs-collab] Last user closed document ", docId, " resyncing it from disk");
+            Store.getDocument(docId, function (err, doc) {
+                if (err) return console.error("[vfs-collab] Failed to get doc", docId, " from the store. Error is: ", err.message);
+                syncDocument(docId, doc, null, true, function(err) {
+                    if (err) return console.error("[vfs-collab] Failed to sync", docId, "with disk. Error is: ", err.message);
+                    console.error("[vfs-collab] Successfully synced document", docId, " with disk.");
+                });
+            });
+        }
         closeDocument(docId);
     }
 
@@ -2442,7 +2459,7 @@ function onConnect(userIds, client) {
 
     client.on("disconnect", function () {
         for (var docId in client.openDocIds)
-            handleLeaveDocument(userIds, client, {docId: docId});
+            handleLeaveDocument(userIds, client, {docId: docId, disconnected: true});
         broadcast({
             type: "USER_LEAVE",
             data: {
@@ -2472,7 +2489,7 @@ function closeDocument(docId) {
             COMPRESSED_REV_NUM: 128
         });
     }, 100000);
-
+    
     if (watchers[docId]) {
         watchers[docId].close();
         delete watchers[docId];
