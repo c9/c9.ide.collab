@@ -1651,14 +1651,15 @@ function initVfsWatcher(docId) {
 
     // Check if a collab document sync is needed, apply it and save to the filesystem
     function doWatcherSync(stats, next) {
-        var mtime = new Date(stats.mtime).getTime();
+        var ctime = new Date(stats.ctime).getTime();
         var watcher = watchers[docId];
-        var timeDiff = mtime - watcher.mtime;
-        if (watcher.mtime && timeDiff < 1)
+        var timeDiff = ctime - watcher.ctime;
+        console.error("[vfs-collab] WATCH CHANGE:", docId, "last ctime:", watcher.ctime, "new ctime:", new Date(stats.ctime).getTime());
+        if (watcher.ctime && timeDiff < 1)
             return;
         lock(docId, function () {
             console.error("[vfs-collab] WATCH SYNC:", docId, timeDiff);
-            watcher.mtime = mtime;
+            watcher.ctime = ctime;
             Store.getDocument(docId, function (err, oldDoc) {
                 if (err)
                     return next(err);
@@ -1680,17 +1681,16 @@ function initVfsWatcher(docId) {
 
         var watcher = meta.watcher;
         watcher.on("change", function (event, filename, stat, files) {
-            console.error("[vfs-collab] WATCH CHANGE:", docId, "mtime:", new Date(stat.mtime).getTime());
             doWatcherSync(stat, done);
         });
         watcher.on("error", function(err){
             console.error("[vfs-collab] WATCH ERR:", docId, err);
         });
         watchers[docId] = watcher;
-        watcher.mtime = Date.now();
+        watcher.ctime = Date.now();
         Fs.stat(absPath, function (err, stat) {
             if (err) return;
-            watcher.mtime = new Date(stat.mtime).getTime();
+            watcher.ctime = new Date(stat.ctime).getTime();
         });
     });
 }
@@ -2121,7 +2121,7 @@ function handleSaveFile(userIds, client, data) {
                 return done((err || "Writing a non-collab document!") + " : " +  docId);
 
             if (watchers[docId])
-                watchers[docId].mtime = Date.now();
+                watchers[docId].ctime = Date.now();
                 
             client.send({type: "FILE_RETRIEVED", data: {docId: docId}});
 
