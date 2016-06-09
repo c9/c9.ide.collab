@@ -239,10 +239,12 @@ define(function(require, exports, module) {
                     delete documents[docId];
                     break;
                 case "DOC_CHANGED_ON_DISK": 
-                    reportDocChangedOnDisk(data.path);
+                    var path = data.docId;
+                    reportDocChangedOnDisk(path);
                     break;
                 case "DOC_HAS_PENDING_CHANGES": 
-                    reportDocHasPendingChanges(data.path);
+                    var path = data.docId;
+                    reportDocHasPendingChanges(path);
                     break;
                 case "USER_STATE":
                     workspace.updateUserState(data.userId, data.state);

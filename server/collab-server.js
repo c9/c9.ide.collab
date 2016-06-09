@@ -1823,7 +1823,6 @@ function handleJoinDocument(userIds, client, data) {
                     userId: userId,
                     clientId: clientId,
                     docId: docId,
-                    path: getAbsolutePath(docId)
                 }
             });
             delete doc.hasPendingChanges;
@@ -1837,7 +1836,6 @@ function handleJoinDocument(userIds, client, data) {
                     userId: userId,
                     clientId: clientId,
                     docId: docId,
-                    path: getAbsolutePath(docId)
                 }
             });
             delete doc.changedOnDisk;
@@ -1951,7 +1949,7 @@ function syncDocument(docId, doc, client, forceSync, callback) {
                             broadcast({
                                 type: "DOC_HAS_PENDING_CHANGES",
                                 data: {
-                                    path: file
+                                    docId: docId
                                 }
                             });
                         } 
@@ -1987,7 +1985,7 @@ function syncDocument(docId, doc, client, forceSync, callback) {
                     broadcast({
                         type: "DOC_CHANGED_ON_DISK",
                         data: {
-                            path: file
+                            docId: docId
                         }
                     });
                 } else {
