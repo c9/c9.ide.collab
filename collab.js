@@ -238,13 +238,11 @@ define(function(require, exports, module) {
                     doc && reportLargeDocument(doc, !msg.data.response);
                     delete documents[docId];
                     break;
-                case "DOC_CHANGED_ON_DISK": 
-                    var path = data.docId;
-                    reportDocChangedOnDisk(path);
+                case "DOC_CHANGED_ON_DISK":
+                    reportDocChangedOnDisk(docId);
                     break;
-                case "DOC_HAS_PENDING_CHANGES": 
-                    var path = data.docId;
-                    reportDocHasPendingChanges(path);
+                case "DOC_HAS_PENDING_CHANGES":
+                    reportDocHasPendingChanges(docId);
                     break;
                 case "USER_STATE":
                     workspace.updateUserState(data.userId, data.state);
