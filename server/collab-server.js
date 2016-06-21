@@ -1494,6 +1494,18 @@ function handleEditUpdate(userIds, client, data) {
     });
 }
 
+function handleResolveConflict(userInfo, client, data) {
+    var docId = data.path;
+    if (!documents[docId] && docId.match(/^~?\//)) {
+        docId = docId.replace(/^~?\//, "");
+    }
+    console.error("[vfs-collab] Handling resolve conflict with data: ", data, " doc is: ", documents[docId]);
+    broadcast({
+        type: "RESOLVE_CONFLICT",
+        data: data
+    }, client, docId); 
+}
+
 /**
  * Handle user's UPDATE_NL_CHAR for a document
  * @param {Object} userIds - user descriptor with: uid, email, fullname, fs, clientId 
@@ -2401,6 +2413,9 @@ function handleUserMessage(userIds, client, message) {
         break;
     case "EDIT_UPDATE":
         handleEditUpdate(userIds, client, data);
+        break;
+    case "RESOLVE_CONFLICT":
+        handleResolveConflict(userIds, client, data);
         break;
     case "UPDATE_NL_CHAR":
         handleUpdateNlChar(userIds, client, data);

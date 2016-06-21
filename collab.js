@@ -233,6 +233,9 @@ define(function(require, exports, module) {
                         return console.warn("[OT] Received msg for file that is not open - docId:", docId, "open docs:", Object.keys(documents));
                     doc.joinData(data);
                     break;
+                case "RESOLVE_CONFLICT":
+                    emit("resolveConflict", {path: data.path});
+                    break;
                 case "LARGE_DOC":
                     doc && doc.leave();
                     doc && reportLargeDocument(doc, !msg.data.response);
@@ -244,6 +247,7 @@ define(function(require, exports, module) {
                 case "DOC_HAS_PENDING_CHANGES":
                     reportDocHasPendingChanges(docId);
                     break;
+                    
                 case "USER_STATE":
                     workspace.updateUserState(data.userId, data.state);
                     break;
