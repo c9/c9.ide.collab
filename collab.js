@@ -234,7 +234,7 @@ define(function(require, exports, module) {
                     doc.joinData(data);
                     break;
                 case "RESOLVE_CONFLICT":
-                    emit("resolveConflict", {path: data.path});
+                    emit("resolveConflict", {path: docId});
                     break;
                 case "LARGE_DOC":
                     doc && doc.leave();

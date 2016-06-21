@@ -1495,10 +1495,7 @@ function handleEditUpdate(userIds, client, data) {
 }
 
 function handleResolveConflict(userInfo, client, data) {
-    var docId = data.path;
-    if (!documents[docId] && docId.match(/^~?\//)) {
-        docId = docId.replace(/^~?\//, "");
-    }
+    var docId = data.docId;
     console.error("[vfs-collab] Handling resolve conflict with data: ", data, " doc is: ", documents[docId]);
     broadcast({
         type: "RESOLVE_CONFLICT",
