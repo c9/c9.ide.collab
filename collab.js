@@ -5,14 +5,14 @@ define(function(require, exports, module) {
         "Panel", "tabManager", "fs", "metadata", "ui", "apf", "settings", 
         "preferences", "ace", "util", "collab.connect", "collab.workspace", 
         "timeslider", "OTDocument", "notification.bubble", "dialog.error", "dialog.alert",
-        "collab.util", "error_handler", "layout", "menus", "installer", "c9", "watcher.gui"
+        "collab.util", "error_handler", "layout", "menus", "installer", "c9"
     ];
     main.provides = ["collab"];
     return main;
 
     function main(options, imports, register) {
         var Panel = imports.Panel;
-        var tabs = imports.tabManager;
+        var tabManager = imports.tabManager;
         var fs = imports.fs;
         var c9 = imports.c9;
         var metadata = imports.metadata;
@@ -34,7 +34,6 @@ define(function(require, exports, module) {
         var errorHandler = imports.error_handler;
         var layout = imports.layout;
         var menus = imports.menus;
-        var watcherGui = imports["watcher.gui"];
 
         var css = require("text!./collab.css");
         var staticPrefix = options.staticPrefix;
@@ -85,7 +84,7 @@ define(function(require, exports, module) {
                     otDoc.setSession(doc.getSession().session);
             });
 
-            tabs.on("focusSync", function(e){
+            tabManager.on("focusSync", function(e){
                 var tab = e.tab;
                 var otDoc = documents[tab.path];
                 if (otDoc && !otDoc.session) {
@@ -95,7 +94,7 @@ define(function(require, exports, module) {
                 }
             });
             
-            tabs.on("focus", function(e){
+            tabManager.on("focus", function(e){
                 var tab = e.tab;
                 if (tab && tab.editor) {
                     var id = getTabId(tab);
@@ -114,37 +113,20 @@ define(function(require, exports, module) {
                 }
             });
             
-            watcherGui.on("docChange", function (e) {
-                var tab = e.tab;
-                
-                if (tab.editorType == "ace") {
-                    /* If the lastChange (added by collab) was greater than 1 second ago set up a watch 
-                        To ensure that collab makes this change, if not report an error. The lastChange
-                        check is to avoid a race condition if collab updates before this function runs */
-                    if (!tab.meta.$lastCollabChange || tab.meta.$lastCollabChange < (Date.now() - 1000)) {
-                        if (tab.meta.$collabChangeRegistered) {
-                            clearTimeout(tab.meta.$collabChangeRegistered);
-                        }
-                    }
-                    
-                    return false;
-                }
-            });
-            
             ui.insertCss(css, staticPrefix, plugin);
 
             window.addEventListener("unload", function() {
                 leaveAll();
             }, false);
             
-            tabs.on("open", function(e) {
+            tabManager.on("open", function(e) {
                 var tab = e.tab;
                 tab.on("setPath", function(e) {
                     onSetPath(tab, e.oldpath, e.path);
                 });
             });
 
-            tabs.on("tabDestroy", function(e) {
+            tabManager.on("tabDestroy", function(e) {
                 leaveDocument(e.tab.path);
             }, plugin);
 
@@ -251,11 +233,21 @@ define(function(require, exports, module) {
                         return console.warn("[OT] Received msg for file that is not open - docId:", docId, "open docs:", Object.keys(documents));
                     doc.joinData(data);
                     break;
+                case "RESOLVE_CONFLICT":
+                    emit("resolveConflict", {path: docId});
+                    break;
                 case "LARGE_DOC":
                     doc && doc.leave();
                     doc && reportLargeDocument(doc, !msg.data.response);
                     delete documents[docId];
                     break;
+                case "DOC_CHANGED_ON_DISK":
+                    reportDocChangedOnDisk(docId);
+                    break;
+                case "DOC_HAS_PENDING_CHANGES":
+                    reportDocHasPendingChanges(docId);
+                    break;
+                    
                 case "USER_STATE":
                     workspace.updateUserState(data.userId, data.state);
                     break;
@@ -372,13 +364,30 @@ define(function(require, exports, module) {
                 return showError("File is very large, collaborative editing disabled: " + docId, 5000);
             }
             showError("File is very large. Collaborative editing disabled: " + docId, 5000);
-            var tab = tabs.findTab(docId);
+            var tab = tabManager.findTab(docId);
             if (!tab || !tab.editor)
                 return;
             tab.classList.add("error");
             if (doc.readonly)
                 return;
             doc.readonly = true;
+        }
+        
+        function reportDocChangedOnDisk(path) {
+            emit("change", {
+                path: path,
+                type: "change",
+            });
+        }
+        
+        function reportDocHasPendingChanges(path) {
+            var tab = tabManager.findTab(path);
+            if (tab) {
+                setTimeout(function() {
+                    // Make the tab show as unsaved
+                    tab.document.undoManager.bookmark(-2);
+                }, 50);
+            }
         }
 
         function saveDocument(docId, fallbackFn, fallbackArgs, callback) {
@@ -569,7 +578,7 @@ define(function(require, exports, module) {
          */
         function afterReadFile(e) {
             var path = e.path;
-            var tab = tabs.findTab(path);
+            var tab = tabManager.findTab(path);
             var doc = documents[path];
             if (!tab || !doc || doc.loaded)
                 return;
@@ -585,7 +594,7 @@ define(function(require, exports, module) {
          */
         function beforeWriteFile(e) {
             var path = e.path;
-            var tab = tabs.findTab(path);
+            var tab = tabManager.findTab(path);
             var doc = documents[path];
 
             // Fall back to default writeFile if not applicable
@@ -633,13 +642,13 @@ define(function(require, exports, module) {
         function getTabState(tabId) {
             var tab;
             if (tabId) {
-                tabs.getTabs().some(function(t) {
+                tabManager.getTabs().some(function(t) {
                     if (getTabId(t) == tabId) {
                         return (tab = t);
                     }
                 });
             } else {
-                tab = tabs.focussedTab;
+                tab = tabManager.focussedTab;
             }
             if (!tab) return;
             var state = tab.getState();
@@ -719,7 +728,7 @@ define(function(require, exports, module) {
                         data.tabState.focus = true;
                         if (data.tabState.document)
                             delete data.tabState.document.filter;
-                        tabs.open(data.tabState);
+                        tabManager.open(data.tabState);
                     }
                 }
             } else if (data.action == "listOpenFiles") {
@@ -730,10 +739,10 @@ define(function(require, exports, module) {
                         fileList: data.fileList
                     }, "set");
                 } else if (data.target == workspace.myClientId) {
-                    var openFiles = tabs.getTabs().map(function(tab) {
+                    var openFiles = tabManager.getTabs().map(function(tab) {
                         return getTabId(tab);
                     }).filter(Boolean);
-                    var active = openFiles.indexOf(getTabId(tabs.focussedTab));
+                    var active = openFiles.indexOf(getTabId(tabManager.focussedTab));
                     connect.send("MESSAGE", {
                         userId: workspace.myUserId,
                         source: workspace.myClientId,

@@ -13,6 +13,10 @@ var DEFAULT_NL_CHAR_FILE = "\n";
 var DEFAULT_NL_CHAR_DOC = "";
 var MAX_WRITE_ATTEMPTS = 3;
 
+// If you leave unsaved changes for more than 24 hours and the file on disk changes 
+// those unsaved changes will be lost. Don't want them hanging around forever. 
+var UNSAVED_CHANGE_EXPIRY_TIME = 24 * 60 * 60 * 1000; 
+
 // Models
 var User, Document, Revision, Workspace, ChatMessage;
 var basePath;
@@ -33,6 +37,7 @@ var Sequelize;
 var nodePath = getHomeDir() + "/.c9/node_modules";
 
 var debug = false;
+
 
 function getHomeDir() {
     return process.env.HOME;
@@ -671,7 +676,6 @@ function AuthorAttributes(minKeySize, maxKeySize) {
     }
 
     function remove(nodes, index, length) {
-        // console.log("remove:", index, length);
         var removedTotal = 0;
         for (var i = 0; i < nodes.length; i += 2) {
             var len = nodes[i]; // node.length
@@ -683,7 +687,6 @@ function AuthorAttributes(minKeySize, maxKeySize) {
                 else
                     removed = Math.max(0, Math.min(length, len - index));
 
-                // console.log("Removed:", removed);
                 nodes[i] -= removed; // node.length
                 length -= removed;
                 removedTotal += removed;
@@ -706,7 +709,6 @@ function AuthorAttributes(minKeySize, maxKeySize) {
         }
 
         for (var j = 0; j < nodes.length - 2; j += 2) {
-            // console.log("CHECK:", nodes[j].id, nodes[j+1].id);
             if (!nodes[j] || nodes[j+1] !== nodes[j+3])
                 continue;
             nodes[j] += nodes[j + 2];
@@ -783,10 +785,11 @@ var Store = (function () {
      */
     function newDocument(tmpl, callback) {
         var contents = tmpl.contents || "";
+        var fsHash = tmpl.fsHash || hashString(contents);
         wrapSeq(Document.create({
             contents: new Buffer(contents),
             path: tmpl.path,
-            fsHash: tmpl.fsHash || hashString(contents),
+            fsHash: fsHash,
             authAttribs: contents.length ? JSON.stringify([contents.length, null]) : "[]",
             starRevNums: "[]",
             newLineChar: tmpl.newLineChar || DEFAULT_NL_CHAR_DOC,
@@ -870,7 +873,7 @@ var Store = (function () {
             callback(null, parseRevisions(revisions));
         });
     }
-
+    
     /**
      * In-place parsing of revisions
      * @param [{Revision}] revisions
@@ -903,7 +906,7 @@ var Store = (function () {
         doc.authAttribs = JSON.stringify(authAttribs);
         doc.starRevNums = JSON.stringify(starRevNums);
         doc.contents = new Buffer(doc.contents);
-        // doc.updated_at = new Date(doc.updated_at);
+        doc.updated_at = new Date(doc.updated_at);
 
         return wrapSeq(
             doc.save(),
@@ -1320,6 +1323,7 @@ function applyOperation(userIds, docId, doc, op, callback) {
         }
         console.error("[vfs-collab] applyOperation saveDocument User " + userId + " client " + userIds.clientId + " doc " + docId + " revNum " + doc.revNum)
         doc.revNum++;
+        doc.updated_at = new Date();
         Store.saveDocument(doc, function (err) {
             if (err)
                 return callback(err);
@@ -1490,6 +1494,15 @@ function handleEditUpdate(userIds, client, data) {
     });
 }
 
+function handleResolveConflict(userInfo, client, data) {
+    var docId = data.docId;
+    console.error("[vfs-collab] Handling resolve conflict with data: ", data, " doc is: ", documents[docId]);
+    broadcast({
+        type: "RESOLVE_CONFLICT",
+        data: data
+    }, client, docId); 
+}
+
 /**
  * Handle user's UPDATE_NL_CHAR for a document
  * @param {Object} userIds - user descriptor with: uid, email, fullname, fs, clientId 
@@ -1647,21 +1660,25 @@ function initVfsWatcher(docId) {
 
     // Check if a collab document sync is needed, apply it and save to the filesystem
     function doWatcherSync(stats, next) {
-        var mtime = new Date(stats.mtime).getTime();
+        var ctime = new Date(stats.ctime).getTime();
         var watcher = watchers[docId];
-        var timeDiff = mtime - watcher.mtime;
-        if (watcher.mtime && timeDiff < 1)
+        var timeDiff = ctime - watcher.ctime;
+        console.error("[vfs-collab] WATCH CHANGE:", docId, "last ctime:", watcher.ctime, "new ctime:", new Date(stats.ctime).getTime());
+        if (watcher.ctime && timeDiff < 1)
             return;
         lock(docId, function () {
             console.error("[vfs-collab] WATCH SYNC:", docId, timeDiff);
-            watcher.mtime = mtime;
+            watcher.ctime = ctime;
             Store.getDocument(docId, function (err, oldDoc) {
                 if (err)
                     return next(err);
-                syncDocument(docId, oldDoc, function (err, doc2) {
-                    if (err)
-                        return next(err);
-                    doSaveDocument(docId, doc2, -1, true, next);
+                syncDocument(docId, oldDoc, null, false, function (err, doc2) {
+                    if (err) return next(err);
+                    if (doc2.syncedWithDisk) {
+                        doSaveDocument(docId, doc2, -1, true, next);
+                        delete doc2.syncedWithDisk;
+                    }
+                    next();
                 });
             });
         });
@@ -1673,17 +1690,16 @@ function initVfsWatcher(docId) {
 
         var watcher = meta.watcher;
         watcher.on("change", function (event, filename, stat, files) {
-            console.error("[vfs-collab] WATCH CHANGE:", docId, "mtime:", new Date(stat.mtime).getTime());
             doWatcherSync(stat, done);
         });
         watcher.on("error", function(err){
             console.error("[vfs-collab] WATCH ERR:", docId, err);
         });
         watchers[docId] = watcher;
-        watcher.mtime = Date.now();
+        watcher.ctime = Date.now();
         Fs.stat(absPath, function (err, stat) {
             if (err) return;
-            watcher.mtime = new Date(stat.mtime).getTime();
+            watcher.ctime = new Date(stat.ctime).getTime();
         });
     });
 }
@@ -1726,7 +1742,7 @@ function handleJoinDocument(userIds, client, data) {
                 return fetchMetadataThenJoinDocument(doc);
 
             console.error("[vfs-collab] Joining a closed document", docId, " - Syncing");
-            syncDocument(docId, doc, function(err, doc2) {
+            syncDocument(docId, doc, client, false, function(err, doc2) {
                 if (err)
                     return done(err);
                 fetchMetadataThenJoinDocument(doc2);
@@ -1807,6 +1823,32 @@ function handleJoinDocument(userIds, client, data) {
                 }
             });
         }
+        
+        if (doc.hasPendingChanges) {
+            console.error("Sending doc ", docId, " has pending changes to user ", userId, " client ", clientId);
+            client.send({
+                type: "DOC_HAS_PENDING_CHANGES",
+                data: {
+                    userId: userId,
+                    clientId: clientId,
+                    docId: docId,
+                }
+            });
+            delete doc.hasPendingChanges;
+        }
+
+        if (doc.changedOnDisk) {
+            console.error("Sending doc ", docId, " has changed on disk to user ", userId, " client ", clientId);
+            client.send({
+                type: "DOC_CHANGED_ON_DISK",
+                data: {
+                    userId: userId,
+                    clientId: clientId,
+                    docId: docId,
+                }
+            });
+            delete doc.changedOnDisk;
+        }
 
         broadcast({
             type: "JOIN_DOC",
@@ -1843,9 +1885,11 @@ function detectNewLineChar(text) {
  *
  * @param {String}   docId - the document id or path
  * @param {Document} doc   - the collab document
+ * @param {Client} client   - the client requesting the sync
+ * @param {Boolean} forceSync   - skip all the sanity checks, just sync from disk if the collab doc is different from disk
  * @param {Function} callback
  */
-function syncDocument(docId, doc, callback) {
+function syncDocument(docId, doc, client, forceSync, callback) {
     var file = getAbsolutePath(docId);
     isBinaryFile(file, function (err, isBinary) {
         if (err)
@@ -1866,7 +1910,6 @@ function syncDocument(docId, doc, callback) {
             callback(err);
         });
     });
-    
     
     function doSyncDocument() {
         Fs.readFile(file, "utf8", function (err, contents) {
@@ -1896,15 +1939,77 @@ function syncDocument(docId, doc, callback) {
             }
             // update database OT state
             else if (fsHash !== doc.fsHash && doc.contents != normContents) {
-                // if (doc.contents != normalizeTextLT(doc.contents)) {
-                //     debugger
-                //     doc.contents = normalizeTextLT(doc.contents);
-                // }
+                console.error("[vfs-collab] Doc", docId, "with hash:", doc.fsHash, "does not match file contents hash", fsHash);
+                if (forceSync) return syncCollabDocumentWithDisk();
+                
+                // Check if the document was updated at the same time as this revision. 
+                // If it was then this doc has been saved as a revision before, no need to sync to it
+                Fs.stat(file, function (err, stats) {
+                    if (err) return callback(err);
+                    
+                    console.error("[vfs-collab] Doc", docId, "Last file change:", stats.ctime, " last collab change:", doc.updated_at);
+                    var lastChange = stats.ctime.getTime();
+                    var lastCollabChange = new Date(doc.updated_at).getTime();
+                    
+                    // Never sync if the last doc change is older than the last collab change
+                    if (lastChange < lastCollabChange) {
+                        if (!client) {
+                            console.error("[vfs-collab] Broadcasting document", docId, "contents have changed");
+                            broadcast({
+                                type: "DOC_HAS_PENDING_CHANGES",
+                                data: {
+                                    docId: docId
+                                }
+                            });
+                        } 
+                        else {
+                            doc.hasPendingChanges = true;
+                        }
+                        return callback(null, doc);
+                    }
+                    
+                    return documentContentsHaveChanged(lastCollabChange);
+                });
+            }
+            else {
+                checkNewLineChar();
+                callback(null, doc);
+            }
+            
+            function documentContentsHaveChanged(lastCollabChange) {
+                var timeSinceLastCollabChange = Date.now() - lastCollabChange;
+                if (wasLatestRevisionSaved(doc)) {
+                    return syncCollabDocumentWithDisk();
+                } else if (timeSinceLastCollabChange > UNSAVED_CHANGE_EXPIRY_TIME) {
+                    console.error("[vfs-collab] Doc ", docId, " last collab change was " + (timeSinceLastCollabChange / 1000) + "s ago. Expiring change and syncing from disk");
+                    return syncCollabDocumentWithDisk();
+                }
+                
+                return informUserFileContentsHaveChanged();
+            }
+            
+            function informUserFileContentsHaveChanged() {
+                if (!client) {
+                    console.error("[vfs-collab] Broadcasting document", docId, "contents have changed");
+                    broadcast({
+                        type: "DOC_CHANGED_ON_DISK",
+                        data: {
+                            docId: docId
+                        }
+                    });
+                } else {
+                    doc.changedOnDisk = true;
+                }
+                return callback(null, doc);
+            }
+            
+            function syncCollabDocumentWithDisk() {
                 var op = operations.operation(doc.contents, normContents);
-                console.error("[vfs-collab] SYNC: Updating document:", docId, op.length, "fsHash", fsHash, "docHash", doc.fsHash);
+                console.error("[vfs-collab] SYNC: Syncing document from disk:", docId, op.length, "fsHash", fsHash, "docHash", doc.fsHash);
                 // non-user sync operation
                 doc.fsHash = fsHash; // applyOperation will save it for me
                 
+                doc.syncedWithDisk = true;
                 doc.newLineChar = newLineChar || oldNewLineChar;
                 applyOperation(null, docId, doc, op, function (err, msg) {
                     if (err)
@@ -1918,10 +2023,6 @@ function syncDocument(docId, doc, callback) {
                     checkNewLineChar();
                     callback(null, doc);
                 });
-            }
-            else {
-                checkNewLineChar();
-                callback(null, doc);
             }
 
             function checkNewLineChar() {
@@ -2030,7 +2131,7 @@ function handleSaveFile(userIds, client, data) {
                 return done((err || "Writing a non-collab document!") + " : " +  docId);
 
             if (watchers[docId])
-                watchers[docId].mtime = Date.now();
+                watchers[docId].ctime = Date.now();
                 
             client.send({type: "FILE_RETRIEVED", data: {docId: docId}});
 
@@ -2099,6 +2200,15 @@ function doSaveDocument(docId, doc, userId, star, callback) {
     });
 }
 
+/** 
+ * Was the latest document revision saved to disk or is it just in the collabdb
+ * @param {Document} doc
+ */
+function wasLatestRevisionSaved(doc) {
+    return doc.starRevNums && doc.starRevNums.indexOf(doc.revNum) >= 0;
+}
+
+
 /**
  * Handle user's LEAVE_DOC messages - client closing a collab document
  * @param {Object} userIds - user descriptor with: uid, email, fullname, fs, clientId 
@@ -2109,6 +2219,7 @@ function handleLeaveDocument(userIds, client, data) {
     var docId = data.docId;
     var userId = userIds.userId;
     var clientId = userIds.clientId;
+    var userDisconnected = data.disconnected;
     if (!documents[docId] || !documents[docId][clientId] || !client.openDocIds[docId])
         return console.error("[vfs-collab] Trying to leave a non-member document!",
             docId, clientId, documents[docId] && Object.keys(documents[docId]), Object.keys(client.openDocIds),
@@ -2118,6 +2229,18 @@ function handleLeaveDocument(userIds, client, data) {
     delete documents[docId][clientId];
     if (!Object.keys(documents[docId]).length) {
         console.error("[vfs-collab] Closing document", docId);
+        if (!userDisconnected) {
+            // If the user closed this on purpose and it's the last user
+            // Resync this document with what's on disk to remove unsaved collab changes
+            console.error("[vfs-collab] Last user closed document ", docId, " resyncing it from disk");
+            Store.getDocument(docId, function (err, doc) {
+                if (err) return console.error("[vfs-collab] Failed to get doc", docId, " from the store. Error is: ", err.message);
+                syncDocument(docId, doc, null, true, function(err) {
+                    if (err) return console.error("[vfs-collab] Failed to sync", docId, "with disk. Error is: ", err.message);
+                    console.error("[vfs-collab] Successfully synced document", docId, " with disk.");
+                });
+            });
+        }
         closeDocument(docId);
     }
 
@@ -2145,7 +2268,7 @@ function handleLargeDocument(userIds, client, data) {
     console.error("[vfs-collab] ", docId);
     delete documents[docId][clientId];
     if (!Object.keys(documents[docId]).length) {
-        console.log("[vfs-collab] File has grown too large, ignoring: " + docId);
+        console.error("[vfs-collab] File has grown too large, ignoring: " + docId);
         closeDocument(docId);
     }
 
@@ -2288,6 +2411,9 @@ function handleUserMessage(userIds, client, message) {
     case "EDIT_UPDATE":
         handleEditUpdate(userIds, client, data);
         break;
+    case "RESOLVE_CONFLICT":
+        handleResolveConflict(userIds, client, data);
+        break;
     case "UPDATE_NL_CHAR":
         handleUpdateNlChar(userIds, client, data);
         break;
@@ -2346,7 +2472,7 @@ function onConnect(userIds, client) {
 
     client.on("disconnect", function () {
         for (var docId in client.openDocIds)
-            handleLeaveDocument(userIds, client, {docId: docId});
+            handleLeaveDocument(userIds, client, {docId: docId, disconnected: true});
         broadcast({
             type: "USER_LEAVE",
             data: {
@@ -2376,7 +2502,7 @@ function closeDocument(docId) {
             COMPRESSED_REV_NUM: 128
         });
     }, 100000);
-
+    
     if (watchers[docId]) {
         watchers[docId].close();
         delete watchers[docId];
@@ -2943,6 +3069,7 @@ exports.Store = Store;
 exports.compressDocument = compressDocument;
 exports.checkDBCorruption = checkDBCorruption;
 exports.areOperationsMirrored = areOperationsMirrored;
+exports.hashString = hashString;
 exports.removeNoopOperations = removeNoopOperations;
 
 var DIFF_EQUAL = 0;
@@ -3073,43 +3200,3 @@ function isVeryLargeFile(file, contents, callback) {
         callback(null, stat.size > 1024 * 1024 || contents && contents.length > 1024 * 1024);
     });
 }
-
-/*
-// Quick testing:
-basePath = __dirname;
-dbFilePath = __dirname + "/test.db";
-// dbFilePath = "/home/ubuntu/newclient/corrupted_collab.db";
-initDB(false, function(err){
-    if (err)
-        return console.error("initDB error:", err);
-    console.error("DB inited");
-    Store.newDocument({
-        path: "test.txt",
-        contents: Fs.readFileSync(__dirname + "/../template.js", "utf8")
-    }, function (err) {
-        if (err)
-            return console.error(err);
-        console.error("Test document created");
-        Store.getDocument("test.txt", function (err, doc) {
-            console.error("ERR1", err);
-            // console.error(JSON.stringify(doc));
-            Store.getWorkspaceState(function (err, ws) {
-                console.log("ERR2:", err);
-            });
-        });
-    });
-});
-lock("abc", function () {
-    console.log("first locking");
-    setTimeout(function () {
-        unlock("abc");
-    }, 100);
-});
-
-lock("abc", function () {
-    console.log("second locking");
-    setTimeout(function () {
-        unlock("abc");
-    }, 100);
-});
-*/
