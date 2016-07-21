@@ -1031,6 +1031,8 @@ var watchers;
 //     { <client id> : <client> }
 var clients;
 
+var lastSaveStarts = {};
+
 // SQLite doesn't provide atomic instructions or locks
 // So this variable expresses in-process locks
 // Used to block concurrent edit updates while the document is being processed
@@ -1663,11 +1665,11 @@ function initVfsWatcher(docId) {
         var ctime = new Date(stats.ctime).getTime();
         var watcher = watchers[docId];
         var timeDiff = ctime - watcher.ctime;
-        console.error("[vfs-collab] WATCH CHANGE:", docId, "last ctime:", watcher.ctime, "new ctime:", new Date(stats.ctime).getTime());
+        console.error("[vfs-collab] WATCH CHANGE:", docId, "last ctime:", watcher.ctime, "new ctime:", ctime);
         if (watcher.ctime && timeDiff < 1)
             return;
         lock(docId, function () {
-            console.error("[vfs-collab] WATCH SYNC:", docId, timeDiff);
+            console.error("[vfs-collab] WATCH SYNC:", docId, "time diff: ", timeDiff);
             watcher.ctime = ctime;
             Store.getDocument(docId, function (err, oldDoc) {
                 if (err)
@@ -1947,14 +1949,20 @@ function syncDocument(docId, doc, client, forceSync, callback) {
                 Fs.stat(file, function (err, stats) {
                     if (err) return callback(err);
                     
-                    console.error("[vfs-collab] Doc", docId, "Last file change:", stats.ctime, " last collab change:", doc.updated_at);
-                    var lastChange = stats.ctime.getTime();
+                    var lastFileChange = stats.ctime.getTime();
                     var lastCollabChange = new Date(doc.updated_at).getTime();
+                    var lastSaveStart = lastSaveStarts[docId];
+                    console.error("[vfs-collab] Doc", docId, "Last file change:", lastFileChange, " last collab change:", lastCollabChange, " last save start: ", lastSaveStart);
+                    
+                    // If our collab change was made in between the save start and file being written to disk then do nothing. 
+                    if (lastSaveStart && lastSaveStart < lastCollabChange && lastCollabChange < lastFileChange && (lastFileChange - lastSaveStart < 500)) {
+                        return callback(null, doc);
+                    }
                     
                     // Never sync if the last doc change is older than the last collab change
-                    if (lastChange < lastCollabChange) {
+                    if (lastFileChange < lastCollabChange) {
                         if (!client) {
-                            console.error("[vfs-collab] Broadcasting document", docId, "contents have changed");
+                            console.error("[vfs-collab] Broadcasting document", docId, "has pending changes");
                             broadcast({
                                 type: "DOC_HAS_PENDING_CHANGES",
                                 data: {
@@ -2106,6 +2114,8 @@ function handleSaveFile(userIds, client, data) {
     var st = Date.now();
     var docId = data.docId;
     var userId = userIds.userId;
+    
+    lastSaveStarts[docId] = Date.now();
 
     function done(err) {
         unlock(docId);
