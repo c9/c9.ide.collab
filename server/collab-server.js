@@ -1323,13 +1323,15 @@ function applyOperation(userIds, docId, doc, op, callback) {
         if (userId == 0) {
             detectCodeRevertError(op, doc.revNum, doc);
         }
-        console.error("[vfs-collab] applyOperation saveDocument User " + userId + " client " + userIds.clientId + " doc " + docId + " revNum " + doc.revNum)
+        var fsHash = hashString(doc.contents);
+        console.error("[vfs-collab] applyOperation saveDocument User " + userId + " client " + userIds.clientId + " doc " + docId + " revNum " + doc.revNum + " fshash " + fsHash);
         doc.revNum++;
         doc.updated_at = new Date();
         Store.saveDocument(doc, function (err) {
             if (err)
                 return callback(err);
-            console.error("[vfs-collab] applyOperation successfully saved User " + userId + " client " + userIds.clientId + " doc " + docId + " revNum " + doc.revNum)
+                
+            console.error("[vfs-collab] applyOperation successfully saved User " + userId + " client " + userIds.clientId + " doc " + docId + " revNum " + doc.revNum + " fshash " + fsHash);
             var msg = {
                 docId: docId,
                 clientId: userIds.clientId,
@@ -1941,7 +1943,7 @@ function syncDocument(docId, doc, client, forceSync, callback) {
             }
             // update database OT state
             else if (fsHash !== doc.fsHash && doc.contents != normContents) {
-                console.error("[vfs-collab] Doc", docId, "with hash:", doc.fsHash, "does not match file contents hash", fsHash);
+                console.error("[vfs-collab] Doc", docId, " revnum: ", doc.revNum ,"with hash:", doc.fsHash, "does not match file contents hash", fsHash);
                 if (forceSync) return syncCollabDocumentWithDisk();
                 
                 // Check if the document was updated at the same time as this revision. 
