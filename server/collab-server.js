@@ -230,6 +230,7 @@ function initDB(readonly, callback) {
         revNum: { type: Sequelize.INTEGER, defaultValue: 0 },
         created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.NOW },
         updated_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.NOW },
+        lastUpdate: { type: Sequelize.BIGINT, defaultValue: 0 },
         newLineChar: { type: Sequelize.STRING, defaultValue: DEFAULT_NL_CHAR_DOC }, // "" or "\n" or "\r\n"
     }, {
         timestamps: false
@@ -267,7 +268,8 @@ function initDB(readonly, callback) {
         { query: "CREATE INDEX ChatMessageTimestampIndex ON ChatMessages(timestamp)", skipError: true },
         { query: "DELETE FROM Documents" },
         { query: "DELETE FROM Revisions" },
-        { query: "ALTER TABLE Documents ADD COLUMN newLineChar VARCHAR(255)" }
+        { query: "ALTER TABLE Documents ADD COLUMN newLineChar VARCHAR(255)" },
+        { query: "ALTER TABLE Documents ADD COLUMN lastUpdate BIGINT" }
     ];
 
     async.series([
@@ -906,7 +908,9 @@ var Store = (function () {
         doc.authAttribs = JSON.stringify(authAttribs);
         doc.starRevNums = JSON.stringify(starRevNums);
         doc.contents = new Buffer(doc.contents);
-        doc.updated_at = new Date(doc.updated_at);
+        doc.updated_at = new Date();
+        doc.lastUpdate = doc.updated_at.getTime();
+        console.error("Saving document to db with lastUpdate: " + doc.lastUpdate);
 
         return wrapSeq(
             doc.save(),
@@ -1323,15 +1327,15 @@ function applyOperation(userIds, docId, doc, op, callback) {
         if (userId == 0) {
             detectCodeRevertError(op, doc.revNum, doc);
         }
-        var fsHash = hashString(doc.contents);
-        console.error("[vfs-collab] applyOperation saveDocument User " + userId + " client " + userIds.clientId + " doc " + docId + " revNum " + doc.revNum + " fshash " + fsHash);
+        var fsHash = doc.fsHash = hashString(doc.contents);
         doc.revNum++;
         doc.updated_at = new Date();
+        console.error("[vfs-collab] applyOperation saveDocument User " + userId + " client " + userIds.clientId + " doc " + docId + " revNum " + doc.revNum + " fshash " + fsHash + " time: " + new Date(doc.updated_at).getTime());
         Store.saveDocument(doc, function (err) {
             if (err)
                 return callback(err);
                 
-            console.error("[vfs-collab] applyOperation successfully saved User " + userId + " client " + userIds.clientId + " doc " + docId + " revNum " + doc.revNum + " fshash " + fsHash);
+            console.error("[vfs-collab] applyOperation successfully saved User " + userId + " client " + userIds.clientId + " doc " + docId + " revNum " + doc.revNum + " fshash " + fsHash + " time: " + Date.now());
             var msg = {
                 docId: docId,
                 clientId: userIds.clientId,
@@ -1800,7 +1804,8 @@ function handleJoinDocument(userIds, client, data) {
             revNum: doc.revNum,
             newLineChar: doc.newLineChar,
             created_at: doc.created_at,
-            updated_at: doc.updated_at
+            updated_at: doc.updated_at,
+            lastUpdate: doc.lastUpdate
         });
 
         documents[docId][clientId] = userIds;
@@ -1943,7 +1948,7 @@ function syncDocument(docId, doc, client, forceSync, callback) {
             }
             // update database OT state
             else if (fsHash !== doc.fsHash && doc.contents != normContents) {
-                console.error("[vfs-collab] Doc", docId, " revnum: ", doc.revNum ,"with hash:", doc.fsHash, "does not match file contents hash", fsHash);
+                console.error("[vfs-collab] Doc", docId, " revnum: ", doc.revNum ,"with hash:", doc.fsHash, "does not match file system hash", fsHash);
                 if (forceSync) return syncCollabDocumentWithDisk();
                 
                 // Check if the document was updated at the same time as this revision. 
@@ -1952,14 +1957,9 @@ function syncDocument(docId, doc, client, forceSync, callback) {
                     if (err) return callback(err);
                     
                     var lastFileChange = stats.ctime.getTime();
-                    var lastCollabChange = new Date(doc.updated_at).getTime();
+                    var lastCollabChange = doc.lastUpdate;
                     var lastSaveStart = lastSaveStarts[docId];
                     console.error("[vfs-collab] Doc", docId, "Last file change:", lastFileChange, " last collab change:", lastCollabChange, " last save start: ", lastSaveStart);
-                    
-                    // If our collab change was made in between the save start and file being written to disk then do nothing. 
-                    if (lastSaveStart && lastSaveStart < lastCollabChange && lastCollabChange < lastFileChange && (lastFileChange - lastSaveStart < 500)) {
-                        return callback(null, doc);
-                    }
                     
                     // Never sync if the last doc change is older than the last collab change
                     if (lastFileChange < lastCollabChange) {
@@ -2170,7 +2170,7 @@ function handleSaveFile(userIds, client, data) {
                 
                 client.send({type: "DATA_WRITTEN", data: {docId: docId}});
                 doSaveDocument(docId, doc, userId, !data.silent, function (err) {
-                    console.error("[vfs-collab] Saving took", Date.now() - st, "ms - file:", docId, !err);
+                    console.error("[vfs-collab] Saving took", Date.now() - st, "ms - time is now: " + Date.now() + " file:", docId, !err);
                     done(err);
                 });
             }
