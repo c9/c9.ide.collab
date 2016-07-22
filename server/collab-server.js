@@ -1329,8 +1329,7 @@ function applyOperation(userIds, docId, doc, op, callback) {
         }
         var fsHash = doc.fsHash = hashString(doc.contents);
         doc.revNum++;
-        doc.updated_at = new Date();
-        console.error("[vfs-collab] applyOperation saveDocument User " + userId + " client " + userIds.clientId + " doc " + docId + " revNum " + doc.revNum + " fshash " + fsHash + " time: " + new Date(doc.updated_at).getTime());
+        console.error("[vfs-collab] applyOperation saveDocument User " + userId + " client " + userIds.clientId + " doc " + docId + " revNum " + doc.revNum + " fshash " + fsHash + " time: " + Date.now());
         Store.saveDocument(doc, function (err) {
             if (err)
                 return callback(err);
