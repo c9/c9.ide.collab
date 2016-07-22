@@ -11,7 +11,7 @@ module.exports = function(session, options){
         "optional": true
     }, [
         {
-            "npm": ["sqlite3@3.0.5"]
+            "npm": ["sqlite3@3.1.4"]
         },
         {
             "tar.gz": {
@@ -37,18 +37,6 @@ module.exports = function(session, options){
         "npm": ["sequelize@2.0.0-beta.0"]
     });
     
-    session.install({
-        "name": "Collab Server",
-        "description": "A small Node.js collaboration server",
-        "cwd": "~/.c9",
-        "optional": true
-    }, {
-        "tar.gz": { 
-            "url": "https://raw.githubusercontent.com/c9/install/master/packages/extend/c9-vfs-extend.tar.gz",
-            "target": "~/.c9"
-        }
-    });
-
     // Show the installation screen
     session.start();
 };
