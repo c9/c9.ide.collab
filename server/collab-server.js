@@ -1327,7 +1327,7 @@ function applyOperation(userIds, docId, doc, op, callback) {
         if (userId == 0) {
             detectCodeRevertError(op, doc.revNum, doc);
         }
-        var fsHash = doc.fsHash = hashString(doc.contents);
+        var fsHash = hashString(doc.contents);
         doc.revNum++;
         console.error("[vfs-collab] applyOperation saveDocument User " + userId + " client " + userIds.clientId + " doc " + docId + " revNum " + doc.revNum + " fshash " + fsHash + " time: " + Date.now());
         Store.saveDocument(doc, function (err) {
