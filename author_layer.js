@@ -99,43 +99,72 @@ define(function(require, module, exports) {
             }
 
             function updateGutter(config) {
-                var _self = this;
-                var emptyAnno = {className: ""};
-                var html = [];
-                var i = config.firstRow;
-                var session = _self.session;
+                var session = this.session;
+                var firstRow = config.firstRow;
                 var lastRow = Math.min(config.lastRow + config.gutterOffset,  // needed to compensate for hor scollbar
                     session.getLength() - 1);
-                var fold = session.getNextFoldLine(i);
+                var fold = session.getNextFoldLine(firstRow);
                 var foldStart = fold ? fold.start.row : Infinity;
-                var foldWidgets = _self.$showFoldWidgets && session.foldWidgets;
+                var foldWidgets = this.$showFoldWidgets && session.foldWidgets;
                 var breakpoints = session.$breakpoints;
                 var decorations = session.$decorations;
                 var firstLineNumber = session.$firstLineNumber;
                 var lastLineNumber = 0;
-
+                
+                var gutterRenderer = session.gutterRenderer || this.$renderer;
+                
                 var editorDoc = session.doc;
                 var doc = session.collabDoc;
-                var range = new Range(i, 0, lastRow, editorDoc.getLine(lastRow).length);
+                var range = new Range(firstRow, 0, lastRow, editorDoc.getLine(lastRow).length);
                 var isCollabGutter = doc && showAuthorInfo && util.isRealCollab(workspace);
                 var authorKeysCache = isCollabGutter && createAuthorKeyCache(editorDoc, doc.authAttribs, range).authorKeys;
 
                 var colorPool = workspace.colorPool;
                 var reversedAuthorPool = workspace.reversedAuthorPool;
-
+                
+                var cell = null;
+                var index = -1;
+                var row = firstRow;
                 while (true) {
-                    if (i > foldStart) {
-                        i = fold.end.row + 1;
-                        fold = session.getNextFoldLine(i, fold);
-                        foldStart = fold ?fold.start.row :Infinity;
+                    if (row > foldStart) {
+                        row = fold.end.row + 1;
+                        fold = session.getNextFoldLine(row, fold);
+                        foldStart = fold ? fold.start.row : Infinity;
                     }
-                    if (i > lastRow)
+                    if (row > lastRow) {
+                        while (this.$cells.length > index + 1) {
+                            cell = this.$cells.pop();
+                            this.element.removeChild(cell.element);
+                        }
                         break;
-
-                    var annotation = _self.$annotations[i] || emptyAnno;
-
+                    }
+        
+                    cell = this.$cells[++index];
+                    if (!cell) {
+                        cell = {element: null, textNode: null, foldWidget: null};
+                        cell.element = dom.createElement("div");
+                        cell.textNode = document.createTextNode('');
+                        cell.element.appendChild(cell.textNode);
+                        this.element.appendChild(cell.element);
+                        this.$cells[index] = cell;
+                    }
+        
+                    var className = "ace_gutter-cell ";
+                    if (breakpoints[row])
+                        className += breakpoints[row];
+                    if (decorations[row])
+                        className += decorations[row];
+                    if (this.$annotations[row])
+                        className += this.$annotations[row].className;
+                    if (cell.element.className != className)
+                        cell.element.className = className;
+        
+                    var height = session.getRowLength(row) * config.lineHeight + "px";
+                    if (height != cell.element.style.height)
+                        cell.element.style.height = height;
+                    
                     if (isCollabGutter) {
-                        var authorKey = authorKeysCache[i];
+                        var authorKey = authorKeysCache[row];
                         var authorColor = "transparent";
                         var fullname = null;
                         if (authorKey) {
@@ -143,53 +172,67 @@ define(function(require, module, exports) {
                             authorColor = util.formatColor(colorPool[uid]);
                             fullname = workspace.users[uid].fullname;
                         }
-                        html.push(
-                            "<div class='ace_gutter-cell", fullname && " ace_author-cell",
-                            breakpoints[i] || "", decorations[i] || "", annotation.className,
-                            "' style='height:", session.getRowLength(i) * config.lineHeight, "px;",
-                            "border-left: solid 5px ", authorColor, ";'",
-                            "uid='" + uid + "'", ">",
-                            lastLineNumber = i + firstLineNumber
-                        );
+                        cell.element.style.borderLeft = "solid 5px " + authorColor;
+                        cell.element.setAttribute("uid", fullname ? uid : "");
                     } else {
-                        html.push(
-                            "<div class='ace_gutter-cell",
-                            breakpoints[i] || "", decorations[i] || "", annotation.className,
-                            "' style='height:", session.getRowLength(i) * config.lineHeight, "px;'>",
-                            lastLineNumber = i + firstLineNumber
-                        );
+                        cell.element.style.borderLeft = "";
+                        cell.element.setAttribute("uid", "");
                     }
 
                     if (foldWidgets) {
-                        var c = foldWidgets[i];
+                        var c = foldWidgets[row];
                         // check if cached value is invalidated and we need to recompute
                         if (c == null)
-                            c = foldWidgets[i] = session.getFoldWidget(i);
-                        if (c)
-                            html.push(
-                                "<span class='ace_fold-widget ace_", c,
-                                c == "start" && i == foldStart && i < fold.end.row ? " ace_closed" : " ace_open",
-                                "' style='height:", config.lineHeight, "px",
-                                "'></span>"
-                            );
+                            c = foldWidgets[row] = session.getFoldWidget(row);
                     }
-                    html.push("</div>");
-                    i++;
+        
+                    if (c) {
+                        if (!cell.foldWidget) {
+                            cell.foldWidget = dom.createElement("span");
+                            cell.element.appendChild(cell.foldWidget);
+                        }
+                        var className = "ace_fold-widget ace_" + c;
+                        if (c == "start" && row == foldStart && row < fold.end.row)
+                            className += " ace_closed";
+                        else
+                            className += " ace_open";
+                        if (cell.foldWidget.className != className)
+                            cell.foldWidget.className = className;
+        
+                        var height = config.lineHeight + "px";
+                        if (cell.foldWidget.style.height != height)
+                            cell.foldWidget.style.height = height;
+                    } else {
+                        if (cell.foldWidget) {
+                            cell.element.removeChild(cell.foldWidget);
+                            cell.foldWidget = null;
+                        }
+                    }
+                    
+                    var text = lastLineNumber = gutterRenderer
+                        ? gutterRenderer.getText(session, row)
+                        : row + firstLineNumber;
+                    if (text != cell.textNode.data)
+                        cell.textNode.data = text;
+        
+                    row++;
                 }
-
-                _self.element = dom.setInnerHtml(_self.element, html.join(""));
-                _self.element.style.height = config.minHeight + "px";
-
-                if (_self.$fixedWidth || session.$useWrapMode)
-                    lastLineNumber = session.getLength();
-
-                var gutterWidth = ("" + lastLineNumber).length * config.characterWidth;
-                var padding = _self.$padding || _self.$computePadding();
+        
+                this.element.style.height = config.minHeight + "px";
+        
+                if (this.$fixedWidth || session.$useWrapMode)
+                    lastLineNumber = session.getLength() + firstLineNumber;
+        
+                var gutterWidth = gutterRenderer 
+                    ? gutterRenderer.getWidth(session, lastLineNumber, config)
+                    : lastLineNumber.toString().length * config.characterWidth;
+                
+                var padding = this.$padding || this.$computePadding();
                 gutterWidth += padding.left + padding.right + (isCollabGutter ? 5 : 0);
-                if (gutterWidth !== _self.gutterWidth && !isNaN(gutterWidth)) {
-                    _self.gutterWidth = gutterWidth;
-                    _self.element.style.width = Math.ceil(_self.gutterWidth) + "px";
-                    _self._emit("changeGutterWidth", gutterWidth);
+                if (gutterWidth !== this.gutterWidth && !isNaN(gutterWidth)) {
+                    this.gutterWidth = gutterWidth;
+                    this.element.style.width = Math.ceil(this.gutterWidth) + "px";
+                    this._emit("changeGutterWidth", gutterWidth);
                 }
             }
 
@@ -330,10 +373,10 @@ define(function(require, module, exports) {
                 var target = e.target;
 
                 if (highlightedCell != target) {
-                    if (dom.hasCssClass(target, "ace_author-cell")) {
+                    var uid = target.getAttribute("uid");
+                    if (uid) {
                         tooltip.style.display = "block";
                         highlightedCell = target;
-                        var uid = target.getAttribute("uid");
                         var user = workspace.users[uid];
                         tooltip.textContent = user ? user.fullname : "";
                     }
