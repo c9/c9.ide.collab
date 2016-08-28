@@ -177,7 +177,8 @@ define(function(require, module, exports) {
                         if (authorKey) {
                             var uid = reversedAuthorPool[authorKey];
                             authorColor = util.formatColor(colorPool[uid]);
-                            fullname = workspace.users[uid].fullname;
+                            var user = workspace.users[uid];
+                            fullname = user && user.fullname;
                         }
                         cell.element.style.borderLeft = "solid 5px " + authorColor;
                         cell.element.setAttribute("uid", fullname ? uid : "");
@@ -434,7 +435,7 @@ define(function(require, module, exports) {
 
                 var reversedAuthorPool = workspace.reversedAuthorPool;
                 var uid = reversedAuthorPool[authorKey];
-                var fullname = workspace.users[uid].fullname;
+                var fullname = workspace.users[uid] && workspace.users[uid].fullname;
 
                 tooltip.style.display = "block";
                 tooltip.textContent = fullname;
