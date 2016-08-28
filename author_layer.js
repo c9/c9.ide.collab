@@ -1,13 +1,15 @@
 define(function(require, module, exports) {
-    main.consumes = ["Plugin", "ace", "settings", "collab.workspace", "collab.util"];
+    main.consumes = ["Plugin", "ace", "settings", "collab.workspace", "collab.util", "ui", "menus"];
     main.provides = ["AuthorLayer"];
     return main;
 
     function main(options, imports, register) {
         var Plugin = imports.Plugin;
         var settings = imports.settings;
+        var ui = imports.ui;
         var ace = imports.ace;
         var util = imports["collab.util"];
+        var menus = imports.menus;
         var workspace = imports["collab.workspace"];
 
         var dom = require("ace/lib/dom");
@@ -27,6 +29,11 @@ define(function(require, module, exports) {
             showAuthorInfo = settings.getBool(showAuthorInfoKey);
             initGutterLayer(e.editor.ace);
         }, workspace);
+
+        menus.addItemByPath("context/ace-gutter/Gutter Options/Show Authorship Info", new ui.item({
+            type: "check",
+            checked: showAuthorInfoKey
+        }), 1000, workspace);
 
         function AuthorLayer(session) {
             var plugin = new Plugin("Ajax.org", main.consumes);
