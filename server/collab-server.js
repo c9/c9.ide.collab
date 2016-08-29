@@ -342,8 +342,13 @@ function initDB(readonly, callback) {
 
 // parse json encoded several times
 function parseJSONField(val) {
-    while (typeof val == "string") {
-        val = JSON.parse(val);
+    try {
+        while (typeof val == "string") {
+            val = JSON.parse(val);
+        }
+    } catch(e) {
+        console.error("[vfs-collab] parseJSONField failed:", val, e);
+        val = {};
     }
     return val;
 }
@@ -1317,7 +1322,7 @@ function applyOperation(userIds, docId, doc, op, callback) {
             return callback(err);
         try {
             doc.contents = applyContents(op, doc.contents);
-            applyAuthorAttributes(doc.authAttribs, op, ws.authorPool[userId]);
+            applyAuthorAttributes(doc.authAttribs, op, ws.authorPoolParsed[userId]);
 
             wrapSeq(Revision.create({
                 operation: new Buffer(JSON.stringify(op)),
