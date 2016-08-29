@@ -306,8 +306,8 @@ function initDB(readonly, callback) {
             }), function(err, ws) {
                 if (err)
                     return next(err);
-                ws.authorPool = JSON.parse(ws.authorPool);
-                ws.colorPool = JSON.parse(ws.colorPool);
+                ws.authorPoolParsed = parseJSONField(ws.authorPool);
+                ws.colorPoolParsed = parseJSONField(ws.colorPool);
                 cachedWS = ws;
                 next();
             });
@@ -338,6 +338,19 @@ function initDB(readonly, callback) {
         console.error("[vfs-collab] initDB attempt failed:", err);
         checkDBCorruption(err, callback);
     });
+}
+
+// parse json encoded several times
+function parseJSONField(val) {
+    try {
+        while (typeof val == "string") {
+            val = JSON.parse(val);
+        }
+    } catch(e) {
+        console.error("[vfs-collab] parseJSONField failed:", val, e);
+        val = {};
+    }
+    return val;
 }
 
 /** 
@@ -933,8 +946,8 @@ var Store = (function () {
         wrapSeq(Workspace.find(1), function (err, ws) {
             if (err || !ws)
                 return callback(err || "No workspace state found!");
-            ws.authorPool = JSON.parse(ws.authorPool);
-            ws.colorPool = JSON.parse(ws.colorPool);
+            ws.authorPoolParsed = parseJSONField(ws.authorPool);
+            ws.colorPoolParsed = parseJSONField(ws.colorPool);
             cachedWS = ws;
             callback(null, ws);
         });
@@ -946,8 +959,8 @@ var Store = (function () {
      * @param {Function}  callback
      */
     function saveWorkspaceState(ws, callback) {
-        var authorPool = ws.authorPool;
-        var colorPool = ws.colorPool;
+        var authorPool = ws.authorPoolParsed;
+        var colorPool = ws.colorPoolParsed;
         ws.authorPool = JSON.stringify(authorPool);
         ws.colorPool = JSON.stringify(colorPool);
         return wrapSeq(ws.save(), function(err, savedWS) {
@@ -955,8 +968,8 @@ var Store = (function () {
                 cachedWS = null;
                 return callback(err);
             }
-            savedWS.authorPool = authorPool;
-            savedWS.colorPool = colorPool;
+            savedWS.authorPoolParsed = authorPool;
+            savedWS.colorPoolParsed = colorPool;
             cachedWS = savedWS;
             callback(null, savedWS);
         });
@@ -1180,8 +1193,8 @@ function handleConnect(userIds, client) {
         Store.getWorkspaceState(function (err, ws) {
             if (err)
                 return done("[vfs-collab] augmentWorkspaceInfo " + String(err));
-            var authorPool = ws.authorPool;
-            var colorPool = ws.colorPool;
+            var authorPool = ws.authorPoolParsed;
+            var colorPool = ws.colorPoolParsed;
 
             if (authorPool[userId] && colorPool[userId])
                 return doConnect(authorPool, colorPool);
@@ -1309,7 +1322,7 @@ function applyOperation(userIds, docId, doc, op, callback) {
             return callback(err);
         try {
             doc.contents = applyContents(op, doc.contents);
-            applyAuthorAttributes(doc.authAttribs, op, ws.authorPool[userId]);
+            applyAuthorAttributes(doc.authAttribs, op, ws.authorPoolParsed[userId]);
 
             wrapSeq(Revision.create({
                 operation: new Buffer(JSON.stringify(op)),
