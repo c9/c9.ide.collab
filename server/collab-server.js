@@ -1327,14 +1327,14 @@ function applyOperation(userIds, docId, doc, op, callback) {
         if (userId == 0) {
             detectCodeRevertError(op, doc.revNum, doc);
         }
-        var fsHash = hashString(doc.contents);
+        var contentsHash = hashString(doc.contents);
         doc.revNum++;
-        console.error("[vfs-collab] applyOperation saveDocument User " + userId + " client " + userIds.clientId + " doc " + docId + " revNum " + doc.revNum + " fshash " + fsHash + " time: " + Date.now());
+        console.error("[vfs-collab] applyOperation saveDocument User " + userId + " client " + userIds.clientId + " doc " + docId + " revNum " + doc.revNum + " fsHash " + doc.fsHash + " contentsHash " + contentsHash + " time: " + Date.now());
         Store.saveDocument(doc, function (err) {
             if (err)
                 return callback(err);
                 
-            console.error("[vfs-collab] applyOperation successfully saved User " + userId + " client " + userIds.clientId + " doc " + docId + " revNum " + doc.revNum + " fshash " + fsHash + " time: " + Date.now());
+            console.error("[vfs-collab] applyOperation successfully saved User " + userId + " client " + userIds.clientId + " doc " + docId + " revNum " + doc.revNum + " fsHash " + doc.fsHash + " contentsHash " + contentsHash + " time: " + Date.now());
             var msg = {
                 docId: docId,
                 clientId: userIds.clientId,
@@ -1474,8 +1474,8 @@ function handleEditUpdate(userIds, client, data) {
                 }
 
                 msg.selection = data.selection;
-
-                console.error("[vfs-collab] broadcasting EDIT_UPDATE User " + userId + " client " + clientId + " doc " + docId + " revision " + newRev + " fsHash " + doc.fsHash);
+                var contentsHash = hashString(doc.contents);
+                console.error("[vfs-collab] broadcasting EDIT_UPDATE User " + userId + " client " + clientId + " doc " + docId + " revision " + newRev + " fsHash " + doc.fsHash + " contentsHash " + contentsHash);
                 broadcast({
                     type: "EDIT_UPDATE",
                     data: msg
