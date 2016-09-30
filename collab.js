@@ -630,7 +630,7 @@ define(function(require, exports, module) {
                 return bubble.popup(msg);
 
             var chatName = apf.escapeXML(user.fullname);
-            var md5Email = user.email && apf.crypto.MD5.hex_md5(user.email.trim().toLowerCase());
+            var md5Email = user.md5Email;
             var defaultImgUrl = encodeURIComponent("https://www.aiga.org/uploadedImages/AIGA/Content/About_AIGA/Become_a_member/generic_avatar_300.gif");
             console.log("Collab:", user.fullname, msg);
             bubble.popup('<img width=26 height=26 class="gravatar-image" src="https://secure.gravatar.com/avatar/' +
@@ -792,10 +792,10 @@ define(function(require, exports, module) {
                     return menus.remove("user_" + id);
                 if (menus.getMenuId("user_" + id)) 
                     return;
-                addButton(id, user.fullname, user.email);
+                addButton(id, user.fullname, user.md5Email);
             });
             
-            function addButton(uid, name, email) {
+            function addButton(uid, name, md5Email) {
                 menus.remove("user_" + uid);
                 var parent = layout.getElement("barExtras");
                 
@@ -804,7 +804,7 @@ define(function(require, exports, module) {
                 plugin.addElement(mnuUser);
                 
                 // Add named button
-                var icon = util.getGravatarUrl(email, 32, "");
+                var icon = util.getGravatarUrl(md5Email, 32, "");
                 menus.addItemByPath("user_" + uid + "/", mnuUser, 110000, plugin);
                 
                 // Add sub menu items
