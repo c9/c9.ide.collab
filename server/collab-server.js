@@ -1251,7 +1251,7 @@ function handleConnect(userIds, client) {
                 else
                     onlineState = "offline";
                 usersMap[uid] = {
-                    email: user.email,
+                    md5Email: hashString(user.email),
                     fullname: user.fullname,
                     uid: user.uid,
                     clients: onlineUserClients, 
