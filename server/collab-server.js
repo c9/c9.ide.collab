@@ -2129,6 +2129,7 @@ function handleGetRevisions(userIds, client, data) {
 function handleSaveFile(userIds, client, data) {
     var st = Date.now();
     var docId = data.docId;
+    var postProcessor = data.postProcessor;
     var userId = userIds.userId;
     
     lastSaveStarts[docId] = Date.now();
@@ -2164,12 +2165,14 @@ function handleSaveFile(userIds, client, data) {
             var absPath = getAbsolutePath(docId);
             var fileContents = doc.contents.replace(/\n/g, doc.newLineChar || DEFAULT_NL_CHAR_FILE);
 
-            function mkfileWriteFile() {
+            mkfileWriteFile(fileContents, writeFileCallback);
+
+            function mkfileWriteFile(contents, callback) {
                 var options = { bufferWrite: true };
                 var stream = options.stream = new Stream();
                 stream.readable = true;
-                localfsAPI.mkfile(absPath, options, writeFileCallback);
-                stream.emit("data", fileContents);
+                localfsAPI.mkfile(absPath, options, callback);
+                stream.emit("data", contents);
                 stream.emit("end");
             }
 
@@ -2185,11 +2188,33 @@ function handleSaveFile(userIds, client, data) {
                 client.send({type: "DATA_WRITTEN", data: {docId: docId}});
                 doSaveDocument(docId, doc, userId, !data.silent, function (err) {
                     console.error("[vfs-collab] Saving took", Date.now() - st, "ms - time is now: " + Date.now() + " file:", docId, !err);
-                    done(err);
+                    if (err) return done(err);
+                    
+                    if (postProcessor)
+                        return execPostProcessor(postProcessor.command, postProcessor.args, done);
+                    done();
                 });
             }
 
-            mkfileWriteFile();
+            function execPostProcessor(command, args, callback) {
+                localfsAPI.execFile(command, { args: args }, function(err, result) {
+                    if (err) {
+                        console.error("[vfs-collab] Error running postprocessor, ignoring", command);
+                        return callback();
+                    }
+                    var newFileContents = (result.stdout || "").toString().replace(/\n/g, doc.newLineChar || DEFAULT_NL_CHAR_FILE);
+                    if (!newFileContents || newFileContents === fileContents)
+                        return callback();
+                    
+                    postProcessor = null;
+                    mkfileWriteFile(newFileContents, function(err) {
+                        if (err) return done("Failed saving file ! : " + docId + " ERR: " + String(err));
+                        
+                        doc.contents = doc.contents.toString();
+                        syncDocument(docId, doc, null, false, callback);
+                    });
+                });
+            }
         });
     });
 }
