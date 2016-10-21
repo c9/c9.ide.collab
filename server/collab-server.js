@@ -1695,7 +1695,11 @@ function initVfsWatcher(docId) {
                 syncDocument(docId, oldDoc, null, false, function (err, doc2) {
                     if (err) return next(err);
                     if (doc2.syncedWithDisk) {
-                        doSaveDocument(docId, doc2, -1, true, next);
+                        doSaveDocument(docId, doc2, -1, true, function(err, result) {
+                            if (err) return next(err);
+                            broadcast({ type: "FILE_SAVED", data: result }, null, docId);
+                            next();
+                        });
                         delete doc2.syncedWithDisk;
                     }
                     next();
@@ -2134,7 +2138,7 @@ function handleSaveFile(userIds, client, data) {
     
     lastSaveStarts[docId] = Date.now();
 
-    function done(err) {
+    function done(err, result) {
         unlock(docId);
         if (err) {
             console.error("[vfs-collab] Failed to save file. docID: " + docId + " Err: ", err);
@@ -2145,7 +2149,10 @@ function handleSaveFile(userIds, client, data) {
                     err: err
                 }
             });
+            return;
         }
+                    
+        broadcast({ type: "FILE_SAVED", data: result }, null, docId);
     }
 
     console.error("[vfs-collab] Saving file", docId);
@@ -2186,41 +2193,53 @@ function handleSaveFile(userIds, client, data) {
                 if (err) return done("Failed saving file ! : " + docId  + " ERR: " + String(err));
                 
                 client.send({type: "DATA_WRITTEN", data: {docId: docId}});
-                doSaveDocument(docId, doc, userId, !data.silent, function (err) {
+                doSaveDocument(docId, doc, userId, !data.silent, function (err, result) {
                     console.error("[vfs-collab] Saving took", Date.now() - st, "ms - time is now: " + Date.now() + " file:", docId, !err);
                     if (err) return done(err);
                     
-                    if (postProcessor)
-                        return execPostProcessor(postProcessor.command, postProcessor.args, done);
-                    done();
+                    if (postProcessor) {
+                        return execPostProcessor(postProcessor.command, postProcessor.args, function(err) {
+                            return done(err, result);
+                        });
+                    }
+                    done(null, result);
                 });
             }
 
             function execPostProcessor(command, args, callback) {
-                localfsAPI.execFile(command, { args: args }, function(err, result) {
-                    if (err) {
-                        console.error("[vfs-collab] Error running postprocessor, ignoring", command);
-                        client.send({
-                            type: "POST_PROCESSOR_ERROR",
-                            data: {
-                                code: err.code,
-                                stderr: result && result.stderr,
-                                docId: docId,
-                            }
-                        });
-                        return callback();
-                    }
-                    var newFileContents = (result.stdout || "").toString().replace(/\n/g, doc.newLineChar || DEFAULT_NL_CHAR_FILE);
-                    if (!newFileContents || newFileContents === fileContents)
-                        return callback();
-                    
-                    postProcessor = null;
-                    mkfileWriteFile(newFileContents, function(err) {
-                        if (err) return done("Failed saving file ! : " + docId + " ERR: " + String(err));
-                        
-                        doc.contents = doc.contents.toString();
-                        syncDocument(docId, doc, null, false, callback);
-                    });
+                localfsAPI.writeToWatchedFile(absPath, function(afterWrite) {
+                    localfsAPI.execFile(
+                        command,
+                        { args: args.map(function(a) { return a.replace(/\$file/g, absPath); }) },
+                        function(processorErr, result) {
+                            afterWrite(function() {
+                                Fs.readFile(absPath, "utf8", function(err, result) {
+                                    if (err) return callback(err);
+                                    
+                                    var newFileContents = result.toString().replace(/\n/g, doc.newLineChar || DEFAULT_NL_CHAR_FILE);
+                                    if (!newFileContents || newFileContents === fileContents) {
+                                        if (processorErr) {
+                                            client.send({
+                                                type: "POST_PROCESSOR_ERROR",
+                                                data: {
+                                                    code: processorErr.code,
+                                                    stderr: result && result.stderr,
+                                                    docId: docId,
+                                                }
+                                            });
+                                            return callback();
+                                        }
+                                        return callback();
+                                    }
+                                    
+                                    postProcessor = null;
+                                    doc.contents = fileContents;
+                                    
+                                    syncDocument(docId, doc, null, false, callback);
+                                });
+                            });
+                        }
+                    );
                 });
             }
         });
@@ -2244,18 +2263,13 @@ function doSaveDocument(docId, doc, userId, star, callback) {
         if (err)
             return callback(err);
         console.error("[vfs-collab] User", userId, "saved document", docId, "revision",  doc.revNum, "hash", fsHash);
-        var data = {
+        callback(null, {
             userId: userId,
             docId: docId,
             star: star,
             revNum: doc.revNum,
             fsHash: fsHash
-        };
-        broadcast({
-            type: "FILE_SAVED",
-            data: data
-        }, null, docId);
-        callback();
+        });
     });
 }
 
