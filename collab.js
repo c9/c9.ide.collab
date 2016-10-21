@@ -264,6 +264,9 @@ define(function(require, exports, module) {
                         util.extend({}, {users: workspace.users, userId: workspace.myUserId, clientId: workspace.myClientId}, data)
                     );
                     break;
+                case "POST_PROCESSOR_ERROR":
+                    emit("postProcessorError", data);
+                    return;
                 case "RESET_DB":
                     showAlert("Uh oh!",
                         "Workspace issue encountered",

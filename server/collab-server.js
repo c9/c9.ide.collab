@@ -2200,6 +2200,14 @@ function handleSaveFile(userIds, client, data) {
                 localfsAPI.execFile(command, { args: args }, function(err, result) {
                     if (err) {
                         console.error("[vfs-collab] Error running postprocessor, ignoring", command);
+                        client.send({
+                            type: "POST_PROCESSOR_ERROR",
+                            data: {
+                                code: err.code,
+                                stderr: result && result.stderr,
+                                docId: docId,
+                            }
+                        });
                         return callback();
                     }
                     var newFileContents = (result.stdout || "").toString().replace(/\n/g, doc.newLineChar || DEFAULT_NL_CHAR_FILE);
