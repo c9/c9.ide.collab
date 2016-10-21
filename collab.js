@@ -524,6 +524,9 @@ define(function(require, exports, module) {
             otDoc.on("joined", onJoined);
             otDoc.on("largeDocument", reportLargeDocument.bind(null, otDoc) );
             otDoc.on("joinProgress", startWatchDog);
+            otDoc.on("beforeSave", function(e) {
+                emit("beforeSave", e);
+            });
             
             // Load using XHR while collab not connected
             if (!connect.connected) {
@@ -874,6 +877,8 @@ define(function(require, exports, module) {
                  * @param {Boolean}  e.increment  should the chat counter be incremented (not yet implemented)
                  */
                 "chatMessage",
+                
+                "beforeSave",
                 
                 "message"
             ],

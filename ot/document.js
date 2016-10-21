@@ -1190,8 +1190,12 @@ define(function(require, module, exports) {
                 if (!pendingSave)  // should be set, but let's make sure
                    pendingSave = { silent: silent };
                 
+                var event = { docId: docId };
+                emit("beforeSave", event);
+                
                 saveStateDebugging = "SAVING";
                 connect.send("SAVE_FILE", {
+                    postProcessor: event.postProcessor,
                     docId: docId,
                     silent: !!silent
                 });
