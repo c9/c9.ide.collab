@@ -1322,7 +1322,7 @@ function applyOperation(userIds, docId, doc, op, callback) {
             return callback(err);
         try {
             doc.contents = applyContents(op, doc.contents);
-            applyAuthorAttributes(doc.authAttribs, op, ws.authorPoolParsed[userId]);
+            applyAuthorAttributes(doc.authAttribs || [], op, ws.authorPoolParsed[userId]);
 
             wrapSeq(Revision.create({
                 operation: new Buffer(JSON.stringify(op)),
