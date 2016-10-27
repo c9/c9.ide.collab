@@ -2190,59 +2190,56 @@ function handleSaveFile(userIds, client, data) {
             */
 
             function writeFileCallback(err) {
-                if (err) return done("Failed saving file ! : " + docId  + " ERR: " + String(err));
+                if (err) return done("Failed saving file ! : " + docId + " ERR: " + String(err));
                 
-                client.send({type: "DATA_WRITTEN", data: {docId: docId}});
+                client.send({ type: "DATA_WRITTEN", data: { docId: docId }});
                 doSaveDocument(docId, doc, userId, !data.silent, function (err, result) {
                     console.error("[vfs-collab] Saving took", Date.now() - st, "ms - time is now: " + Date.now() + " file:", docId, !err);
                     if (err) return done(err);
                     
-                    if (postProcessor) {
-                        return execPostProcessor(postProcessor.command, postProcessor.args, function(err) {
-                            return done(err, result);
-                        });
-                    }
+                    if (postProcessor)
+                        return execPostProcessor(absPath, docId, doc, client, postProcessor, done);
+
                     done(null, result);
                 });
             }
+        });
+    });
+}
 
-            function execPostProcessor(command, args, callback) {
-                localfsAPI.writeToWatchedFile(absPath, function(afterWrite) {
-                    localfsAPI.execFile(
-                        command,
-                        { args: args.map(function(a) { return a.replace(/\$file/g, absPath); }) },
-                        function(processorErr, result) {
-                            afterWrite(function() {
-                                Fs.readFile(absPath, "utf8", function(err, result) {
-                                    if (err) return callback(err);
-                                    
-                                    var newFileContents = result.toString().replace(/\n/g, doc.newLineChar || DEFAULT_NL_CHAR_FILE);
-                                    if (!newFileContents || newFileContents === fileContents) {
-                                        if (processorErr) {
-                                            client.send({
-                                                type: "POST_PROCESSOR_ERROR",
-                                                data: {
-                                                    code: processorErr.code,
-                                                    stderr: result && result.stderr,
-                                                    docId: docId,
-                                                }
-                                            });
-                                            return callback();
-                                        }
-                                        return callback();
+function execPostProcessor(absPath, docId, doc, fileContents, client, postProcessor, callback) {
+    localfsAPI.writeToWatchedFile(absPath, function(afterWrite) {
+        localfsAPI.execFile(
+            postProcessor.command,
+            { args: postProcessor.args.map(function(a) { return a.replace(/\$file/g, absPath); }) },
+            function(processorErr, result) {
+                afterWrite(function() {
+                    Fs.readFile(absPath, "utf8", function(err, result) {
+                        if (err) return callback(err);
+                        
+                        var newFileContents = result.toString().replace(/\n/g, doc.newLineChar || DEFAULT_NL_CHAR_FILE);
+                        if (!newFileContents || newFileContents === fileContents) {
+                            if (processorErr) {
+                                client.send({
+                                    type: "POST_PROCESSOR_ERROR",
+                                    data: {
+                                        code: processorErr.code,
+                                        stderr: result && result.stderr,
+                                        docId: docId,
                                     }
-                                    
-                                    postProcessor = null;
-                                    doc.contents = fileContents;
-                                    
-                                    syncDocument(docId, doc, null, false, callback);
                                 });
-                            });
+                                return callback();
+                            }
+                            return callback();
                         }
-                    );
+                        
+                        doc.contents = fileContents;
+                        
+                        syncDocument(docId, doc, null, false, callback);
+                    });
                 });
             }
-        });
+        );
     });
 }
 
