@@ -1710,6 +1710,8 @@ function initVfsWatcher(docId) {
 
         var watcher = meta.watcher;
         watcher.on("change", function (event, filename, stat, files) {
+            if (stat.vfsWrite) // ignore our own writes
+                return;
             doWatcherSync(stat, done);
         });
         watcher.on("error", function(err){
