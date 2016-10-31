@@ -2214,33 +2214,33 @@ function execPostProcessor(absPath, docId, doc, fileContents, client, postProces
             { args: postProcessor.args.map(function(a) { return a.replace(/\$file/g, absPath); }) },
             function(processorErr, result) {
                 afterWrite(function() {
-                    Fs.readFile(absPath, "utf8", function(err, result) {
-                        if (err) return callback(err);
-                        
-                        var newFileContents = result.toString().replace(/\n/g, doc.newLineChar || DEFAULT_NL_CHAR_FILE);
-                        if (!newFileContents || newFileContents === fileContents) {
-                            if (processorErr) {
-                                client.send({
-                                    type: "POST_PROCESSOR_ERROR",
-                                    data: {
-                                        code: processorErr.code,
-                                        stderr: result && result.stderr,
-                                        docId: docId,
-                                    }
-                                });
-                                return callback();
-                            }
-                            return callback();
-                        }
-                        
-                        doc.contents = fileContents;
-                        
-                        syncDocument(docId, doc, null, false, callback);
-                    });
+                    Fs.readFile(absPath, "utf8", done);
                 });
             }
         );
     });
+    
+    function done(err, result) {
+        var newFileContents = result && result.toString().replace(/\n/g, doc.newLineChar || DEFAULT_NL_CHAR_FILE);
+        if (!newFileContents || newFileContents === fileContents) {
+            if (err) {
+                client.send({
+                    type: "POST_PROCESSOR_ERROR",
+                    data: {
+                        code: err.code,
+                        stderr: result && result.stderr,
+                        docId: docId,
+                    }
+                });
+                return callback();
+            }
+            return callback();
+        }
+        
+        doc.contents = fileContents;
+        
+        syncDocument(docId, doc, null, false, callback);
+    }
 }
 
 /**
