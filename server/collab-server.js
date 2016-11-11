@@ -2198,7 +2198,7 @@ function handleSaveFile(userIds, client, data) {
                     if (err) return done(err);
                     
                     if (postProcessor)
-                        return execPostProcessor(absPath, docId, doc, client, postProcessor, done);
+                        return execPostProcessor(absPath, docId, doc, fileContents, client, postProcessor, done);
 
                     done(null, result);
                 });
@@ -2212,7 +2212,9 @@ function execPostProcessor(absPath, docId, doc, fileContents, client, postProces
         localfsAPI.execFile(
             postProcessor.command,
             { args: postProcessor.args.map(function(a) { return a.replace(/\$file/g, absPath); }) },
-            function(processorErr, result) {
+            function(err, result) {
+                if (err) return done(err);
+                
                 afterWrite(function() {
                     Fs.readFile(absPath, "utf8", done);
                 });
