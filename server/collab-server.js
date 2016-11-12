@@ -2197,8 +2197,11 @@ function handleSaveFile(userIds, client, data) {
                     console.error("[vfs-collab] Saving took", Date.now() - st, "ms - time is now: " + Date.now() + " file:", docId, !err);
                     if (err) return done(err);
                     
-                    if (postProcessor)
-                        return execPostProcessor(absPath, docId, doc, fileContents, client, postProcessor, done);
+                    if (postProcessor) {
+                        return execPostProcessor(absPath, docId, doc, fileContents, client, postProcessor, function(err) {
+                            done(err, result);
+                        });
+                    }
 
                     done(null, result);
                 });
