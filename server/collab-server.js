@@ -2195,7 +2195,17 @@ function handleSaveFile(userIds, client, data) {
                 client.send({ type: "DATA_WRITTEN", data: { docId: docId }});
                 doSaveDocument(docId, doc, userId, !data.silent, function (err, result) {
                     console.error("[vfs-collab] Saving took", Date.now() - st, "ms - time is now: " + Date.now() + " file:", docId, !err);
-                    if (err) return done(err);
+                    if (err) {
+                        client.send({		
+                            type: "POST_PROCESSOR_ERROR",		
+                            data: {		
+                                code: err.code,		
+                                stderr: result && result.stderr,		
+                                docId: docId,		
+                            }		
+                        });		
+                        return done(err);
+                    }
                     
                     if (postProcessor) {
                         return execPostProcessor(absPath, docId, doc, fileContents, client, postProcessor, function(err) {
