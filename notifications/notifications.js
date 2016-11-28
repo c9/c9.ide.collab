@@ -161,7 +161,7 @@ define(function(require, exports, module) {
             
             if (!bubble) {
                 // Make sure collab panel is enabled if we have notifications
-                if (!panels.panels.collab.enabled && !count)
+                if (!panels.panels.collab.enabled && count)
                     panels.enablePanel("collab");
                 
                 // Notification Bubble
