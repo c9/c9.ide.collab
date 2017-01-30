@@ -54,7 +54,7 @@ describe(__filename, function() {
         insert(auth, 1, 2, "u1");
         assert.deepEqual(auth, [1, null, 2, "u1", 9, null]);
         insert(auth, 5, 2, "u2");
-        assert.deepEqual(auth, [3,[1,null,2,"u1"],11,[2,null,2,"u2",7,null]]);
+        assert.deepEqual(auth, [3, [1, null, 2, "u1"], 11, [2, null, 2, "u2", 7, null]]);
     });
 
     it("should applyAuthorAttributes", function() {
@@ -100,12 +100,12 @@ describe(__filename, function() {
         });
     });
 
-    it("should many edits",function() {
+    it("should many edits", function() {
         var auth = [];
-        for (var i=0;i<10;i++)
+        for (var i = 0;i < 10;i++)
             insert(auth, i, 1, "a");
-        for (i=0;i<10;i++)
-            insert(auth, 2*i, 1, "z");
+        for (i = 0;i < 10;i++)
+            insert(auth, 2 * i, 1, "z");
         var arr = [];
         traverse(auth, null, null, function (index, length, value) {
             arr.push(value);

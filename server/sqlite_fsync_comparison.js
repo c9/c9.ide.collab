@@ -1,4 +1,4 @@
-"use strict"
+"use strict";
 
 var Sequelize = require("sequelize");
 var async = require("async");
@@ -19,7 +19,7 @@ function initDB(callback) {
         logging: false,
         // use pooling in order to reduce db connection overload and to increase speed
         // currently only for mysql and postgresql (since v1.5.0)
-        pool: { maxConnections: 5, maxIdleTime: 30}
+        pool: { maxConnections: 5, maxIdleTime: 30 }
     });
 
     User = sequelize.define("User", {
@@ -41,7 +41,7 @@ function stressTestFSync(sync, callback) {
     async.series([
             initDB,
             function (next) {
-                wrapSeq(User.sync({force: true}), next);
+                wrapSeq(User.sync({ force: true }), next);
             },
             function (next) {
                 st = new Date();
@@ -72,7 +72,7 @@ var TEST_SIZE = 1000;
 
 function createUsers(done) {
     wrapSeq(User.create({
-        uid: i+1,
+        uid: i + 1,
         fullname: "name_" + i,
         email: "email_" + i + "@something.com"
     }), function (err) {

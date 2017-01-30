@@ -24,7 +24,7 @@ function operation(fromText, toText) {
         d = diffs[i];
         type = d[0];
         val = d[1];
-        switch(type) {
+        switch (type) {
             case DIFF_EQUAL:
                 op.push("r" + val.length);
             break;
@@ -128,8 +128,8 @@ function pack(op) {
     var packed = op.slice();
     var i = 0;
     while (i < packed.length - 1) {
-        if (packed[i][0] === packed[i+1][0])
-            packed.splice(i, 2, packed[i][0] + (val(packed[i]) + val(packed[i+1])));
+        if (packed[i][0] === packed[i + 1][0])
+            packed.splice(i, 2, packed[i][0] + (val(packed[i]) + val(packed[i + 1])));
         else
             i++;
     }

@@ -17,14 +17,14 @@ function testXForm(original, a, b, expected) {
     var operationsA = operations.operation(original, a);
     var operationsB = operations.operation(original, b);
     xform(operationsA, operationsB, function (ap, bp) {
-        console.log(original + " -< (" + a + ", " + b +") >- " + expected);
-        console.log(original + " -< (" + operationsA + ", " + operationsB +") >- " + expected);
-        console.log(original + " -< (" + ap + " - " + bp +") >- " + expected);
+        console.log(original + " -< (" + a + ", " + b + ") >- " + expected);
+        console.log(original + " -< (" + operationsA + ", " + operationsB + ") >- " + expected);
+        console.log(original + " -< (" + ap + " - " + bp + ") >- " + expected);
 
         var docA = apply(operationsA, original);
         var finalA = apply(bp, docA);
         console.log("  " + original + " -> " + docA + " -> " + finalA);
-        assert.equal(finalA, expected,  finalA + " !== " + expected);
+        assert.equal(finalA, expected, finalA + " !== " + expected);
 
         var docB = apply(operationsB, original);
         var finalB = apply(ap, docB);

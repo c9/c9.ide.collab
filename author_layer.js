@@ -78,7 +78,7 @@ define(function(require, module, exports) {
                     if (i > foldStart) {
                         i = fold.end.row + 1;
                         fold = session.getNextFoldLine(i, fold);
-                        foldStart = fold ?fold.start.row :Infinity;
+                        foldStart = fold ? fold.start.row : Infinity;
                     }
                     if (i > lastRow)
                         break;
@@ -148,7 +148,7 @@ define(function(require, module, exports) {
         
                     cell = this.$cells[++index];
                     if (!cell) {
-                        cell = {element: null, textNode: null, foldWidget: null};
+                        cell = { element: null, textNode: null, foldWidget: null };
                         cell.element = dom.createElement("div");
                         cell.textNode = document.createTextNode('');
                         cell.element.appendChild(cell.textNode);
@@ -256,8 +256,8 @@ define(function(require, module, exports) {
                     var line = editorDoc.getLine(lastPos.row);
                     var rowScore = rowScores[lastPos.row] = rowScores[lastPos.row] || {};
                     var score = Math.min(line.length - lastPos.column, length);
-                    var scoreObj = rowScore[value] = rowScore[value] || {edits: [], score: 0};
-                    scoreObj.edits.push({pos: lastPos, length: score});
+                    var scoreObj = rowScore[value] = rowScore[value] || { edits: [], score: 0 };
+                    scoreObj.edits.push({ pos: lastPos, length: score });
                     scoreObj.score += score;
                      var pos = editorDoc.indexToPosition(index + length);
                     if (lastPos.row !== pos.row) {
@@ -268,8 +268,8 @@ define(function(require, module, exports) {
                         line = editorDoc.getLine(pos.row);
                         rowScore = rowScores[pos.row] = rowScores[pos.row] || {};
                         score = pos.column;
-                        scoreObj = rowScore[value] = rowScore[value] || {edits: [], score: 0};
-                        scoreObj.edits.push({pos: pos, length: score});
+                        scoreObj = rowScore[value] = rowScore[value] || { edits: [], score: 0 };
+                        scoreObj.edits.push({ pos: pos, length: score });
                         scoreObj.score += score;
                     }
                     lastPos = pos;
@@ -314,7 +314,7 @@ define(function(require, module, exports) {
             }
 
             plugin.freezePublicAPI({
-                get colorPool(){ return workspace.colorPool; },
+                get colorPool() { return workspace.colorPool; },
                 refresh: refresh,
                 dispose: dispose
             });
@@ -326,7 +326,7 @@ define(function(require, module, exports) {
             var editorDoc = session.doc;
 
             var line = editorDoc.getLine(row);
-            var lineStart = editorDoc.positionToIndex({row: row, column: 0}) - 1;
+            var lineStart = editorDoc.positionToIndex({ row: row, column: 0 }) - 1;
             var lineEnd = lineStart + line.length + 1;
             var scores = {};
             AuthorAttributes.traverse(authAttribs, lineStart, lineEnd, function (index, length, value) {
@@ -401,7 +401,7 @@ define(function(require, module, exports) {
             editor.addEventListener("mousemove", function(e) {
                 if (!showAuthorInfo || !util.isRealCollab(workspace))
                     return;
-                mousePos = {x: e.x, y: e.y};
+                mousePos = { x: e.x, y: e.y };
                 if (!editor.authorTooltipTimeout)
                     editor.authorTooltipTimeout = setTimeout(updateTooltip, tooltip.style.display === "block" ? 100 : 300);
             });
@@ -423,7 +423,7 @@ define(function(require, module, exports) {
                 var docPos = session.screenToDocumentPosition(screenPos.row, screenPos.column);
                 var line = editorDoc.getLine(docPos.row);
 
-                var hoverIndex = editorDoc.positionToIndex({row: docPos.row, column: docPos.column});
+                var hoverIndex = editorDoc.positionToIndex({ row: docPos.row, column: docPos.column });
                 var authorKey = AuthorAttributes.valueAtIndex(authAttribs, hoverIndex);
 
                 // ignore newline tooltip and out of text hovering

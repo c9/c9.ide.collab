@@ -15,7 +15,7 @@ function createServer() {
        console.log("Server error:", err.code);
     });
 
-    server.listen(socketPath, function(){
+    server.listen(socketPath, function() {
         console.log("Server listening");
     });
 }

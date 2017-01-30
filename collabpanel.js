@@ -21,7 +21,7 @@ define(function(require, module, exports) {
             var style = options.style || "";
             var amlFrame;
 
-            plugin.on("load", function(){
+            plugin.on("load", function() {
                 // Draw panel when collab panel is drawn
                 collab.once("drawPanels", draw, plugin);
             });
@@ -30,7 +30,7 @@ define(function(require, module, exports) {
                 amlFrame = ui.frame({
                     buttons: "min",
                     activetitle: "min",
-                    "class"     : "absframe",
+                    "class": "absframe",
                     style: "position:relative;" + (style || ""),
                     textselect: options.textselect,
                     // height      : height,
@@ -52,7 +52,7 @@ define(function(require, module, exports) {
 
                 emit.sticky("draw", { aml: amlFrame, html: amlFrame.$int });
 
-                amlFrame.on("prop.height", function(){
+                amlFrame.on("prop.height", function() {
                     emit("resize");
                 });
                 
@@ -78,13 +78,13 @@ define(function(require, module, exports) {
 
             /***** Methods *****/
 
-            function show(){
+            function show() {
                 collab.show();
                 amlFrame && amlFrame.restore();
                 emit("show");
             }
 
-            function hide(){
+            function hide() {
                 amlFrame.hide();
                 emit("hide");
             }
@@ -120,7 +120,7 @@ define(function(require, module, exports) {
                  * @private
                  * @readonly
                  */
-                get aml(){ return amlFrame; },
+                get aml() { return amlFrame; },
 
                 _events: [
                     /**

@@ -58,7 +58,7 @@ define(function(require, exports, module) {
                 addNotifications([
                     { name: "Bas de Wachter", uid: 8, email: "bas@c9.io", type: "access_request" },
                     { name: "Mostafa Eweda", uid: 1, email: "mostafa@c9.io", type: "access_request" },
-                    { name: "Lennart Kats", uid: 5,  email: "lennart@c9.io", type: "access_request" },
+                    { name: "Lennart Kats", uid: 5, email: "lennart@c9.io", type: "access_request" },
                     { name: "Ruben Daniels", uid: 2, email: "ruben@ajax.org", type: "access_request" },
                     { name: "Fabian Jakobs", uid: 4, email: "fabian@ajax.org", type: "access_request" }
                 ]);
@@ -86,7 +86,7 @@ define(function(require, exports, module) {
             // Notifications panel
             notificationsTree = new Tree(notificationsParent);
             notificationsTree.renderer.setScrollMargin(0, 10);
-            notificationsTree.renderer.setTheme({cssClass: "notificationstree"});
+            notificationsTree.renderer.setTheme({ cssClass: "notificationstree" });
             notificationsTree.setOption("maxLines", 3);
             // Assign the dataprovider
             notificationsTree.setDataProvider(notificationsDataProvider);
@@ -380,17 +380,17 @@ define(function(require, exports, module) {
         
         /***** Lifecycle *****/
         
-        plugin.on("load", function(){
+        plugin.on("load", function() {
             load();
             plugin.once("draw", draw);
         });
-        plugin.on("enable", function(){
+        plugin.on("enable", function() {
 
         });
-        plugin.on("disable", function(){
+        plugin.on("disable", function() {
         });
 
-        plugin.on("unload", function(){
+        plugin.on("unload", function() {
             loaded = false;
             drawn = false;
             cachedNotifications = [];

@@ -84,7 +84,7 @@ define(function(require, exports, module) {
                     otDoc.setSession(doc.getSession().session);
             });
 
-            tabManager.on("focusSync", function(e){
+            tabManager.on("focusSync", function(e) {
                 var tab = e.tab;
                 var otDoc = documents[tab.path];
                 if (otDoc && !otDoc.session) {
@@ -94,7 +94,7 @@ define(function(require, exports, module) {
                 }
             });
             
-            tabManager.on("focus", function(e){
+            tabManager.on("focus", function(e) {
                 var tab = e.tab;
                 if (tab && tab.editor) {
                     var id = getTabId(tab);
@@ -133,9 +133,9 @@ define(function(require, exports, module) {
             // Author layer settings
             var showAuthorInfoKey = "user/collab/@show-author-info";
             prefs.add({
-                "General" : {
-                    "Collaboration" : {
-                        "Show Authorship Info" : {
+                "General": {
+                    "Collaboration": {
+                        "Show Authorship Info": {
                             type: "checkbox",
                             position: 8000,
                             path: showAuthorInfoKey
@@ -234,7 +234,7 @@ define(function(require, exports, module) {
                     doc.joinData(data);
                     break;
                 case "RESOLVE_CONFLICT":
-                    emit("resolveConflict", {path: docId});
+                    emit("resolveConflict", { path: docId });
                     break;
                 case "LARGE_DOC":
                     doc && doc.leave();
@@ -261,7 +261,7 @@ define(function(require, exports, module) {
                 case "ERROR":
                     errorHandler.log(
                         data.err || new Error("Collab error"), 
-                        util.extend({}, {users: workspace.users, userId: workspace.myUserId, clientId: workspace.myClientId}, data)
+                        util.extend({}, { users: workspace.users, userId: workspace.myUserId, clientId: workspace.myClientId }, data)
                     );
                     break;
                 case "POST_PROCESSOR_ERROR":
@@ -275,7 +275,7 @@ define(function(require, exports, module) {
                         "Give us just a moment to complete the recovery so you can get back to your project. ", 
                         function() { 
                             setTimeout(function() { 
-                                window.location.reload()
+                                window.location.reload();
                             }, 1000); 
                         }
                     ); 
@@ -403,7 +403,7 @@ define(function(require, exports, module) {
                 fsSaveFallback();
                 doc.off("saved", onSaved);
                 failedSaveAttempts++;
-                emit("saveFallbackStart", {path: docId});
+                emit("saveFallbackStart", { path: docId });
             }, SAVE_FILESYSTEM_FALLBACK_TIMEOUT * Math.pow(2, -Math.min(failedSaveAttempts, 5)));
             
             function onSaved(e) {
@@ -415,7 +415,7 @@ define(function(require, exports, module) {
                         console.warn("[OT] collab error:", e.code, "trying to save file", docId, "- trying fallback approach instead");
                         return fsSaveFallback({ code: e.code, err: e.err });
                     } else {
-                        sendSaveError({code: e.code, err: e.err }, "Collab saving failed on unexpected error");
+                        sendSaveError({ code: e.code, err: e.err }, "Collab saving failed on unexpected error");
                     }
                 } else {
                     failedSaveAttempts = 0;
@@ -525,7 +525,7 @@ define(function(require, exports, module) {
                 setupProgressCallback(otDoc, progress);
 
             otDoc.on("joined", onJoined);
-            otDoc.on("largeDocument", reportLargeDocument.bind(null, otDoc) );
+            otDoc.on("largeDocument", reportLargeDocument.bind(null, otDoc));
             otDoc.on("joinProgress", startWatchDog);
             otDoc.on("beforeSave", function(e) {
                 emit("beforeSave", e);
@@ -575,7 +575,7 @@ define(function(require, exports, module) {
 
             function fsOpenFallback() {
                 var xhr = fs.readFileWithMetadata(path, "utf8", callback || function() {}, progress) || {};
-                fallbackXhrAbort = ((xhr && xhr.abort) || function(){}).bind(xhr);
+                fallbackXhrAbort = ((xhr && xhr.abort) || function() {}).bind(xhr);
             }
         }
 
@@ -640,7 +640,7 @@ define(function(require, exports, module) {
             var defaultImgUrl = encodeURIComponent("https://www.aiga.org/uploadedImages/AIGA/Content/About_AIGA/Become_a_member/generic_avatar_300.gif");
             console.log("Collab:", user.fullname, msg);
             bubble.popup('<img width=26 height=26 class="gravatar-image" src="https://secure.gravatar.com/avatar/' +
-                md5Email + '?s=26&d='  + defaultImgUrl + '" /><span>' +
+                md5Email + '?s=26&d=' + defaultImgUrl + '" /><span>' +
                 chatName + '<span class="notification_sub">' + msg + '</span></span>');
         }
         
@@ -663,7 +663,7 @@ define(function(require, exports, module) {
                 doc.value = doc.undoManager = doc.meta = undefined;
                 if (doc.ace) {
                     // doc.ace.folds = doc.ace.options = undefined;
-                    doc.ace = {selection: doc.ace.selection};
+                    doc.ace = { selection: doc.ace.selection };
                 }
             }
             state.className = undefined;
@@ -842,13 +842,13 @@ define(function(require, exports, module) {
             if (event == "connect" && connect.connected)
                 listener();
         });
-        plugin.on("load", function(){
+        plugin.on("load", function() {
             load();
         });
         plugin.on("draw", function(e) {
             draw(e);
         });
-        plugin.on("unload", function(){
+        plugin.on("unload", function() {
             loaded = false;
             drawn = true;
         });
@@ -899,7 +899,7 @@ define(function(require, exports, module) {
              * Specifies whether the collab debug is enabled or not
              * @property {Boolean} debug
              */
-            get debug()     { return connect.debug; },
+            get debug() { return connect.debug; },
             /**
              * Get the open collab document with path
              * @param  {String}     path the file path of the document

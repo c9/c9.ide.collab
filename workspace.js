@@ -116,7 +116,7 @@ define(function(require, exports, module) {
 
         function leaveClient(uid, clientId) {
             var user = users[uid];
-            user.online = Math.max(user.online-1, 0);
+            user.online = Math.max(user.online - 1, 0);
             if (!user.clients) user.clients = [];
             var i = user.clients.indexOf(clientId);
             if (i != -1) user.clients.splice(i, 1);
@@ -240,7 +240,7 @@ define(function(require, exports, module) {
             if (!cachedMembers)
                 return console.warn("addCachedMember() - cachedMembers = null !");
             cachedMembers = cachedMembers.filter(function (m) {
-                return m.uid  != member.uid;
+                return m.uid != member.uid;
             });
             cachedMembers.push(member);
             emit.sticky("sync");
@@ -249,7 +249,7 @@ define(function(require, exports, module) {
 
         function removeMember(uid, callback) {
             api.collab.delete("members/remove", {
-                body: { uid : uid }
+                body: { uid: uid }
             }, function (err, data, res) {
                 if (err) return callback(err);
                 if (!pubsub.connected) // pubsub not working
@@ -262,7 +262,7 @@ define(function(require, exports, module) {
             if (!cachedMembers)
                 return console.warn("removeCachedMember() - cachedMembers = null !");
             cachedMembers = cachedMembers.filter(function (member) {
-                return member.uid  != uid;
+                return member.uid != uid;
             });
             emit.sticky("sync");
             next && next();
@@ -286,7 +286,7 @@ define(function(require, exports, module) {
             if (!cachedMembers)
                 return console.warn("updateCachedAccess() - cachedMembers = null !");
             (cachedMembers.filter(function (member) {
-                return member.uid  == uid;
+                return member.uid == uid;
             })[0] || {}).acl = acl;
             emit.sticky("sync");
             next && next();
@@ -307,7 +307,7 @@ define(function(require, exports, module) {
 
         /***** Lifecycle *****/
 
-        plugin.on("load", function(){
+        plugin.on("load", function() {
             load();
         });
 
@@ -330,7 +330,7 @@ define(function(require, exports, module) {
              *
              * @property {Object} users
              */
-            get users()         { return users; },
+            get users() { return users; },
             /**
              * Get the author pool for the collab workspace
              * It's a mapping object that translates user ids to author ids
@@ -342,7 +342,7 @@ define(function(require, exports, module) {
              *
              * @property {Object} authorPool
              */
-            get authorPool()    { return authorPool; },
+            get authorPool() { return authorPool; },
             /**
              * Get the reversed author pool for the collab workspace
              * It's a mapping object that translates author ids to user ids
@@ -361,12 +361,12 @@ define(function(require, exports, module) {
              * 
              * @property {Object} colorPool
              */
-            get colorPool()     { return colorPool; },
+            get colorPool() { return colorPool; },
             /**
              * Get the currently connected collab client id
              * @property {String} myClientId
              */
-            get myClientId()    { return myClientId; },
+            get myClientId() { return myClientId; },
             /**
              * Get the previously disconnected collab client id - for checking against USER_LEAVE or LEAVE_DOC notifications
              * @property {String} myOldClientId
@@ -377,28 +377,28 @@ define(function(require, exports, module) {
              * info.getUser().id
              * @property {Number} myUserId
              */
-            get myUserId()      { return myUserId; },
+            get myUserId() { return myUserId; },
             /**
              * Specifies wether the collab workspace was previously loaded and collab was connected - or not
              * @property {Boolean} loaded
              */
-            get loaded()        { return loadedWorkspace;  },
+            get loaded() { return loadedWorkspace; },
             /**
              * Gets my filesystem access to this workspace:
              * Values can be either "r" or "rw"
              * @property {String} fs
              */
-            get fs()            { return fs; },
+            get fs() { return fs; },
             /**
              * Gets the chat history being a list of messages (max. the most recent 100 messages)
              * @property [{Object}] chatHistory
              */
-            get chatHistory()   { return chatHistory; },
+            get chatHistory() { return chatHistory; },
             /**
              * Sets the chat history messages
              * @property [{Object}] chatHistory
              */
-            set chatHistory(history)   { chatHistory = history; },
+            set chatHistory(history) { chatHistory = history; },
             /**
              * Gets the cached previously-loaded workspace members
              * @property [{Object}] members
@@ -427,13 +427,13 @@ define(function(require, exports, module) {
              * @param {Number} uid
              * @return {Object} e.g. {fullname: "Mostafa Eweda", uid: 123, email: "mostafa@c9.io", author: 1, color: 2}
              */
-            getUser: function (uid)   { return users[uid]; },
+            getUser: function (uid) { return users[uid]; },
             /**
              * Gets a user color given his user id
              * @param {Number} uid
              * @return {Object} e.g. {r: 10, g: 15, b: 255}
              */
-            getUserColor: function (uid)   { return (uid && util.formatColor(colorPool[uid])) || "transparent"; },
+            getUserColor: function (uid) { return (uid && util.formatColor(colorPool[uid])) || "transparent"; },
             /**
              * Return true if the user with uid is currently online
              * @param {Number} uid

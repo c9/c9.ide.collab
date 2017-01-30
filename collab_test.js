@@ -131,8 +131,8 @@ require(["lib/architect/architect", "lib/chai/chai", "/vfs-root"],
             
             before(function(done) {
                 setTimeout(function() {
-                    fs.writeFile(filePath, filePath, function(){
-                        tabs.openFile(filePath, function(){
+                    fs.writeFile(filePath, filePath, function() {
+                        tabs.openFile(filePath, function() {
                             done();
                         });
                     });
@@ -140,7 +140,7 @@ require(["lib/architect/architect", "lib/chai/chai", "/vfs-root"],
             });
 
             after(function(done) {
-                fs.unlink(filePath, function(){
+                fs.unlink(filePath, function() {
                     done();
                 });
             });
@@ -172,7 +172,7 @@ require(["lib/architect/architect", "lib/chai/chai", "/vfs-root"],
                     var editorDoc = doc.session.doc;
                     var tab = tabs.focussedTab;
 
-                    editorDoc.insert({row: 0, column: 2}, "-abc-");
+                    editorDoc.insert({ row: 0, column: 2 }, "-abc-");
                     expect(tab.document.value).to.equal("/c-abc-ollab1.txt");
 
                     doc.on("saved", function(e) {
@@ -183,7 +183,7 @@ require(["lib/architect/architect", "lib/chai/chai", "/vfs-root"],
                         expect(e.revision.operation).to.deep.equal(["r2", "i-abc-", "r10"]);
                     });
 
-                    save.save(tab, null, function(){
+                    save.save(tab, null, function() {
                         // expect(tab.document.changed).to.be.false;
                         done();
                     });

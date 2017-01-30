@@ -1,6 +1,6 @@
 define(function(require, exports, module) {
     
-module.exports = function(session, options){
+module.exports = function(session, options) {
     // Dependencies for the collaboration features of Cloud9
     
     var win32 = options.platform == "win32";

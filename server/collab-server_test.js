@@ -2,7 +2,7 @@
 "use server";
 
 
-require("c9/inline-mocha")(module, null, {globals: ["db", "columnTypes"]});
+require("c9/inline-mocha")(module, null, { globals: ["db", "columnTypes"]});
 
 var assert = require("assert");
 var async = require("async");
@@ -59,7 +59,7 @@ function initCollab(user, next) {
         file: __dirname + "/collab-server.js",
         redefine: true,
         user: user.user,
-        project: {pid: TEST_PID},
+        project: { pid: TEST_PID },
         readonly: user.readonly
     }, function (err, meta) {
         if (err || !meta || !meta.api)
@@ -156,7 +156,7 @@ describe(__filename, function() {
                 console.log("Stream data:", data.toString());
                 next();
             });
-            this.collab1.send(user1.clientId, {type:"PING"});
+            this.collab1.send(user1.clientId, { type: "PING" });
         });
     
         it("should stream end on dispose", function(next) {
@@ -208,7 +208,7 @@ describe(__filename, function() {
     
             toJoin.send(toJoin.user.clientId, {
                 type: "JOIN_DOC",
-                data: {docId: docPath}
+                data: { docId: docPath }
             });
         }
     
@@ -258,7 +258,7 @@ describe(__filename, function() {
                     // Anyone can leave -- everybody notified
                     collab.send(collabClientId, {
                         type: "LEAVE_DOC",
-                        data: {docId: docPath}
+                        data: { docId: docPath }
                     });
                 });
             });
@@ -351,7 +351,7 @@ describe(__filename, function() {
         });
     
         it("should block home access for readonly", function(next) {
-            var self = this
+            var self = this;
             function testJoinError(collab, path, next) {
                 collab.stream.on("data", function onData(msg) {
                     msg = JSON.parse(msg);
@@ -364,7 +364,7 @@ describe(__filename, function() {
                 });
                 collab.send(collab.user.clientId, {
                     type: "JOIN_DOC",
-                    data: {docId: path}
+                    data: { docId: path }
                 });
             }
             async.series([

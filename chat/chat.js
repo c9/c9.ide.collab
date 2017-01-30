@@ -108,7 +108,7 @@ define(function(require, exports, module) {
             chatInput.ace.commands.addCommands([
                 {
                     bindKey: "ESC",
-                    exec: function(){
+                    exec: function() {
                         if (chatInput.getValue())
                             chatInput.setValue("");
                         else
@@ -128,12 +128,12 @@ define(function(require, exports, module) {
             if (panels.isActive("collab"))
                 listenWorkspaceSync();
 
-            collab.on("show", function(){
+            collab.on("show", function() {
                 chatInput.focus();
                 listenWorkspaceSync();
             });
 
-            collab.on("hide", function(){
+            collab.on("hide", function() {
                 workspace.off("sync", onWorkspaceSync);
             });
 
@@ -199,7 +199,7 @@ define(function(require, exports, module) {
             if (!toDeleteMessage || !toDeleteMessage.id)
                 return console.error("[OT] Chat: no message found to delete!");
             var msgId = toDeleteMessage.id.match(/ot_chat_(\d+)/)[1];
-            collab.send("CLEAR_CHAT", { id : msgId });
+            collab.send("CLEAR_CHAT", { id: msgId });
         }
 
         function clearChatHistory() {
@@ -371,17 +371,17 @@ define(function(require, exports, module) {
         }
 
         /***** Lifecycle *****/
-        plugin.on("load", function(){
+        plugin.on("load", function() {
             load();
             plugin.once("draw", draw);
         });
-        plugin.on("enable", function(){
+        plugin.on("enable", function() {
 
         });
-        plugin.on("disable", function(){
+        plugin.on("disable", function() {
         });
 
-        plugin.on("unload", function(){
+        plugin.on("unload", function() {
             loaded = false;
             drawn = false;
         });

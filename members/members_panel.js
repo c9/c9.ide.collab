@@ -47,7 +47,7 @@ define(function(require, exports, module) {
                 // Members panel
                 membersTree = new Tree(parent.$int);
                 membersDataProvider = new TreeData();
-                membersTree.renderer.setTheme({cssClass: "memberstree"});
+                membersTree.renderer.setTheme({ cssClass: "memberstree" });
                 membersTree.renderer.setScrollMargin(0, 10);
                 // Assign the dataprovider
                 membersTree.setDataProvider(membersDataProvider);
@@ -137,7 +137,7 @@ define(function(require, exports, module) {
                             caption: "Grant Read+Write Access",
                             match: function(item, node) {
                                 item.setAttribute("visible", workspace.accessInfo.admin);
-                                return node.acl == "r"
+                                return node.acl == "r";
                             },
                             onclick: updateAccess.bind(null, "rw")
                         }),
@@ -145,7 +145,7 @@ define(function(require, exports, module) {
                             caption: "Revoke Write Access",
                             match: function(item, node) {
                                 item.setAttribute("visible", workspace.accessInfo.admin);
-                                return node.acl == "rw" && !node.isAdmin
+                                return node.acl == "rw" && !node.isAdmin;
                             },
                             onclick: updateAccess.bind(null, "r")
                         }),
@@ -153,7 +153,7 @@ define(function(require, exports, module) {
                             caption: "Revoke Access",
                             match: function(item, node) {
                                 item.setAttribute("visible", workspace.accessInfo.admin);
-                                return !node.isAdmin
+                                return !node.isAdmin;
                             },
                             onclick: removeMember
                         }),
@@ -250,11 +250,11 @@ define(function(require, exports, module) {
                         + "workspace '" + info.getWorkspace().name + "'?",
                     "People who are not members of a workspace, can not "
                         + (isPublic ? "" : "read, ") + "write or collaborate on that workspace ",
-                    function(){ // Yes
+                    function() { // Yes
                         var uid = node.uid;
                         workspace.removeMember(uid, alertIfError);
                     },
-                    function(){ /* No */ },
+                    function() { /* No */ },
                     {
                         yes: node.name == "You" ? "Leave" : "Remove Member",
                         no: "Cancel"
@@ -282,7 +282,7 @@ define(function(require, exports, module) {
             function onWorkspaceSync() {
                 var me = info.getUser();
                 var membersById = membersDataProvider.byId || (membersDataProvider.byId = {});
-                var members = {r: [], rw: []};
+                var members = { r: [], rw: []};
                 var myRow = {};
                 var myClientId = workspace.myClientId;
 

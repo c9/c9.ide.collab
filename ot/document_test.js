@@ -25,7 +25,7 @@ function testHandleUserChanges(original, changes, expected) {
         console.log("packedCs:", packedCs);
     });
 
-    assert.deepEqual(expected, packedCs, "expected != packedCs --> "  + expected + " != " + packedCs);
+    assert.deepEqual(expected, packedCs, "expected != packedCs --> " + expected + " != " + packedCs);
 }
 
 function handleUserChanges (packedCs, data) {
@@ -62,7 +62,7 @@ function handleUserChanges (packedCs, data) {
         while (remainingText.length) {
             var opLen = operations.length(nextOp);
             var toRem = Math.min(remainingText.length, opLen);
-            switch(operations.type(nextOp)) {
+            switch (operations.type(nextOp)) {
             case "retain":
                 packedCs[opIdx] = "d" + remainingText.substring(0, toRem);
                 if (opLen > remainingText.length)
@@ -91,51 +91,51 @@ function handleUserChanges (packedCs, data) {
 var handleChangesTests = [
     [
         "abc", [
-            {action: "insert", offset: 1, text: "K"},
-            {action: "remove", offset: 3, text: "c"}
+            { action: "insert", offset: 1, text: "K" },
+            { action: "remove", offset: 3, text: "c" }
         ], ["r1", "iK", "r1", "dc"]
     ],
     [
         "", [
-            {action: "insert", offset: 0, text: "abc"},
-            {action: "remove", offset: 1, text: "bc"}
+            { action: "insert", offset: 0, text: "abc" },
+            { action: "remove", offset: 1, text: "bc" }
         ], ["ia"]
     ],
     [
         "abc", [
-            {action: "remove", offset: 0, text: "abc"}
+            { action: "remove", offset: 0, text: "abc" }
         ], ["dabc"]
     ],
     [
         "abc", [
-            {action: "insert", offset: 1, text: "K"},
-            {action: "insert", offset: 3, text: "M"},
-            {action: "remove", offset: 1, text: "Kb"}
+            { action: "insert", offset: 1, text: "K" },
+            { action: "insert", offset: 3, text: "M" },
+            { action: "remove", offset: 1, text: "Kb" }
         ], ["r1", "db", "iM", "r1"]
     ],
     [
         "abc", [
-            {action: "remove", offset: 0, text: "ab"},
-            {action: "insert", offset: 1, text: "de"}
+            { action: "remove", offset: 0, text: "ab" },
+            { action: "insert", offset: 1, text: "de" }
         ], ["dab", "r1", "ide"]
     ],
     [
         "abc", [
-            {action: "insert", offset: 1, text: "fg"},
-            {action: "insert", offset: 1, text: "de"},
-            {action: "remove", offset: 2, text: "ef"},
-            {action: "remove", offset: 2, text: "gb"}
+            { action: "insert", offset: 1, text: "fg" },
+            { action: "insert", offset: 1, text: "de" },
+            { action: "remove", offset: 2, text: "ef" },
+            { action: "remove", offset: 2, text: "gb" }
         ], ["r1", "id", "db", "r1"]
     ],
-    [    "abc", [
-            {action: "insert", offset: 1, text: "defg"},
-            {action: "remove", offset: 0, text: "adef"}
+    [ "abc", [
+            { action: "insert", offset: 1, text: "defg" },
+            { action: "remove", offset: 0, text: "adef" }
         ], ["da", "ig", "r2"]
     ],
-    [    "abc\ndef\nghi", [
-            {action: "insert", offset: 1, text: "mn"},
-            {action: "remove", offset: 7, text: "e"},
-            {action: "remove", offset: 2, text: "nbc\nd"},
+    [ "abc\ndef\nghi", [
+            { action: "insert", offset: 1, text: "mn" },
+            { action: "remove", offset: 7, text: "e" },
+            { action: "remove", offset: 2, text: "nbc\nd" },
         ], ["r1", "im", "dbc\nde", "r5"],
     ]
 ];

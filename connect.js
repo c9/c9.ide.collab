@@ -51,8 +51,8 @@ define(function(require, exports, module) {
         var idleTimeout;
 
         var loaded = false;
-        function load(){
-            if (!installer.isInstalled("c9.ide.collab", function(){
+        function load() {
+            if (!installer.isInstalled("c9.ide.collab", function() {
                 load();
             })) return;
             
@@ -74,7 +74,7 @@ define(function(require, exports, module) {
             clearTimeout(idleTimeout);
             if (!connected || !reportedIdle)
                 return;
-            send("USER_STATE", {state: "online"});
+            send("USER_STATE", { state: "online" });
             reportedIdle = false;
         }
         
@@ -87,7 +87,7 @@ define(function(require, exports, module) {
                 if (!connected)
                     return;
                 reportedIdle = true;
-                send("USER_STATE", {state: "idle"});
+                send("USER_STATE", { state: "idle" });
             }, IDLE_PERIOD);
         }
         
@@ -155,7 +155,7 @@ define(function(require, exports, module) {
             connecting = true;
             console.log("Collab connecting");
             emit("connecting");
-            connectTimeout = setTimeout(function(){
+            connectTimeout = setTimeout(function() {
                 if (stream) {
                     stream.$close();
                     stream = null;
@@ -196,11 +196,11 @@ define(function(require, exports, module) {
                 var isClosed = false;
 
                 stream.once("data", onConnect);
-                stream.once("end", function (){
+                stream.once("end", function () {
                     console.log("COLLAB STREAM END");
                     onClose();
                 });
-                stream.once("close", function(){
+                stream.once("close", function() {
                     console.log("COLLAB STREAM CLOSE");
                     onClose();
                 });
@@ -248,7 +248,7 @@ define(function(require, exports, module) {
 
         function send(msg) {
             if (typeof arguments[0] !== "object")
-                msg = {type: arguments[0], data: arguments[1]};
+                msg = { type: arguments[0], data: arguments[1] };
             if (!connected)
                 return console.log("Collab not connected - SKIPPING ", msg);
             if (debug)
@@ -261,10 +261,10 @@ define(function(require, exports, module) {
                 err.message,
                 "Cloud9 detected you are missing one or more collab dependencies." +
                 " Would you like to open the installer to update to the latest version?",
-                function(){ // Yes
+                function() { // Yes
                     installer.reinstall("c9.ide.collab");
                 },
-                function(){ // No
+                function() { // No
                     // Do nothing
                 },
                 {
@@ -275,16 +275,16 @@ define(function(require, exports, module) {
         }
 
         /***** Lifecycle *****/
-        plugin.on("load", function(){
+        plugin.on("load", function() {
             load();
         });
-        plugin.on("enable", function(){
+        plugin.on("enable", function() {
 
         });
-        plugin.on("disable", function(){
+        plugin.on("disable", function() {
 
         });
-        plugin.on("unload", function(){
+        plugin.on("unload", function() {
             loaded = false;
         });
 
@@ -336,13 +336,13 @@ define(function(require, exports, module) {
              * Specifies whether the collab debug is enabled or not
              * @property {Boolean} debug
              */
-            get debug()      { return debug; },
+            get debug() { return debug; },
             
             /**
              * Specifies whether the collab is connected or not
              * @property {Boolean} connected
              */
-            get connected()  { return connected; },
+            get connected() { return connected; },
             
             /**
              * Specifies whether the collab is connecting or not

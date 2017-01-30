@@ -110,7 +110,7 @@ define(function(require, module, exports) {
 
                 // gray for filesystem sync operations
                 if (uid == 0)
-                    bgColor = {r: 150, g: 150, b: 150};
+                    bgColor = { r: 150, g: 150, b: 150 };
                 else
                     bgColor = workspace.colorPool[uid];
 
@@ -336,14 +336,14 @@ define(function(require, module, exports) {
 
             var mousePos;
             editor.addEventListener("mousemove", function(e) {
-                mousePos = {x: e.x, y: e.y};
+                mousePos = { x: e.x, y: e.y };
                 if (!cursorTooltipTimeout)
-                    cursorTooltipTimeout = setTimeout(updateTooltips,  editorTooltipIsOpen ? 100 : 300);
+                    cursorTooltipTimeout = setTimeout(updateTooltips, editorTooltipIsOpen ? 100 : 300);
             });
             editor.renderer.container.addEventListener("mouseout", function(e) {
-                mousePos = {x: e.clientX, y: e.clientY};
+                mousePos = { x: e.clientX, y: e.clientY };
                 if (!cursorTooltipTimeout)
-                    cursorTooltipTimeout = setTimeout(updateTooltips,  100);
+                    cursorTooltipTimeout = setTimeout(updateTooltips, 100);
             });
 
             editor.addEventListener("mousewheel", function() {

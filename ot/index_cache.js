@@ -42,7 +42,7 @@ function IndexCache(doc) {
         var pos = doc.indexToPositionSlow(index - startIndex, startRow);
         //console.log(pos, doc.indexToPositionSlow(index))
         if (startRow - pos.row > 10)
-            rcache.push({row: pos.row, index: index-pos.column});
+            rcache.push({ row: pos.row, index: index - pos.column });
         
         if (rcache.length > 20)
             rcache.unshift();
@@ -69,19 +69,19 @@ function IndexCache(doc) {
         var index = 0;
         var icache = this.icache;
         row = Math.min(row, lines.length);
-        for (var i = row-1; i >= 0; i--) {
+        for (var i = row - 1; i >= 0; i--) {
             if (icache[i]) {
-                index+=icache[i];
+                index += icache[i];
                 break;
             }
             index += lines[i].length + newlineLength;
         }
-        if (row > 0)icache[row-1] = index;
+        if (row > 0)icache[row - 1] = index;
         /* if (index + pos.column != doc.positionToIndexSlow(pos, startRow))
             debugger */
         
         if (check) {
-            var slowIndex = doc.positionToIndexSlow({ row: row, column: 0});
+            var slowIndex = doc.positionToIndexSlow({ row: row, column: 0 });
             if (slowIndex !== index)
                 reportError("Inconsistency in rowToIndex");
             return slowIndex;

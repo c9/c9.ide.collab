@@ -96,7 +96,7 @@ var server = {
 };
 oop.implement(server, EventEmitter);
 
-Client.onConnect({ connected: true, send: function(msg) {server.send(msg.type, msg.data); }});
+Client.onConnect({ connected: true, send: function(msg) {server.send(msg.type, msg.data); } });
 
 var ed1 = join("ed1");
 var ed2 = join("ed2");
@@ -115,14 +115,14 @@ var c = 0;
 function randomString(len) {
     var text = "";
     var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    c = (c+1) % possible.length;
+    c = (c + 1) % possible.length;
     text = lang.stringRepeat(possible[c], len);
     return text;
 }
 function nextString(len) {
     var text = "";
     var chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-    nextString.c = ((nextString.c||0) + 1) % chars.length;
+    nextString.c = ((nextString.c || 0) + 1) % chars.length;
     text = lang.stringRepeat(chars[nextString.c], len);
     return text;
 }
@@ -130,7 +130,7 @@ function nextString(len) {
 var deleteMore;
 function randomOp() {
     var id = getRandomInt(0, editors.length + 3);
-    var op = {id: id};
+    var op = { id: id };
     if (!editors[id]) {
         op.id = getRandomInt(0, editors.length);
         op.type = "server";
@@ -145,7 +145,7 @@ function randomOp() {
             op.text = nextString(getRandomInt(0, 5)) + (getRandomInt(0, 10) ? "" : "\n");
             op.type = "insert";
         } else if (random < 0.5) {
-            var p = [getRandomInt(0, l), getRandomInt(0, l)].sort(function(a,b){return a-b;});
+            var p = [getRandomInt(0, l), getRandomInt(0, l)].sort(function(a, b) {return a - b;});
             
             if (!deleteMore)
                 p[1] = clip(p[1], p[0], p[0] + 2);
@@ -183,7 +183,7 @@ window.editors = editors;
 var editRandomly = window.editRandomly = function() {
     editRandomly.editCount = document.getElementById("editCb").checked ? 300 : 0;
     var interv = setInterval(function step() {
-        if (editRandomly.editCount --< 0) {
+        if (editRandomly.editCount -- < 0) {
             editRandomly.editCount = document.getElementById("editCb").checked ? 300 : 0;
             if (!editRandomly.editCount) {
                 return clearInterval(interv);
@@ -200,7 +200,7 @@ editRandomly.editCount = 300;
 window.editRandomlyWithoutServer = function(editorNum) {
     var i = 300;
     var interv = setInterval(function step() {
-        if (i --< 0) {
+        if (i -- < 0) {
             return clearInterval(interv);
         }
         var op = randomOp();

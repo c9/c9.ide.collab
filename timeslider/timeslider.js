@@ -34,7 +34,7 @@ define(function(require, exports, module) {
             handleKeyboard: function(data, hashId, keystring) {
                 if (keystring == "esc") {
                     forceHideSlider();
-                    return {command: "null"};
+                    return { command: "null" };
                 }
             }
         };
@@ -72,7 +72,7 @@ define(function(require, exports, module) {
 
             commands.addCommand({
                 name: "forceToggleTimeslider",
-                exec: function(){
+                exec: function() {
                     var isVisible = settings.getBool(tsVisibleKey);
                     settings.set(tsVisibleKey, !isVisible);
                     toggleTimeslider();
@@ -120,7 +120,7 @@ define(function(require, exports, module) {
             }, plugin);
 
             tabs.on("focusSync", function(e) {
-                util.nextFrame(function(){
+                util.nextFrame(function() {
                     var doc = getTabCollabDocument(e.tab);
                     if (activeDocument && isVisible) {
                         if (activeDocument == doc) return;
@@ -154,7 +154,7 @@ define(function(require, exports, module) {
             lastRevNum = revNum;
             if (scheduled) return;
 
-            util.nextFrame(function(){
+            util.nextFrame(function() {
                 lastRevNum && activeDocument.updateToRevision(lastRevNum);
                 scheduled = false;
             });
@@ -229,7 +229,7 @@ define(function(require, exports, module) {
                 });
             });
 
-            revertButton.addEventListener("click", function(){
+            revertButton.addEventListener("click", function() {
                 if (!isRevertAvailable())
                     return console.log("Revert not available");
                 console.log("Revert", activeDocument.id, "to rev", sliderPos);
@@ -313,7 +313,7 @@ define(function(require, exports, module) {
         function cumulativeOffset(element) {
             var top = 0, left = 0;
             do {
-                top += element.offsetTop  || 0;
+                top += element.offsetTop || 0;
                 left += element.offsetLeft || 0;
                 element = element.offsetParent;
             } while (element);
@@ -689,16 +689,16 @@ define(function(require, exports, module) {
         }
 
         /***** Lifecycle *****/
-        plugin.on("load", function(){
+        plugin.on("load", function() {
             load();
         });
-        plugin.on("enable", function(){
+        plugin.on("enable", function() {
 
         });
-        plugin.on("disable", function(){
+        plugin.on("disable", function() {
 
         });
-        plugin.on("unload", function(){
+        plugin.on("unload", function() {
             loaded = false;
             drawn = false;
         });

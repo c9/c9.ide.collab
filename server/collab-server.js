@@ -158,10 +158,10 @@ function connectToDB() {
             var lines = log.split(/\r\n|\n|\r/);
             var firstLine = lines[0];
             firstLine = firstLine.length < MAX_LOG_LINE_LENGTH ? firstLine : (firstLine.substring(0, MAX_LOG_LINE_LENGTH) + "...");
-            var lastLine = lines[lines.length-1];
+            var lastLine = lines[lines.length - 1];
             lastLine = lastLine.length < MAX_LOG_LINE_LENGTH ? lastLine : (lastLine.substring(lastLine.length - MAX_LOG_LINE_LENGTH) + "...");
             console.error("[vfs-collab] DB", lines.length === 1
-                ? (lines[0].length <= (2*MAX_LOG_LINE_LENGTH) ? lines[0] : (firstLine + lines[0].substring(Math.max(MAX_LOG_LINE_LENGTH, lines[0].length - MAX_LOG_LINE_LENGTH))))
+                ? (lines[0].length <= (2 * MAX_LOG_LINE_LENGTH) ? lines[0] : (firstLine + lines[0].substring(Math.max(MAX_LOG_LINE_LENGTH, lines[0].length - MAX_LOG_LINE_LENGTH))))
                 : (firstLine + " --- " + lastLine));
         },
 
@@ -181,7 +181,7 @@ function connectToDB() {
 
         // use pooling in order to reduce db connection overload and to increase speed
         // currently only for mysql and postgresql (since v1.5.0)
-        pool: { maxConnections: 5, maxIdleTime: 30}
+        pool: { maxConnections: 5, maxIdleTime: 30 }
     });
     
     return sequelize;
@@ -298,7 +298,7 @@ function initDB(readonly, callback) {
             wrapSeq(ChatMessage.sync(), next);
         },
         function (next) {
-            wrapSeq(Workspace.findOrCreate({id: 1}, {
+            wrapSeq(Workspace.findOrCreate({ id: 1 }, {
                 authorPool: "{}",
                 colorPool: "{}",
                 basePath: basePath,
@@ -346,7 +346,7 @@ function parseJSONField(val) {
         while (typeof val == "string") {
             val = JSON.parse(val);
         }
-    } catch(e) {
+    } catch (e) {
         console.error("[vfs-collab] parseJSONField failed:", val, e);
         val = {};
     }
@@ -397,7 +397,7 @@ function operation(fromText, toText) {
         d = diffs[i];
         type = d[0];
         val = d[1];
-        switch(type) {
+        switch (type) {
             case DIFF_EQUAL:
                 op.push("r" + val.length);
             break;
@@ -501,8 +501,8 @@ function pack(op) {
     var packed = op.slice();
     var i = 0;
     while (i < packed.length - 1) {
-        if (packed[i][0] === packed[i+1][0])
-            packed.splice(i, 2, packed[i][0] + (val(packed[i]) + val(packed[i+1])));
+        if (packed[i][0] === packed[i + 1][0])
+            packed.splice(i, 2, packed[i][0] + (val(packed[i]) + val(packed[i + 1])));
         else
             i++;
     }
@@ -619,22 +619,22 @@ function AuthorAttributes(minKeySize, maxKeySize) {
     function addValue(nodes, index, startI, length, id) {
         var i = startI;
         var len = nodes[i];
-        var val = nodes[i+1];
+        var val = nodes[i + 1];
         if (index < 0 || index > len)
             throw new Error("Invalid index passed!");
 
         if (val === id) {
             nodes[i] += length;
         } else if (index === len) {
-            if (nodes[i+3] == id)
-                nodes[i+2]+=length;
+            if (nodes[i + 3] == id)
+                nodes[i + 2] += length;
             else
                 nodes.splice(i + 2, 0, length, id);
         } else if (index === 0) {
-            if (nodes[i-1] == id)
-                nodes[i-2] += length;
+            if (nodes[i - 1] == id)
+                nodes[i - 2] += length;
             else
-                nodes.splice(i , 0, length, id);
+                nodes.splice(i, 0, length, id);
         } else {
             nodes.splice(i, 2, index, val, length, id, len - index, val);
         }
@@ -674,12 +674,12 @@ function AuthorAttributes(minKeySize, maxKeySize) {
         for (var i = 0; i < nodes.length; i += 2) {
             var len = nodes[i];
             if (index <= len) {
-                var node = nodes[i+1];
+                var node = nodes[i + 1];
                 if (Array.isArray(node)) {
                     nodes[i] += length;
                     var spilled = _insert(node, index, length, id);
                     if (spilled)
-                        split(nodes, nodes[i+1], i);
+                        split(nodes, nodes[i + 1], i);
                 }
                 else {
                     addValue(nodes, index, i, length, id);
@@ -724,10 +724,10 @@ function AuthorAttributes(minKeySize, maxKeySize) {
         }
 
         for (var j = 0; j < nodes.length - 2; j += 2) {
-            if (!nodes[j] || nodes[j+1] !== nodes[j+3])
+            if (!nodes[j] || nodes[j + 1] !== nodes[j + 3])
                 continue;
             nodes[j] += nodes[j + 2];
-            nodes.splice(j+1, 2);
+            nodes.splice(j + 1, 2);
             j -= 2;
         }
         // sanityCheck(nodes);
@@ -781,7 +781,7 @@ function hashString(str) {
  */
 function getDocPath(path) {
     if (path.indexOf(basePath) === 0)
-        return path.substring(basePath.length+1);
+        return path.substring(basePath.length + 1);
     return path;
 }
 
@@ -863,7 +863,7 @@ var Store = (function () {
      * @param {Object} callback.result   The result, or null if getDocument() failed (might even though err is null)
      */
     function getDocument(path, attributes, callback) {
-        var query = { where: {path: getDocPath(path)} };
+        var query = { where: { path: getDocPath(path) }};
         if (!callback) {
             callback = attributes;
             attributes = undefined;
@@ -1081,27 +1081,27 @@ function unlock(key) {
 
 // Selected using colors.html
 var featuredColors = [
-    {r: 255, g: 146, b: 45},
-    {r: 157, g: 47, b: 254},
-    {r: 105, g: 215, b: 83},
-    {r: 255, g: 105, b: 130},
-    {r: 200, g: 109, b: 218},
-    {r: 210, g: 230, b: 51},
-    {r: 6, g: 134, b: 255},
-    {r: 254, g: 13, b: 244},
-    {r: 188, g: 255, b: 86},
-    {r: 255, g: 212, b: 125},
-    {r: 107, g: 4, b: 255},
-    {r: 66, g: 248, b: 255}
+    { r: 255, g: 146, b: 45 },
+    { r: 157, g: 47, b: 254 },
+    { r: 105, g: 215, b: 83 },
+    { r: 255, g: 105, b: 130 },
+    { r: 200, g: 109, b: 218 },
+    { r: 210, g: 230, b: 51 },
+    { r: 6, g: 134, b: 255 },
+    { r: 254, g: 13, b: 244 },
+    { r: 188, g: 255, b: 86 },
+    { r: 255, g: 212, b: 125 },
+    { r: 107, g: 4, b: 255 },
+    { r: 66, g: 248, b: 255 }
 ];
 
 // An algorithm to select bright random colors
 function randomColor() {
-    var a,b,c;
+    var a, b, c;
     do {
       a = Math.random();
       b = Math.random();
-      c = Math.max(a,b);
+      c = Math.max(a, b);
     } while (c < 0.001);
 
     // scale them such that the larger number scales to 1.0f
@@ -1126,7 +1126,7 @@ function randomColor() {
     rgb = rgb.map(function(x) {
         return Math.floor(255 * x);
     });
-    return {r: rgb[0], g: rgb[1], b: rgb[2]};
+    return { r: rgb[0], g: rgb[1], b: rgb[2] };
 }
 
 /**
@@ -1159,7 +1159,7 @@ function handleConnect(userIds, client) {
         var fullname = userIds.fullname;
         var email = userIds.email;
         
-        wrapSeq(User.find({where: {uid: userId}}), function (err, user) {
+        wrapSeq(User.find({ where: { uid: userId }}), function (err, user) {
             if (err)
                 return done("[vfs-collab] syncUserInfo " + String(err));
 
@@ -1170,7 +1170,7 @@ function handleConnect(userIds, client) {
                     email: email
                 }), function(err, createdUser) {
                     if (err)
-                        return done("[vfs-collab] Failed creating user " +  String(err));
+                        return done("[vfs-collab] Failed creating user " + String(err));
                     cachedUsers && cachedUsers.push(createdUser);
                     augmentWorkspaceInfo();
                 });
@@ -1202,7 +1202,7 @@ function handleConnect(userIds, client) {
             if (!authorPool[userId])
                 authorPool[userId] = Object.keys(authorPool).length + 1;
             if (!colorPool[userId])
-                colorPool[userId] = featuredColors[authorPool[userId]-1] || randomColor();
+                colorPool[userId] = featuredColors[authorPool[userId] - 1] || randomColor();
             Store.saveWorkspaceState(ws, function (err) {
                 if (err)
                     return done("[vfs-collab] augmentWorkspaceInfo " + String(err));
@@ -1237,7 +1237,7 @@ function handleConnect(userIds, client) {
 
             if (Object.keys(onlineUsers).length > 1)
                 console.error("[vfs-collab] User", userIds.userId, "is connecting Collab with",
-                    Object.keys(clients).length-1, "other clients & online workspace members", onlineUsers);
+                    Object.keys(clients).length - 1, "other clients & online workspace members", onlineUsers);
 
             var usersMap = {};
             users.forEach(function (user) {
@@ -1315,7 +1315,7 @@ function collabWriteAccess(fs) {
  * @param {Function}  callback
  */
 function applyOperation(userIds, docId, doc, op, callback) {
-    userIds = userIds || {userId: 0};
+    userIds = userIds || { userId: 0 };
     var userId = userIds.userId;
     Store.getWorkspaceState(function (err, ws) {
         if (err)
@@ -1385,7 +1385,7 @@ function areOperationsMirrored(operation1, operation2) {
     
     function areOpsMirrors(op1, op2) {
         if (!op1.length || !op2.length) return true;
-        if (["i", "d"].indexOf(op1.charAt(0)) >=0 && ["i", "d"].indexOf(op2.charAt(0)) >= 0) {
+        if (["i", "d"].indexOf(op1.charAt(0)) >= 0 && ["i", "d"].indexOf(op2.charAt(0)) >= 0) {
             if (op1.charAt(0) != op2.charAt(0) && op1.slice(1) == op2.slice(1)) {
                 return true; 
             }
@@ -1399,7 +1399,7 @@ function areOperationsMirrored(operation1, operation2) {
         if (areOpsMirrors(operation1[i], operation2[i])) continue; 
         
         // Check if they are mirrored and order is just flipped
-        if (operation2[i+1] != null && areOpsMirrors(operation1[i], operation2[i+1]) && areOpsMirrors(operation1[i+1], operation2[i])) {
+        if (operation2[i + 1] != null && areOpsMirrors(operation1[i], operation2[i + 1]) && areOpsMirrors(operation1[i + 1], operation2[i])) {
             i++; // As we already compared this and the next
             continue;
         }
@@ -1472,8 +1472,8 @@ function handleEditUpdate(userIds, client, data) {
 
             docL = doc;
 
-            if (doc.revNum !== newRev-1) { // conflicting versions
-                var err2 = new Error("Version log: " + docId + " "  + doc.revNum + " " + newRev);
+            if (doc.revNum !== newRev - 1) { // conflicting versions
+                var err2 = new Error("Version log: " + docId + " " + doc.revNum + " " + newRev);
                 err2.code = "VERSION_E";
                 return done(err2);
             }
@@ -1563,7 +1563,7 @@ function handleUpdateNlChar(userInfo, client, data) {
     lock(docId, function () {
         Store.getDocument(docId, function(err, doc) {
             if (err || !doc)
-                return done((err || "updateNlChar of a non-collab document!") + " : " +  docId);
+                return done((err || "updateNlChar of a non-collab document!") + " : " + docId);
             if (doc.newLineChar == newLineChar)
                 return done();
             doc.newLineChar = newLineChar;
@@ -1718,7 +1718,7 @@ function initVfsWatcher(docId) {
                 return;
             doWatcherSync(stat, done);
         });
-        watcher.on("error", function(err){
+        watcher.on("error", function(err) {
             console.error("[vfs-collab] WATCH ERR:", docId, err);
         });
         watchers[docId] = watcher;
@@ -1832,7 +1832,7 @@ function handleJoinDocument(userIds, client, data) {
         console.error("[vfs-collab] User", clientId, "is opening", docId, "revNum", doc.revNum, "docHash", docHash, "fsHash", doc.fsHash);
 
         // Cut the document to pices and stream to the client
-        var chunkSize = 10*1024; // 10 KB
+        var chunkSize = 10 * 1024; // 10 KB
         var contentsLen = clientDoc.length;
         var chunksLen = Math.ceil(contentsLen / chunkSize);
         for (var i = 0; i < contentsLen; i += chunkSize) {
@@ -1966,7 +1966,7 @@ function syncDocument(docId, doc, client, forceSync, callback) {
             }
             // update database OT state
             else if (fsHash !== doc.fsHash && doc.contents != normContents) {
-                console.error("[vfs-collab] Doc", docId, " revnum: ", doc.revNum ,"with hash:", doc.fsHash, "does not match file system hash", fsHash);
+                console.error("[vfs-collab] Doc", docId, " revnum: ", doc.revNum, "with hash:", doc.fsHash, "does not match file system hash", fsHash);
                 if (forceSync) return syncCollabDocumentWithDisk();
                 
                 // Check if the document was updated at the same time as this revision. 
@@ -2101,7 +2101,7 @@ function handleGetRevisions(userIds, client, data) {
                 });
 
                 // Cut the revisions into pices and stream to the client
-                var chunkSize = 10*1024; // 10 KB
+                var chunkSize = 10 * 1024; // 10 KB
                 var contentsLen = docRevisions.length;
                 var chunksLen = Math.ceil(contentsLen / chunkSize);
                 for (var i = 0; i < contentsLen; i += chunkSize) {
@@ -2156,18 +2156,18 @@ function handleSaveFile(userIds, client, data) {
     }
 
     console.error("[vfs-collab] Saving file", docId);
-    client.send({type: "FILE_LOCKING", data: {docId: docId}});
+    client.send({ type: "FILE_LOCKING", data: { docId: docId }});
 
     lock(docId, function () {
-        client.send({type: "FILE_LOCKED", data: {docId: docId}});
+        client.send({ type: "FILE_LOCKED", data: { docId: docId }});
         Store.getDocument(docId, ["contents", "revNum", "starRevNums", "newLineChar"], function (err, doc) {
             if (err || !doc)
-                return done((err || "Writing a non-collab document!") + " : " +  docId);
+                return done((err || "Writing a non-collab document!") + " : " + docId);
 
             if (watchers[docId])
                 watchers[docId].ctime = Date.now();
                 
-            client.send({type: "FILE_RETRIEVED", data: {docId: docId}});
+            client.send({ type: "FILE_RETRIEVED", data: { docId: docId }});
 
             var absPath = getAbsolutePath(docId);
             var fileContents = doc.contents.replace(/\n/g, doc.newLineChar || DEFAULT_NL_CHAR_FILE);
@@ -2274,7 +2274,7 @@ function doSaveDocument(docId, doc, userId, star, callback) {
     Store.saveDocument(doc, function (err) {
         if (err)
             return callback(err);
-        console.error("[vfs-collab] User", userId, "saved document", docId, "revision",  doc.revNum, "hash", fsHash);
+        console.error("[vfs-collab] User", userId, "saved document", docId, "revision", doc.revNum, "hash", fsHash);
         callback(null, {
             userId: userId,
             docId: docId,
@@ -2412,9 +2412,9 @@ function handleClearChat(userIds, client, data) {
 
     var stmt;
     if (data.clear)
-        stmt = ChatMessage.destroy({}, {truncate: true});
+        stmt = ChatMessage.destroy({}, { truncate: true });
     else if (data.id)
-        stmt = ChatMessage.destroy({id: data.id});
+        stmt = ChatMessage.destroy({ id: data.id });
     else
         return console.error("[vfs-collab] clearChat: Invalid message", data);
 
@@ -2475,7 +2475,7 @@ function handleUserMessage(userIds, client, message) {
             data: {
                 clientId: userIds.clientId,
                 docId: docId,
-                err: {message: "Not allowed."}
+                err: { message: "Not allowed." }
             }
         });
     }
@@ -2518,7 +2518,7 @@ function handleUserMessage(userIds, client, message) {
         handleClearChat(userIds, client, data);
         break;
     case "PING":
-        client.send({type: "PING"});
+        client.send({ type: "PING" });
         break;
     case "MESSAGE":
         broadcastUserMessage(userIds, client, data);
@@ -2557,7 +2557,7 @@ function onConnect(userIds, client) {
 
     client.on("disconnect", function () {
         for (var docId in client.openDocIds)
-            handleLeaveDocument(userIds, client, {docId: docId, disconnected: true});
+            handleLeaveDocument(userIds, client, { docId: docId, disconnected: true });
         broadcast({
             type: "USER_LEAVE",
             data: {
@@ -2710,7 +2710,7 @@ function compressDocument(docId, options, callback) {
                     rev0Contents = applyContents(op, rev0Contents);
                 }
 
-                lastRevTime = revisions[revisions.length-1].created_at;
+                lastRevTime = revisions[revisions.length - 1].created_at;
                 docTimeDiff = lastRevTime - revisions[0].created_at;
                 optimalRevTimeDiff = docTimeDiff / COMPRESSED_REV_NUM;
 
@@ -2724,7 +2724,7 @@ function compressDocument(docId, options, callback) {
                 newRevisions = [ cloneRevision(revisions[0], 0) ];
                 newStarRevNums = [];
 
-                var lastRev = {author: -9};
+                var lastRev = { author: -9 };
                 var prevContents, prevLastContents;
                 var lastContents = rev0Contents;
                 var i, rev;
@@ -2784,7 +2784,7 @@ function compressDocument(docId, options, callback) {
                 next();
             },
             function (next) {
-                wrapSeq(Revision.destroy({document_id: doc.id}), next);
+                wrapSeq(Revision.destroy({ document_id: doc.id }), next);
             },
             function (next) {
                 doc.starRevNums = newStarRevNums;
@@ -2894,7 +2894,7 @@ function initSocket(userIds, callback) {
     // file sockets can have multiple servers open on the same path
     // So, we connect first
     var sockPath = process.platform == "win32"
-        ? "\\\\.\\pipe\\"+ projectWD +"\\collab.sock"
+        ? "\\\\.\\pipe\\" + projectWD + "\\collab.sock"
         : Path.join(projectWD, "collab.sock");
     clientConnect();
 
@@ -2936,7 +2936,7 @@ function initSocket(userIds, callback) {
                 try {
                     console.error("[vfs-collab] Shuting down a faulty collab server - reason: ", err);
                     server.close();
-                } catch(e) {
+                } catch (e) {
                     console.error("[vfs-collab] Can't shutdown faulty collab server", e);
                 }
                 callback(err);
@@ -3067,7 +3067,7 @@ var exports = module.exports = function(vfs, options, register) {
         var clientId = opts.clientId;
 
         if (!user || !project || !clientId || !opts.basePath)
-            return callback(new Error("[OT] Invalid or icomplete collab options passed: " + opts.basePath + " " + clientId ));
+            return callback(new Error("[OT] Invalid or icomplete collab options passed: " + opts.basePath + " " + clientId));
 
         PID = project.pid || project.id;
         basePath = Path.normalize(opts.basePath);
@@ -3109,7 +3109,7 @@ var exports = module.exports = function(vfs, options, register) {
         // console.error("[vfs-collab] IN-STREAM", msg);
         var client = vfsClientMap[clientId];
         if (client)
-            client.write(JSON.stringify(msg)+"\0\0");
+            client.write(JSON.stringify(msg) + "\0\0");
     }
 
     function dispose(clientId) {

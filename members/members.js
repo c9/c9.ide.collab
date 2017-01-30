@@ -52,17 +52,17 @@ define(function(require, exports, module) {
         }
     
         /***** Lifecycle *****/
-        plugin.on("load", function(){
+        plugin.on("load", function() {
             load();
             plugin.once("draw", draw);
         });
-        plugin.on("enable", function(){
+        plugin.on("enable", function() {
 
         });
-        plugin.on("disable", function(){
+        plugin.on("disable", function() {
         });
 
-        plugin.on("unload", function(){
+        plugin.on("unload", function() {
             loaded = false;
             drawn = false;
         });

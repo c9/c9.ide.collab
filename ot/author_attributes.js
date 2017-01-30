@@ -26,22 +26,22 @@ function AuthorAttributes(minKeySize, maxKeySize) {
     function addValue(nodes, index, startI, length, id) {
         var i = startI;
         var len = nodes[i];
-        var val = nodes[i+1];
+        var val = nodes[i + 1];
         if (index < 0 || index > len)
             throw new Error("Invalid index passed!");
 
         if (val === id) {
             nodes[i] += length;
         } else if (index === len) {
-            if (nodes[i+3] == id)
-                nodes[i+2]+=length;
+            if (nodes[i + 3] == id)
+                nodes[i + 2] += length;
             else
                 nodes.splice(i + 2, 0, length, id);
         } else if (index === 0) {
-            if (nodes[i-1] == id)
-                nodes[i-2] += length;
+            if (nodes[i - 1] == id)
+                nodes[i - 2] += length;
             else
-                nodes.splice(i , 0, length, id);
+                nodes.splice(i, 0, length, id);
         } else {
             nodes.splice(i, 2, index, val, length, id, len - index, val);
         }
@@ -81,12 +81,12 @@ function AuthorAttributes(minKeySize, maxKeySize) {
         for (var i = 0; i < nodes.length; i += 2) {
             var len = nodes[i];
             if (index <= len) {
-                var node = nodes[i+1];
+                var node = nodes[i + 1];
                 if (Array.isArray(node)) {
                     nodes[i] += length;
                     var spilled = _insert(node, index, length, id);
                     if (spilled)
-                        split(nodes, nodes[i+1], i);
+                        split(nodes, nodes[i + 1], i);
                 }
                 else {
                     addValue(nodes, index, i, length, id);
@@ -134,10 +134,10 @@ function AuthorAttributes(minKeySize, maxKeySize) {
 
         for (var j = 0; j < nodes.length - 2; j += 2) {
             // console.log("CHECK:", nodes[j].id, nodes[j+1].id);
-            if (!nodes[j] || nodes[j+1] !== nodes[j+3])
+            if (!nodes[j] || nodes[j + 1] !== nodes[j + 3])
                 continue;
             nodes[j] += nodes[j + 2];
-            nodes.splice(j+1, 2);
+            nodes.splice(j + 1, 2);
             j -= 2;
         }
         // sanityCheck(nodes);
@@ -214,9 +214,9 @@ function AuthorAttributes(minKeySize, maxKeySize) {
 
     function sanityCheck(nodes) {
         var len = 0;
-        for (var i = 0; i < nodes.length; i+=2) {
-            if (Array.isArray(nodes[i+1])) {
-                var l1 = sanityCheck(nodes[i+1]);
+        for (var i = 0; i < nodes.length; i += 2) {
+            if (Array.isArray(nodes[i + 1])) {
+                var l1 = sanityCheck(nodes[i + 1]);
                 // if (l1 != nodes[i])
                 //     debugger;
                 len += l1;
@@ -228,12 +228,12 @@ function AuthorAttributes(minKeySize, maxKeySize) {
     }
 
     function flatten(nodes, result) {
-        for (var i=0; i < nodes.length; i+=2) {
-            if (Array.isArray(nodes[i+1])) {
-                flatten(nodes[i+1], result);
+        for (var i = 0; i < nodes.length; i += 2) {
+            if (Array.isArray(nodes[i + 1])) {
+                flatten(nodes[i + 1], result);
             }
             else {
-                result.push(nodes[i], nodes[i+1]);
+                result.push(nodes[i], nodes[i + 1]);
             }
         }
         return result;

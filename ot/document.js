@@ -270,7 +270,7 @@ define(function(require, module, exports) {
                     
                         var opLen = operations.length(nextOp);
                         var toRem = Math.min(remainingText.length, opLen);
-                        switch(operations.type(nextOp)) {
+                        switch (operations.type(nextOp)) {
                         case "retain":
                             packedCs[opIdx] = "d" + remainingText.substring(0, toRem);
                             if (opLen > remainingText.length)
@@ -330,7 +330,7 @@ define(function(require, module, exports) {
             function scheduleSend() {
                 if (sendTimer)
                     return;
-                var delay = (pendingSave  || commitTrials > 0) ? 0 : calculateDelay();
+                var delay = (pendingSave || commitTrials > 0) ? 0 : calculateDelay();
                 sendTimer = setTimeout(function () {
                     doSend();
                     sendTimer = null;
@@ -415,7 +415,7 @@ define(function(require, module, exports) {
                         emit("largeDocument");
                     loading = false;
                     reportError(new Error("Couldn't join to document"), err);
-                    return emit.sticky("joined", {err: err});
+                    return emit.sticky("joined", { err: err });
                 }
                 
                 var copiedData = {
@@ -462,8 +462,8 @@ define(function(require, module, exports) {
                     doc = JSON.parse(docStream);
                 } catch (e) {
                     var error = typeof docStream == "string" 
-                        ? {startCh: docStream.slice(0, 10), endCh: docStream.slice(-10)}
-                        : {docStream: docStream, type: typeof docStream};
+                        ? { startCh: docStream.slice(0, 10), endCh: docStream.slice(-10) }
+                        : { docStream: docStream, type: typeof docStream };
                     error.copiedData = copiedData;
                     error.chunk = typeof data.chunk != "string" && data.chunk;
                     error.chunkError = chunkError;
@@ -510,7 +510,7 @@ define(function(require, module, exports) {
 
                 loaded = true;
                 loading = false;
-                emit.sticky("joined", {contents: doc.contents, metadata: doc.metadata});
+                emit.sticky("joined", { contents: doc.contents, metadata: doc.metadata });
             }
 
             /**
@@ -548,7 +548,7 @@ define(function(require, module, exports) {
                 // Seems document wasn't loaded yet; set server contents
                 else if (!clientRevNum) {
                     if (rejoinReason && clientContents && clientContents !== serverContents) {
-                        reportError(new Error("Collab: reverting local changes on uninited document"), {rejoinReason: rejoinReason, serverRevNum: serverRevNum, clientContents: clientContents, serverContents: serverContents});
+                        reportError(new Error("Collab: reverting local changes on uninited document"), { rejoinReason: rejoinReason, serverRevNum: serverRevNum, clientContents: clientContents, serverContents: serverContents });
                         logger.log("Collab: reverting local changes on document " + doc.path + " rev: " + serverRevNum + " rejoin reason: " + rejoinReason);
                     }
                     
@@ -558,13 +558,13 @@ define(function(require, module, exports) {
                 // Restore consistency by overwiting any local changes
                 else {
                     if (clientRevNum > serverRevNum) {
-                        reportError(new Error("Collab: clientRevNum is higher than serverRevNum"), {rejoinReason: rejoinReason, clientRevNum: clientRevNum, serverRevNum: serverRevNum, clientContents: clientContents, serverContents: serverContents});
+                        reportError(new Error("Collab: clientRevNum is higher than serverRevNum"), { rejoinReason: rejoinReason, clientRevNum: clientRevNum, serverRevNum: serverRevNum, clientContents: clientContents, serverContents: serverContents });
                         logger.log("Collab: clientrevNum is higher than serverRevNum " + doc.path + " clientRev: " + clientRevNum + " serverRev: " + serverRevNum + " rejoin reason: " + rejoinReason);
                     }
 
                     if (rejoinReason && clientContents && clientContents !== serverContents) {
                         // TODO: nicely merge local and remote edits
-                        reportError(new Error("Collab: reverting local changes on collaborative document"), {rejoinReason: rejoinReason, clientRevNum: clientRevNum, serverRevNum: serverRevNum, clientContents: clientContents, serverContents: serverContents});
+                        reportError(new Error("Collab: reverting local changes on collaborative document"), { rejoinReason: rejoinReason, clientRevNum: clientRevNum, serverRevNum: serverRevNum, clientContents: clientContents, serverContents: serverContents });
                         logger.log("Collab: reverting local changes on collaborative document " + doc.path + " clientRev: " + clientRevNum + " serverRev: " + serverRevNum + " rejoin reason: " + rejoinReason);
                     }
                     
@@ -652,7 +652,7 @@ define(function(require, module, exports) {
                 if (!len)
                     packedCs = [];
                 else
-                    packedCs = ["r"+len];
+                    packedCs = ["r" + len];
             }
 
             // OT-Transform the outgoing edits in regard to the inMsg edit operation and vice versa
@@ -728,7 +728,7 @@ define(function(require, module, exports) {
                     }
                     else {
                         // maintain my outgoing and current changeset
-                        outgoing.push({op: packedCs});
+                        outgoing.push({ op: packedCs });
                         xformEach(outgoing, msg);
                         packedCs = outgoing.pop().op;
                     }
@@ -873,7 +873,7 @@ define(function(require, module, exports) {
                 var authAttribs = cloneObject(revCache.authAttribs);
 
                 // Apply each revision operation one after the other to get to the revision we are seeking. 
-                for (var i = revCache.revNum+1; i <= revNum; i++) {
+                for (var i = revCache.revNum + 1; i <= revNum; i++) {
                     contents = applyContents(revisions[i].operation, contents);
                     applyAuthorAttributes(authAttribs, revisions[i].operation, workspace.authorPool[revisions[i].author]);
                 }
@@ -898,7 +898,7 @@ define(function(require, module, exports) {
                     try {
                         rev0Contents = applyContents(op, rev0Contents);
                     } catch (e) {
-                        reportError(new Error("Revision history is not working for document"), {applyContentsError: e.message, revNum: i});
+                        reportError(new Error("Revision history is not working for document"), { applyContentsError: e.message, revNum: i });
                         break;
                     }
                 }
@@ -993,19 +993,19 @@ define(function(require, module, exports) {
 
             function revertMyPendingChanges(userId) {
                 if (!isPackedUnity())
-                    outgoing.push({op: packedCs});
+                    outgoing.push({ op: packedCs });
                 if (!outgoing.length)
                     return;
                 // TODO: determine when is this an error exactly? good to log it anyway now
                 var doc = session.doc || {};
-                reportError(new Error("Collab: reverting pending changes to document because of server sync commit"), {outgoing: outgoing, doc: doc});
+                reportError(new Error("Collab: reverting pending changes to document because of server sync commit"), { outgoing: outgoing, doc: doc });
                 logger.log("Collab: reverting pending chagnes to document because of server sync commit " + doc.path + " revNum: " + doc.revNum);
                 userId = userId || workspace.myUserId;
                 for (var i = outgoing.length - 1; i >= 0; i--) {
                     applyEdit(
-                        {op: operations.inverse(outgoing[i].op), userId: userId},
+                        { op: operations.inverse(outgoing[i].op), userId: userId },
                         session.doc,
-                        { outgoing: outgoing, userId: userId}
+                        { outgoing: outgoing, userId: userId }
                     );
                 }
                 outgoing = [];
@@ -1060,7 +1060,7 @@ define(function(require, module, exports) {
                 
                 // this can happen if another users change reached server before ours, do not report error in that case
                 if (data.code == "VERSION_E" && latestRevNum !== data.revNum) {
-                    reportError(new Error("Collab: OT version inconsistency"), {serverRevNum: data.revNum, latestRevNum: latestRevNum});
+                    reportError(new Error("Collab: OT version inconsistency"), { serverRevNum: data.revNum, latestRevNum: latestRevNum });
                     latestRevNum = data.revNum;
                 }
                 
@@ -1082,7 +1082,7 @@ define(function(require, module, exports) {
                 var err = data.err;
                 if (err) {
                     console.error("[OT] Failed saving file!", err, docId);
-                    return emit("saved", {err: err});
+                    return emit("saved", { err: err });
                 }
                 
                 // pendingSave exists: save triggered by me
@@ -1093,17 +1093,17 @@ define(function(require, module, exports) {
                         // value can be null if doc is just loaded and there are no revisions
                         // but then fsHash should match
                         if (plugin.docHash !== data.fsHash) {
-                            reportError(new Error("File saved, unable to confirm checksum"), {docHash: plugin.docHash, fsHash: data.fsHash, revNum: data.revNum, docId: docId});
+                            reportError(new Error("File saved, unable to confirm checksum"), { docHash: plugin.docHash, fsHash: data.fsHash, revNum: data.revNum, docId: docId });
                         }
                     }
                     else if (apf.crypto.MD5.hex_md5(value) !== data.fsHash) {
                         reportError(new Error("File saving checksum failed; retrying with XHR"));
-                        return emit("saved", {err: "Save content mismatch", code: "EMISMATCH"});
+                        return emit("saved", { err: "Save content mismatch", code: "EMISMATCH" });
                     }
                 }
 
                 var isClean = !outgoing.length || latestRevNum === data.revNum;
-                var rev = revisions[data.revNum] || {revNum: data.revNum, updated_at: Date.now()};
+                var rev = revisions[data.revNum] || { revNum: data.revNum, updated_at: Date.now() };
                 flagFileSaved(rev, data.star, isClean);
                 pendingSave = null;
             }
@@ -1135,7 +1135,7 @@ define(function(require, module, exports) {
                 revStream = null;
                 revisions = revisionsObj.revisions;
                 starRevNums = revisionsObj.starRevNums;
-                emit("revisions", {revisions: revisions, stars: starRevNums});
+                emit("revisions", { revisions: revisions, stars: starRevNums });
 
                 if (isActiveTimesliderDocument())
                     loadRevisions();
@@ -1177,7 +1177,7 @@ define(function(require, module, exports) {
                 var isUnity = isPackedUnity();
                 if (!isUnity)
                     addOutgoingEdit();
-                pendingSave = {silent: !!silent, outLen: outgoing.length};
+                pendingSave = { silent: !!silent, outLen: outgoing.length };
                 if (state === "IDLE" && isUnity)
                     return doSaveFile(silent);
 
@@ -1208,7 +1208,7 @@ define(function(require, module, exports) {
 
                 saveTimer = setTimeout(function onSaveTimeout() {
                     saveTimer = pendingSave = null;
-                    emit("saved", {err: "File save timeout", code: "ETIMEOUT"});
+                    emit("saved", { err: "File save timeout", code: "ETIMEOUT" });
                 }, timeout || COLLAB_SAVE_FILE_TIMEOUT);
             }
 
@@ -1322,7 +1322,7 @@ define(function(require, module, exports) {
                  * Get the collab document id
                  * @property {String} id
                  */
-                get id()           { return docId; },
+                get id() { return docId; },
                 /**
                  * Gets the reason why we had to rejoin this document
                  * @property {Object} rejoinReason
@@ -1332,79 +1332,79 @@ define(function(require, module, exports) {
                  * Get the collab document file path
                  * @property {String} path
                  */
-                get path()         { return docId; },
+                get path() { return docId; },
                 /**
                  * The current state
                  * @property {String} state
                  */
-                get state()        { return state; },
+                get state() { return state; },
                 /**
                  * The current saveStateDebugging
                  * @property {String} saveStateDebugging
                  */
-                get stateWhenSaveCalled()        { return stateWhenSaveCalled; },
+                get stateWhenSaveCalled() { return stateWhenSaveCalled; },
                 /**
                  * The current saveStateDebugging
                  * @property {String} saveStateDebugging
                  */
-                get saveStateDebugging()        { return saveStateDebugging; },
+                get saveStateDebugging() { return saveStateDebugging; },
                 /**
                  * Get the collab Ace session
                 /**
                  * Get the collab Ace session
                  * @property {EditSession} session
                  */
-                get session()      { return session; },
+                get session() { return session; },
                 /**
                  * Get the collab document's original Cloud9 document
                  * @property {Document} c9Document
                  */
-                get original()     { return c9Document; },
+                get original() { return c9Document; },
                 /**
                  * Specifies wether the document is loading or not
                  * @property {Boolean} loading
                  */
-                get loading()      { return loading; },
+                get loading() { return loading; },
                 /**
                  * Specifies wether the document has finished loading or not
                  * @property {Boolean} loaded
                  */
-                get loaded()       { return loaded; },
+                get loaded() { return loaded; },
                 /**
                  * Specifies wether the document has inited with session or not
                  * @property {Boolean} inited
                  */
-                get inited()       { return inited; },
+                get inited() { return inited; },
                 /**
                  * Get the document's file system contents hash at the moment of joining
                  * @property {String} fsHash
                  */
-                get fsHash()       { return doc && doc.fsHash; },
+                get fsHash() { return doc && doc.fsHash; },
                 /**
                  * Get the document's contents hash at the moment of joining
                  * @property {String} docHash
                  */
-                get docHash()      { return doc && doc.docHash; },
+                get docHash() { return doc && doc.docHash; },
                 /**
                  * Get the document's authorship attributes
                  * @property {AuthorAttributes} authAttribs
                  */
-                get authAttribs()  { return doc ? doc.authAttribs : []; },
+                get authAttribs() { return doc ? doc.authAttribs : []; },
                 /**
                  * Get the revisions, if loaded
                  * @property [{Revision}] revisions
                  */
-                get revisions()    { return revisions; },
+                get revisions() { return revisions; },
                 /**
                  * Get the document's cursor layer if the document was inited
                  * @property {CursorLayer} cursorLayer
                  */
-                get cursorLayer()  { return cursorLayer; },
+                get cursorLayer() { return cursorLayer; },
                 /**
                  * Get the document's authorship info layer if the document was inited
                  * @property {AuthorLayer} authorLayer
                  */
-                get authorLayer()  { return authorLayer; },
+                get authorLayer() { return authorLayer; },
                 /**
                  * Get the latest revision number
                  * @property {Number} latestRevNum
@@ -1414,7 +1414,7 @@ define(function(require, module, exports) {
                  * Indicates wether the collab document has unsaved changes.
                  * @property {Boolean} changed
                  */
-                get changed()      { return isChanged(); },
+                get changed() { return isChanged(); },
                 /**
                  * Indicates whether the document has changes that pend sending to the server.
                  * @property {Boolean} pendingUpdates

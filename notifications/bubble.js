@@ -28,14 +28,14 @@ define(function(require, exports, module) {
             if (loaded) return false;
             loaded = true;
             
-            settings.on("read", function(){
+            settings.on("read", function() {
                 settings.setDefaults("user/collab", [["showbubbles", "true"]]);
-            })
+            });
             
             prefs.add({
-                "General" : {
-                    "Collaboration" : {
-                        "Show Notification Bubbles" : {
+                "General": {
+                    "Collaboration": {
+                        "Show Notification Bubbles": {
                             type: "checkbox",
                             position: 1000,
                             path: "user/collab/@showbubbles"
@@ -53,13 +53,13 @@ define(function(require, exports, module) {
             ui.insertSkin({
                 name: "bubble",
                 data: skin,
-                "media-path" : staticPrefix + "/images/"
+                "media-path": staticPrefix + "/images/"
             }, plugin);
             
             ui.insertMarkup(layout.findParent(plugin), markup, plugin);
             ntNotifications = plugin.getElement("ntNotifications");
             
-            ntNotifications.on("closed", function(e){
+            ntNotifications.on("closed", function(e) {
                emit("closed", { html: e.html });
             });
             

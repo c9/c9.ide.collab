@@ -50,12 +50,12 @@ define(function(require, module, exports) {
             }, plugin);
 
             var btn = new ui.button({
-                "skin"    : "c9-menu-btn",
-                "caption" : "Share",
-                "class"   : "c9-share",
-                "tooltip" : "Share this workspace",
+                "skin": "c9-menu-btn",
+                "caption": "Share",
+                "class": "c9-share",
+                "tooltip": "Share this workspace",
                 // "width"   : 80,
-                "command" : "sharedialog"
+                "command": "sharedialog"
             });
 
             menus.addItemByPath("Window/~", new ui.divider(), 35, plugin);
@@ -67,7 +67,7 @@ define(function(require, module, exports) {
                 name: "preferences"
             }), btn, 875, plugin);
 
-            settings.on("read", function(){
+            settings.on("read", function() {
                 settings.setDefaults("project/share", [
                     ["preview", false],
                     ["app", false],
@@ -77,7 +77,7 @@ define(function(require, module, exports) {
         }
 
         var drawn = false;
-        function draw(){
+        function draw() {
             if (drawn) return;
             drawn = true;
 
@@ -88,11 +88,11 @@ define(function(require, module, exports) {
                 name: plugin.name,
                 bindKey: { mac: "ESC", win: "ESC" },
                 group: "ignore",
-                isAvailable: function(){
+                isAvailable: function() {
                     return dialog.visible;
                 },
-                exec: function(){
-                    dialog.dispatchEvent("keydown", { keyCode : 27 });
+                exec: function() {
+                    dialog.dispatchEvent("keydown", { keyCode: 27 });
                 }
             }, plugin);
 
@@ -118,12 +118,12 @@ define(function(require, module, exports) {
             var mnuLink = new Menu({
                 zindex: 500000,
                 items: [
-                    new MenuItem({ caption: "Open", onclick: function(){
+                    new MenuItem({ caption: "Open", onclick: function() {
                         window.open(mnuLink.meta.linkText);
-                    }}),
-                    new MenuItem({ caption: "Copy", onclick: function(){
+                    } }),
+                    new MenuItem({ caption: "Copy", onclick: function() {
                         clipboard.copy(false, mnuLink.meta.linkText);
-                    }})
+                    } })
                 ]
             }, plugin);
 
@@ -141,12 +141,12 @@ define(function(require, module, exports) {
                 : "http://localhost") + port;
             shareLinkPreview.innerHTML = options.previewUrl;
             
-            [shareLinkEditor, shareLinkApp, shareLinkPreview].forEach(function(div){
-                div.addEventListener("click", function(e){
+            [shareLinkEditor, shareLinkApp, shareLinkPreview].forEach(function(div) {
+                div.addEventListener("click", function(e) {
                     mnuLink.meta.linkText = this.innerHTML;
                     mnuLink.show(e.clientX + 1, e.clientY);
                 });
-                div.addEventListener("contextmenu", function(e){
+                div.addEventListener("contextmenu", function(e) {
                     var sel = window.getSelection();
                     var r = new Range();
                     r.selectNode(e.currentTarget);
@@ -168,7 +168,7 @@ define(function(require, module, exports) {
                 "preview": ["the preview of workspace files"]
             };
 
-            function updateAccess(field, value, cb, callback){
+            function updateAccess(field, value, cb, callback) {
                 var to = value ? "public" : "private";
                 
                 question.show(
@@ -187,7 +187,7 @@ define(function(require, module, exports) {
                         : "Are you sure you want to make this change? Only users "
                             + "with read-only or read-write access will be able to "
                             + "access " + words[field] + "."),
-                    function(){ // Yes
+                    function() { // Yes
                         cb.disable();
                         var key = field == "visibility" ? field : field + "Access";
                         var body = {};
@@ -230,21 +230,21 @@ define(function(require, module, exports) {
                             }
                         });
                     },
-                    function(){ // No
+                    function() { // No
                         cb[value ? "uncheck" : "check"]();
                     }
                 );
             }
             
-            publicEditor.on("afterchange", function(e){
-                updateAccess("visibility", e.value, publicEditor, function(err){
+            publicEditor.on("afterchange", function(e) {
+                updateAccess("visibility", e.value, publicEditor, function(err) {
                     syncPermissions();
                 });
             });
-            publicApp.on("afterchange", function(e){
+            publicApp.on("afterchange", function(e) {
                 updateAccess("app", e.value, publicApp);
             });
-            publicPreview.on("afterchange", function(e){
+            publicPreview.on("afterchange", function(e) {
                 updateAccess("preview", e.value, publicPreview);
             });
             
@@ -270,7 +270,7 @@ define(function(require, module, exports) {
             emit.sticky("draw");
         }
         
-        function syncPermissions(){
+        function syncPermissions() {
             api.collab.get("access_info", function (err, info) {
                 if (err) return;
                 
@@ -285,7 +285,7 @@ define(function(require, module, exports) {
 
         /***** Methods *****/
 
-        function inviteUser(){
+        function inviteUser() {
             var username = txtUsername.value;
             // remove whitespace and surrounding < > from email
             username = username.replace(/^\s*(<\s*)?|\s*(>\s*)?$/g, "");
@@ -308,7 +308,7 @@ define(function(require, module, exports) {
             });
         }
 
-        function show(){
+        function show() {
             draw();
             dialog.show();
             membersPanel.show();
@@ -322,7 +322,7 @@ define(function(require, module, exports) {
             dialog && dialog.hide();
         }
 
-        plugin.on("load", function(){
+        plugin.on("load", function() {
             load();
         });
 

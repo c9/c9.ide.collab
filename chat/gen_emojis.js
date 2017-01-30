@@ -11,7 +11,7 @@ var json = {
 };
 lines.forEach(function(line, i) {
     if (!/([a-f0-9]{4,4})\s*(:[\w_\-\+]*:)/.test(line))
-        return console.log("ERR: no match in line", i+1, ":", line);
+        return console.log("ERR: no match in line", i + 1, ":", line);
 
     var parts = line.split(/[\s]+/);
     var code = parts.shift();
